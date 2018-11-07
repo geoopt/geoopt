@@ -63,9 +63,9 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
                     else:
                         d_p = buf.clone()
                     # we have all the things projected
-                    buf.data.set_(transp(p.data, d_p, buf, -group["lr"], project=False))
-                    p.data.set_(retr(p.data, d_p, -group["lr"], project=False))
+                    buf.data.set_(transp(p.data, d_p, buf, -group["lr"]))
+                    p.data.set_(retr(p.data, d_p, -group["lr"]))
                 else:
-                    p.data.set_(retr(p.data, d_p, -group["lr"], project=False))
+                    p.data.set_(retr(p.data, d_p, -group["lr"]))
                 state["step"] += 1
         return loss
