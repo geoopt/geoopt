@@ -1,5 +1,6 @@
 import abc
 import torch
+from . import util
 
 
 class Manifold(metaclass=abc.ABCMeta):
@@ -56,8 +57,8 @@ class Stiefel(Manifold):
         return p @ u
 
     def projx(self, x):
-        U, d, V = torch.svd(x)
-        return torch.einsum('...ik,...k,...jk->ij', [U, torch.ones_like(d), V])
+        U, d, V = util.svd(x)
+        return torch.einsum('...ik,...k,...jk->...ij', [U, torch.ones_like(d), V])
 
     def retr(self, x, u, t, project=True):
         a = self.amat(x, u, project=project)
