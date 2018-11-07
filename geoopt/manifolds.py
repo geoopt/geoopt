@@ -62,8 +62,8 @@ class Stiefel(Manifold):
 
     def retr(self, x, u, t, project=True):
         a = self.amat(x, u, project=project)
-        rhs = x - t / 2 * a @ x
-        lhs = t / 2 * a
+        rhs = x + t / 2 * a @ x
+        lhs = - t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
         qx, _ = torch.gesv(rhs, lhs)
         return qx
@@ -73,8 +73,8 @@ class Stiefel(Manifold):
 
     def transp(self, x, u, v, t, project=True):
         a = self.amat(x, u, project=project)
-        rhs = v - t / 2 * a @ v
-        lhs = t / 2 * a
+        rhs = v + t / 2 * a @ v
+        lhs = - t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
         qv, _ = torch.gesv(rhs, lhs)
         return qv
