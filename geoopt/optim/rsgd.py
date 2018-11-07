@@ -61,10 +61,11 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
                     if nesterov:
                         d_p = d_p.add(momentum, buf)
                     else:
-                        d_p = buf
-                    p.data.set_(retr(p.data, d_p, -group["lr"]))
-                    buf.data.set_(transp(p.data, d_p, buf, -group["lr"]))
+                        d_p = buf.clone()
+                    # we have all the things projected
+                    buf.data.set_(transp(p.data, d_p, buf, -group["lr"], project=False))
+                    p.data.set_(retr(p.data, d_p, -group["lr"], project=False))
                 else:
-                    p.data.set_(retr(p.data, d_p, -group["lr"]))
+                    p.data.set_(retr(p.data, d_p, -group["lr"], project=False))
                 state["step"] += 1
         return loss

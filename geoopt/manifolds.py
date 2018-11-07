@@ -60,8 +60,8 @@ class Stiefel(Manifold):
         U, d, V = util.svd(x)
         return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
 
-    def retr(self, x, u, t, project=True):
-        a = self.amat(x, u, project=project)
+    def retr(self, x, u, t):
+        a = self.amat(x, u, project=False)
         rhs = x + t / 2 * a @ x
         lhs = -t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
@@ -71,8 +71,8 @@ class Stiefel(Manifold):
     def inner(self, x, u, v):
         return (u * v).sum([-1, -2])
 
-    def transp(self, x, u, v, t, project=True):
-        a = self.amat(x, u, project=project)
+    def transp(self, x, u, v, t):
+        a = self.amat(x, u, project=False)
         rhs = v + t / 2 * a @ v
         lhs = -t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
