@@ -52,18 +52,18 @@ class Stiefel(Manifold):
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
     def proju(self, x, u):
-        p = - 0.5 * x @ x.transpose(-1, -2)
+        p = -0.5 * x @ x.transpose(-1, -2)
         p[..., range(x.shape[-2]), range(x.shape[-2])] += 1
         return p @ u
 
     def projx(self, x):
         U, d, V = util.svd(x)
-        return torch.einsum('...ik,...k,...jk->...ij', [U, torch.ones_like(d), V])
+        return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
 
     def retr(self, x, u, t, project=True):
         a = self.amat(x, u, project=project)
         rhs = x + t / 2 * a @ x
-        lhs = - t / 2 * a
+        lhs = -t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
         qx, _ = torch.gesv(rhs, lhs)
         return qx
@@ -74,7 +74,7 @@ class Stiefel(Manifold):
     def transp(self, x, u, v, t, project=True):
         a = self.amat(x, u, project=project)
         rhs = v + t / 2 * a @ v
-        lhs = - t / 2 * a
+        lhs = -t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
         qv, _ = torch.gesv(rhs, lhs)
         return qv
