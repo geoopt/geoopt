@@ -4,7 +4,7 @@ from . import util
 
 
 class Manifold(metaclass=abc.ABCMeta):
-    name = ''
+    name = ""
 
     @abc.abstractmethod
     def check_dims(self, x):
@@ -48,14 +48,14 @@ class Manifold(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def __repr__(self):
-        return self.name + ' manifold'
+        return self.name + " manifold"
 
     def __eq__(self, other):
         return type(self) is type(other)
 
 
 class Rn(Manifold):
-    name = 'Rn'
+    name = "Rn"
 
     def check_dims(self, x):
         return True
@@ -77,7 +77,7 @@ class Rn(Manifold):
 
 
 class Stiefel(Manifold):
-    name = 'Stiefel'
+    name = "Stiefel"
 
     def check_dims(self, x):
         return x.dim() >= 2

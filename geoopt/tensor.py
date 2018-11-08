@@ -10,7 +10,9 @@ class ManifoldTensor(torch.Tensor):
     def __new__(cls, *args, manifold=Rn(), requires_grad=False, **kwargs):
         data = torch.Tensor.__new__(cls, *args, **kwargs)
         if not manifold.check_dims(data):
-            raise ValueError('Incorrect shape {} for manifold {}'.format(tuple(data.shape), manifold))
+            raise ValueError(
+                "Incorrect shape {} for manifold {}".format(tuple(data.shape), manifold)
+            )
         instance = torch.Tensor._make_subclass(cls, data, requires_grad)
         instance.manifold = manifold
         return instance
@@ -32,7 +34,9 @@ class ManifoldTensor(torch.Tensor):
         return self.manifold.transp(self, u, v, t)
 
     def __repr__(self):
-        return 'Tensor on {} containing:\n'.format(self.manifold) + torch.Tensor.__repr__(self)
+        return "Tensor on {} containing:\n".format(
+            self.manifold
+        ) + torch.Tensor.__repr__(self)
 
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
@@ -43,13 +47,17 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
             data = ManifoldTensor(data, manifold=manifold or Rn())
         else:
             if manifold is not None and data.manifold != manifold:
-                raise ValueError('Manifolds do not match: {}, {}'.format(data.manifold, manifold))
+                raise ValueError(
+                    "Manifolds do not match: {}, {}".format(data.manifold, manifold)
+                )
         instance = ManifoldTensor._make_subclass(cls, data, requires_grad)
         instance.manifold = data.manifold
         return instance
 
     def __repr__(self):
-        return 'Parameter on {} containing:\n'.format(self.manifold) + torch.Tensor.__repr__(self)
+        return "Parameter on {} containing:\n".format(
+            self.manifold
+        ) + torch.Tensor.__repr__(self)
 
     def __reduce_ex__(self, proto):
         return ManifoldParameter, (super(ManifoldParameter, self), self.requires_grad)
