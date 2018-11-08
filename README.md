@@ -1,4 +1,7 @@
 # geoopt
+
+[![Build Status](https://travis-ci.com/ferrine/geoopt.svg?branch=master)](https://travis-ci.com/ferrine/geoopt)
+
 Manifold aware `pytorch.optim`
 
 Unofficial implementation for ["Riemannian Adaptive Optimization Methods"](https://openreview.net/forum?id=r1eiqi09K7) ICLR2019 (they are likely to be accepted).
