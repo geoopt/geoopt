@@ -7,7 +7,6 @@ class RiemannianSGD(torch.optim.SGD):
     """Riemannian Stochastic Gradient Descent"""
 
     def __init__(self, *args, stabilize=None, **kwargs):
-        # this should be called first to initialize defaults
         self._stabilize = stabilize
         super().__init__(*args, **kwargs)
 
