@@ -5,13 +5,13 @@ import pytest
 
 
 @pytest.mark.parametrize(
-    'params',
+    "params",
     [
         dict(lr=1e-2),
-        dict(lr=1e-3, momentum=.9),
-        dict(momentum=.9, nesterov=True, lr=1e-3),
-        dict(momentum=.9, dampening=.1, lr=1e-3)
-    ]
+        dict(lr=1e-3, momentum=0.9),
+        dict(momentum=0.9, nesterov=True, lr=1e-3),
+        dict(momentum=0.9, dampening=0.1, lr=1e-3),
+    ],
 )
 def test_rsgd_stiefel(params):
     stiefel = geoopt.manifolds.Stiefel()
