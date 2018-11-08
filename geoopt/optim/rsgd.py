@@ -1,16 +1,14 @@
 import torch.optim
-from .mixin import RiemannianOptimMixin
 from ..manifolds import Rn
+from ..tensor import ManifoldParameter
 
 
-class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
+class RiemannianSGD(torch.optim.SGD):
     """Riemannian Stochastic Gradient Descent"""
 
-    def __init__(self, *args, manifold=Rn(), stabilize=1000, **kwargs):
+    def __init__(self, *args, stabilize=1000, **kwargs):
         # this should be called first to initialize defaults
-        RiemannianOptimMixin.__init__(
-            self, manifold=manifold, stabilize=stabilize
-        )
+        self.stabilize = stabilize
         super().__init__(*args, **kwargs)
 
     def step(self, closure=None):
@@ -28,13 +26,19 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
             momentum = group["momentum"]
             dampening = group["dampening"]
             nesterov = group["nesterov"]
-            proju = group["manifold"].proju
-            projx = group["manifold"].projx
-            retr = group["manifold"].retr
-            transp = group["manifold"].transp
-            stabilize = group["stabilize"]
+
+            stabilize = self.stabilize
 
             for p in group["params"]:
+                if isinstance(p, ManifoldParameter):
+                    manifold = p.manifold
+                else:
+                    manifold = Rn()
+                proju = manifold.proju
+                projx = manifold.projx
+                retr = manifold.retr
+                transp = manifold.transp
+
                 if p.grad is None:
                     continue
                 state = self.state[p]
