@@ -6,11 +6,12 @@ from ..manifolds import Rn
 class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
     """Riemannian Stochastic Gradient Descent"""
 
-    def __init__(self, *args, manifold=Rn(), proj_x_every=1000, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, manifold=Rn(), stabilize=1000, **kwargs):
+        # this should be called first to initialize defaults
         RiemannianOptimMixin.__init__(
-            self, manifold=manifold, proj_x_every=proj_x_every
+            self, manifold=manifold, stabilize=stabilize
         )
+        super().__init__(*args, **kwargs)
 
     def step(self, closure=None):
         """Performs a single optimization step.
@@ -22,15 +23,16 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
         loss = None
         if closure is not None:
             loss = closure()
-        proju = self.manifold.proju
-        projx = self.manifold.projx
-        retr = self.manifold.retr
-        transp = self.manifold.transp
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             momentum = group["momentum"]
             dampening = group["dampening"]
             nesterov = group["nesterov"]
+            proju = group["manifold"].proju
+            projx = group["manifold"].projx
+            retr = group["manifold"].retr
+            transp = group["manifold"].transp
+            stabilize = group["stabilize"]
 
             for p in group["params"]:
                 if p.grad is None:
@@ -43,7 +45,7 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
                 d_p = p.grad.data
                 if weight_decay != 0:
                     d_p.add_(weight_decay, p.data)
-                if state["step"] % self.proj_x_every == 0:
+                if state["step"] % stabilize == 0:
                     p.data.set_(projx(p.data))
                 d_p = proju(p.data, d_p)
                 if momentum != 0:
@@ -54,7 +56,7 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
                     else:
                         # buf is already transported
                         buf = param_state["momentum_buffer"]
-                        if state["step"] % self.proj_x_every == 0:
+                        if state["step"] % stabilize == 0:
                             # refining numerical issues
                             buf.data.set_(projx(buf.data))
                         buf.mul_(momentum).add_(1 - dampening, d_p)
