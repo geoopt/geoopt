@@ -1,14 +1,14 @@
 import torch.optim
 from ..manifolds import Rn
-from ..tensor import ManifoldParameter
+from ..tensor import ManifoldParameter, ManifoldTensor
 
 
 class RiemannianSGD(torch.optim.SGD):
     """Riemannian Stochastic Gradient Descent"""
 
-    def __init__(self, *args, stabilize=1000, **kwargs):
+    def __init__(self, *args, stabilize=None, **kwargs):
         # this should be called first to initialize defaults
-        self.stabilize = stabilize
+        self._stabilize = stabilize
         super().__init__(*args, **kwargs)
 
     def step(self, closure=None):
@@ -27,10 +27,10 @@ class RiemannianSGD(torch.optim.SGD):
             dampening = group["dampening"]
             nesterov = group["nesterov"]
 
-            stabilize = self.stabilize
+            stabilize = self._stabilize
 
             for p in group["params"]:
-                if isinstance(p, ManifoldParameter):
+                if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                     manifold = p.manifold
                 else:
                     manifold = Rn()
@@ -49,8 +49,6 @@ class RiemannianSGD(torch.optim.SGD):
                 d_p = p.grad.data
                 if weight_decay != 0:
                     d_p.add_(weight_decay, p.data)
-                if state["step"] % stabilize == 0:
-                    p.data.set_(projx(p.data))
                 d_p = proju(p.data, d_p)
                 if momentum != 0:
                     param_state = self.state[p]
@@ -60,9 +58,6 @@ class RiemannianSGD(torch.optim.SGD):
                     else:
                         # buf is already transported
                         buf = param_state["momentum_buffer"]
-                        if state["step"] % stabilize == 0:
-                            # refining numerical issues
-                            buf.data.set_(projx(buf.data))
                         buf.mul_(momentum).add_(1 - dampening, d_p)
                     if nesterov:
                         d_p = d_p.add(momentum, buf)
@@ -71,7 +66,27 @@ class RiemannianSGD(torch.optim.SGD):
                     # we have all the things projected
                     buf.data.set_(transp(p.data, d_p, buf, -group["lr"]))
                     p.data.set_(retr(p.data, d_p, -group["lr"]))
+                    if stabilize is not None and state["step"] % stabilize == 0:
+                        p.data.set_(projx(p.data))
+                        buf.data.set_(proju(p.data, buf))
                 else:
                     p.data.set_(retr(p.data, d_p, -group["lr"]))
+                    if stabilize is not None and state["step"] % stabilize == 0:
+                        p.data.set_(projx(p.data))
+
                 state["step"] += 1
         return loss
+
+    def stabilize(self):
+        for group in self.param_groups:
+            for p in group["params"]:
+                if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                    continue
+                manifold = p.manifold
+                momentum = group["momentum"]
+                p.data.set_(manifold.projx(p.data))
+                if momentum > 0:
+                    param_state = self.state[p]
+                    if "momentum_buffer" in param_state:
+                        buf = param_state["momentum_buffer"]
+                        buf.data.set_(manifold.proju(p.data, buf))
