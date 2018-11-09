@@ -2,6 +2,9 @@ import torch.nn
 from .manifolds import Rn
 
 
+__all__ = ["ManifoldTensor", "ManifoldParameter"]
+
+
 class ManifoldTensor(torch.Tensor):
     """A regular tensor that has information about its manifold.
     It is a very tiny wrapper over regular tensor so that all API is the same
