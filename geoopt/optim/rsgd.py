@@ -2,6 +2,8 @@ import torch.optim
 from ..manifolds import Rn
 from ..tensor import ManifoldParameter, ManifoldTensor
 
+__all__ = ["RiemannianSGD"]
+
 
 class RiemannianSGD(torch.optim.SGD):
     """Riemannian Stochastic Gradient Descent"""

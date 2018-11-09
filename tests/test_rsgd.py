@@ -55,4 +55,4 @@ def test_init_manifold():
     opt.step()
     assert not np.allclose(p0.data, p0old.data)
     np.testing.assert_allclose(p1.data, p1old.data)
-    np.testing.assert_allclose(p0.data, stiefel.projx(p0old.data))
+    np.testing.assert_allclose(p0.data, stiefel.projx(p0old.data), atol=1e-4)

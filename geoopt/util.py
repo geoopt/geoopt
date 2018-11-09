@@ -1,6 +1,8 @@
 import torch
 import itertools
 
+__all__ = ["svd"]
+
 
 def svd(x):
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
