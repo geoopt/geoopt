@@ -2,6 +2,8 @@ import abc
 import torch
 from . import util
 
+__all__ = ["Manifold", "Rn", "Stiefel"]
+
 
 class Manifold(metaclass=abc.ABCMeta):
     name = ""
