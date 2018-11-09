@@ -5,5 +5,5 @@ if __name__ == '__main__':
         name='geoopt',
         author='Maxim Kochurov',
         packages=find_packages(),
-        install_requires=['torch']
+        install_requires=['torch', 'numpy']
     )

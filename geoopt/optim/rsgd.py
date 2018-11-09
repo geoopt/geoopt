@@ -1,16 +1,14 @@
 import torch.optim
-from .mixin import RiemannianOptimMixin
 from ..manifolds import Rn
+from ..tensor import ManifoldParameter, ManifoldTensor
 
 
-class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
+class RiemannianSGD(torch.optim.SGD):
     """Riemannian Stochastic Gradient Descent"""
 
-    def __init__(self, *args, manifold=Rn(), proj_x_every=1000, **kwargs):
+    def __init__(self, *args, stabilize=None, **kwargs):
+        self._stabilize = stabilize
         super().__init__(*args, **kwargs)
-        RiemannianOptimMixin.__init__(
-            self, manifold=manifold, proj_x_every=proj_x_every
-        )
 
     def step(self, closure=None):
         """Performs a single optimization step.
@@ -22,17 +20,24 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
         loss = None
         if closure is not None:
             loss = closure()
-        proju = self.manifold.proju
-        projx = self.manifold.projx
-        retr = self.manifold.retr
-        transp = self.manifold.transp
         for group in self.param_groups:
             weight_decay = group["weight_decay"]
             momentum = group["momentum"]
             dampening = group["dampening"]
             nesterov = group["nesterov"]
 
+            stabilize = self._stabilize
+
             for p in group["params"]:
+                if isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                    manifold = p.manifold
+                else:
+                    manifold = Rn()
+                proju = manifold.proju
+                projx = manifold.projx
+                retr = manifold.retr
+                transp = manifold.transp
+
                 if p.grad is None:
                     continue
                 state = self.state[p]
@@ -43,8 +48,6 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
                 d_p = p.grad.data
                 if weight_decay != 0:
                     d_p.add_(weight_decay, p.data)
-                if state["step"] % self.proj_x_every == 0:
-                    p.data.set_(projx(p.data))
                 d_p = proju(p.data, d_p)
                 if momentum != 0:
                     param_state = self.state[p]
@@ -54,9 +57,6 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
                     else:
                         # buf is already transported
                         buf = param_state["momentum_buffer"]
-                        if state["step"] % self.proj_x_every == 0:
-                            # refining numerical issues
-                            buf.data.set_(projx(buf.data))
                         buf.mul_(momentum).add_(1 - dampening, d_p)
                     if nesterov:
                         d_p = d_p.add(momentum, buf)
@@ -65,7 +65,27 @@ class RiemannianSGD(torch.optim.SGD, RiemannianOptimMixin):
                     # we have all the things projected
                     buf.data.set_(transp(p.data, d_p, buf, -group["lr"]))
                     p.data.set_(retr(p.data, d_p, -group["lr"]))
+                    if stabilize is not None and state["step"] % stabilize == 0:
+                        p.data.set_(projx(p.data))
+                        buf.data.set_(proju(p.data, buf))
                 else:
                     p.data.set_(retr(p.data, d_p, -group["lr"]))
+                    if stabilize is not None and state["step"] % stabilize == 0:
+                        p.data.set_(projx(p.data))
+
                 state["step"] += 1
         return loss
+
+    def stabilize(self):
+        for group in self.param_groups:
+            for p in group["params"]:
+                if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                    continue
+                manifold = p.manifold
+                momentum = group["momentum"]
+                p.data.set_(manifold.projx(p.data))
+                if momentum > 0:
+                    param_state = self.state[p]
+                    if "momentum_buffer" in param_state:
+                        buf = param_state["momentum_buffer"]
+                        buf.data.set_(manifold.proju(p.data, buf))
