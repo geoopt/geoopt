@@ -34,3 +34,4 @@ All above containers have special methods to work with them as with points on a 
 ### Optimizers
 
 * `geoopt.RiemannianSGD` -- a subclass of `torch.optim.SGD` with the same API
+* `geoopt.RiemannianAdam` -- a subclass of `torch.optim.Adam`
