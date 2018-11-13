@@ -7,15 +7,24 @@ __all__ = ["Manifold", "Rn", "Stiefel"]
 
 class Manifold(metaclass=abc.ABCMeta):
     name = ""
+    ndim = 0
+
+    def broadcast_scalar(self, t):
+        if isinstance(t, torch.Tensor):
+            extra = (1, ) * self.ndim
+            t = t.view(*(t.shape + extra))
+        return t
 
     @abc.abstractmethod
     def check_dims(self, x):
         raise NotImplementedError
 
     def retr(self, x, u, t):
+        t = self.broadcast_scalar(t)
         return self._retr(x, u, t)
 
     def transp(self, x, u, v, t):
+        t = self.broadcast_scalar(t)
         return self._transp(x, u, v, t)
 
     def inner(self, x, u, v=None):
@@ -58,6 +67,7 @@ class Manifold(metaclass=abc.ABCMeta):
 
 class Rn(Manifold):
     name = "Rn"
+    ndim = 0
 
     def check_dims(self, x):
         return True
@@ -80,6 +90,7 @@ class Rn(Manifold):
 
 class Stiefel(Manifold):
     name = "Stiefel"
+    ndim = 2
 
     def check_dims(self, x):
         return x.dim() >= 2
