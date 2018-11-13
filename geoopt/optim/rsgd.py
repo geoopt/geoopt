@@ -1,16 +1,13 @@
 import torch.optim
 from ..manifolds import Rn
 from ..tensor import ManifoldParameter, ManifoldTensor
+from .mixin import OptimMixin
 
 __all__ = ["RiemannianSGD"]
 
 
-class RiemannianSGD(torch.optim.SGD):
+class RiemannianSGD(OptimMixin, torch.optim.SGD):
     """Riemannian Stochastic Gradient Descent"""
-
-    def __init__(self, *args, stabilize=None, **kwargs):
-        self._stabilize = stabilize
-        super().__init__(*args, **kwargs)
 
     def step(self, closure=None):
         """Performs a single optimization step.
