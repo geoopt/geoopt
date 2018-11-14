@@ -85,6 +85,21 @@ class RHMC(OptimMixin, Sampler):
         self.n_steps = n_steps
 
 
+    def _step(self, p, r, epsilon):
+        if isinstance(p, (ManifoldParameter, ManifoldTensor)):
+            manifold = p.manifold
+        else:
+            manifold = Rn()
+
+        proju = manifold.proju
+        retr_transp = manifold.retr_transp
+
+        r.add_(epsilon * proju(p.data, p.grad))
+        p_, r_ = retr_transp(p.data, r, epsilon)
+        p.data.set_(p_)
+        r.set_(r_)
+
+
     def step(self, closure):
         """Performs a single sampling step.
 
@@ -127,12 +142,13 @@ class RHMC(OptimMixin, Sampler):
                 state['old_r'].copy_(r)
         
                 epsilon = group['epsilon']
+                self._step(p, r, epsilon)
 
-                r.add_(0.5 * epsilon * proju(p.data, p.grad))
-                
-                p_, r_ = retr_transp(p.data, r, epsilon)
-                p.data.set_(p_)
-                r.set_(r_)
+                #r.add_(0.5 * epsilon * proju(p.data, p.grad))
+                #
+                #p_, r_ = retr_transp(p.data, r, epsilon)
+                #p.data.set_(p_)
+                #r.set_(r_)
 
                 p.grad.data.zero_()
 
@@ -143,23 +159,8 @@ class RHMC(OptimMixin, Sampler):
                 for p in group['params']:
                     if p.grad is None:
                         continue
-
-                    if isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                        manifold = p.manifold
-                    else:
-                        manifold = Rn()
-
-                    proju = manifold.proju
-                    retr_transp = manifold.retr_transp
-
-                    r = self.state[p]['r']
-                    epsilon = group['epsilon']
-
-                    r.add_(epsilon * proju(p.data, p.grad))
-                    p_, r_ = retr_transp(p.data, r, epsilon)
-                    p.data.set_(p_)
-                    r.set_(r_)
-
+                    
+                    self._step(p, self.state[p]['r'], group['epsilon'])
                     p.grad.data.zero_()
 
         logp = closure()
