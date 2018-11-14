@@ -27,7 +27,7 @@ class Sampler(optim.Optimizer):
             return 0.0
 
 
-class RSGLD(OptimMixin, SGLD):
+class RSGLD(OptimMixin, Sampler):
     """Riemannian Stochastic Gradient Langevin Dynamics"""
 
     def __init__(self, params, epsilon=1e-3):
@@ -76,12 +76,12 @@ class RSGLD(OptimMixin, SGLD):
                 p.data.set_(p.manifold.projx(p.data))
 
 
-class RHMC(OptimMixin, HMC):
+class RHMC(OptimMixin, Sampler):
     """Riemannian Hamiltonian Monte-Carlo"""
 
     def __init__(self, params, epsilon=1e-3, n_steps=1):
         defaults = dict(epsilon=epsilon)
-        super(HMC, self).__init__(params, defaults)
+        super().__init__(params, defaults)
         self.n_steps = n_steps
 
 
@@ -218,12 +218,12 @@ class RHMC(OptimMixin, HMC):
             self.log_probs.append(new_logp)
 
 
-class SGRHMC(SGHMC):
+class SGRHMC(OptimMixin, Sampler):
     """Stochastic Gradient Riemannian Hamiltonian Monte-Carlo"""
     
     def __init__(self, params, epsilon=1e-3, n_steps=1, alpha=0.1):
         defaults = dict(epsilon=epsilon, alpha=alpha)
-        super(SGHMC, self).__init__(params, defaults)
+        super().__init__(params, defaults)
         self.n_steps = n_steps
     
 
