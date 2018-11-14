@@ -26,6 +26,9 @@ class RHMC(OptimMixin, HMC):
         
         for group in self.param_groups:
             for p in group['params']:
+                if p.grad is None:
+                    continue
+
                 if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                     manifold = p.manifold
                 else:
@@ -46,7 +49,7 @@ class RHMC(OptimMixin, HMC):
 
                 old_H += 0.5 * (r * r).sum().item()
         
-                state['old_p'].copy_(p)
+                state['old_p'].copy_(p.data)
                 state['old_r'].copy_(r)
         
                 epsilon = group['epsilon']
@@ -64,6 +67,9 @@ class RHMC(OptimMixin, HMC):
             logp.backward()
             for group in self.param_groups:
                 for p in group['params']:
+                    if p.grad is None:
+                        continue
+
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
@@ -93,6 +99,9 @@ class RHMC(OptimMixin, HMC):
 
         for group in self.param_groups:
             for p in group['params']:
+                if p.grad is None:
+                    continue
+
                 if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                     manifold = p.manifold
                 else:
@@ -122,10 +131,13 @@ class RHMC(OptimMixin, HMC):
        
             for group in self.param_groups:
                 for p in group['params']:
+                    if p.grad is None:
+                        continue
+
                     state = self.state[p]
                     r = state['r']
-                    p.data.set_(state['old_p'])
-                    r.set_(state['old_r'])
+                    p.data.copy_(state['old_p'])
+                    r.copy_(state['old_r'])
 
             self.log_probs.append(old_logp)
         else:
