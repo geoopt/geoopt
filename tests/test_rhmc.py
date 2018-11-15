@@ -56,3 +56,43 @@ def test_leapfrog_reversibility(params):
 
     new_x = nd.x.data.numpy().copy()
     np.testing.assert_allclose(init_x, new_x, rtol=1e-5)
+
+
+def test_sampling():
+    class NormalDist(torch.nn.Module):
+        def __init__(self, mu, sigma):
+            super().__init__()
+            self.d = torch.distributions.Normal(mu, sigma)
+            self.x = torch.nn.Parameter(torch.randn_like(mu))
+
+        
+        def forward(self):
+            return self.d.log_prob(self.x).sum()
+    
+    torch.manual_seed(42)
+    D = 2
+    n_burn = 1000
+    n_samples = 5000
+
+    mu = torch.randn([D])
+    sigma = torch.randn([D]).abs()
+
+    nd = NormalDist(mu, sigma)
+    sampler = geoopt.samplers.RHMC(nd.parameters(), n_steps=5, epsilon=0.2)
+
+    for _ in range(n_burn):
+        sampler.step(nd)
+
+    points = []
+    sampler.burnin = False
+
+    for _ in range(n_samples):
+        sampler.step(nd)
+        points.append(nd.x.detach().numpy().copy())
+
+    print(sampler.rejection_rate)
+    points = np.asarray(points)
+
+    assert points.shape == (n_samples, D)
+    np.testing.assert_allclose(mu.numpy(), points.mean(axis=0), atol=1e-2)
+    np.testing.assert_allclose(sigma.numpy(), points.std(axis=0), atol=1e-2)
