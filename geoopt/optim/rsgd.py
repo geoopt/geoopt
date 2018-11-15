@@ -72,7 +72,7 @@ class RiemannianSGD(OptimMixin, torch.optim.SGD):
                     if stabilize is not None and state["step"] % stabilize == 0:
                         p.data.set_(projx(p.data))
 
-                state["step"] += 1
+                state ["step"] += 1
         return loss
 
     def stabilize(self):
