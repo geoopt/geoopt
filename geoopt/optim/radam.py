@@ -20,7 +20,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         stabilize = self._stabilize
 
         for group in self.param_groups:
-            for p in group['params']:
+            for p in group["params"]:
                 if p.grad is None:
                     continue
                 if isinstance(p, (ManifoldParameter, ManifoldTensor)):
@@ -38,32 +38,38 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 grad = proju(p.data, grad)
 
                 if grad.is_sparse:
-                    raise RuntimeError('Adam does not support sparse gradients, please consider SparseAdam instead')
-                amsgrad = group['amsgrad']
+                    raise RuntimeError(
+                        "Adam does not support sparse gradients, please consider SparseAdam instead"
+                    )
+                amsgrad = group["amsgrad"]
 
                 state = self.state[p]
 
                 # State initialization
                 if len(state) == 0:
-                    state['step'] = 0
+                    state["step"] = 0
                     # Exponential moving average of gradient values
-                    state['exp_avg'] = torch.zeros_like(p.data)
+                    state["exp_avg"] = torch.zeros_like(p.data)
                     # Exponential moving average of squared gradient values
-                    state['exp_avg_sq'] = torch.zeros(p.shape[:-manifold.ndim], dtype=p.dtype, device=p.device)
+                    state["exp_avg_sq"] = torch.zeros(
+                        p.shape[: -manifold.ndim], dtype=p.dtype, device=p.device
+                    )
                     if amsgrad:
                         # Maintains max of all exp. moving avg. of sq. grad. values
-                        state['max_exp_avg_sq'] = torch.zeros(p.shape[:-manifold.ndim], dtype=p.dtype, device=p.device)
+                        state["max_exp_avg_sq"] = torch.zeros(
+                            p.shape[: -manifold.ndim], dtype=p.dtype, device=p.device
+                        )
 
                 # this is assumed to be already transported
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+                exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
                 if amsgrad:
-                    max_exp_avg_sq = state['max_exp_avg_sq']
-                beta1, beta2 = group['betas']
+                    max_exp_avg_sq = state["max_exp_avg_sq"]
+                beta1, beta2 = group["betas"]
 
-                state['step'] += 1
+                state["step"] += 1
 
-                if group['weight_decay'] != 0:
-                    grad = grad.add(group['weight_decay'], p.data)
+                if group["weight_decay"] != 0:
+                    grad = grad.add(group["weight_decay"], p.data)
 
                 # Decay the first and second moment running average coefficient
                 # these vectors are on tangent space and can be combined
@@ -73,13 +79,13 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     # Maintains the maximum of all 2nd moment running avg. till now
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                     # Use the max. for normalizing running avg. of gradient
-                    denom = max_exp_avg_sq.sqrt().add_(group['eps'])
+                    denom = max_exp_avg_sq.sqrt().add_(group["eps"])
                 else:
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
+                    denom = exp_avg_sq.sqrt().add_(group["eps"])
                 denom = manifold.broadcast_scalar(denom)
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
-                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
+                bias_correction1 = 1 - beta1 ** state["step"]
+                bias_correction2 = 1 - beta2 ** state["step"]
+                step_size = group["lr"] * math.sqrt(bias_correction2) / bias_correction1
 
                 # copy the state, we need it for retraction
                 exp_avg_old = exp_avg.clone()
@@ -90,7 +96,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 # use the saved direction to calculate the new point
                 p.data.set_(retr(p.data, direction, -step_size))
                 # now all: point, exp-avg direction are already on manifold
-                if stabilize is not None and (state['step'] - 1) % stabilize == 0:
+                if stabilize is not None and (state["step"] - 1) % stabilize == 0:
                     p.data.set_(projx(p.data))
                     exp_avg.set_(proju(p.data, exp_avg))
         return loss
@@ -102,6 +108,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     continue
                 state = self.state[p]
                 manifold = p.manifold
-                exp_avg = state['exp_avg']
+                exp_avg = state["exp_avg"]
                 p.data.set_(manifold.projx(p.data))
                 exp_avg.set_(manifold.proju(p.data, exp_avg))

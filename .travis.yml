@@ -9,5 +9,5 @@ install:
 
 
 script:
-  - black --diff geoopt
+  - black --check --diff geoopt
   - py.test -v
