@@ -58,7 +58,15 @@ def test_leapfrog_reversibility(params):
     np.testing.assert_allclose(init_x, new_x, rtol=1e-5)
 
 
-def test_sampling():
+@pytest.mark.parametrize(
+    "params",
+    [
+        dict(sampler='RHMC'  , epsilon=0.2, n_steps=5, n_burn=1000, n_samples=5000),
+        dict(sampler='RSGLD' , epsilon=1e-3, n_burn=3000, n_samples=10000),
+        dict(sampler='SGRHMC', epsilon=1e-3, n_steps=1, alpha=0.5, n_burn=3000, n_samples=10000)
+    ],
+)
+def test_sampling(params):
     class NormalDist(torch.nn.Module):
         def __init__(self, mu, sigma):
             super().__init__()
@@ -71,14 +79,15 @@ def test_sampling():
     
     torch.manual_seed(42)
     D = 2
-    n_burn = 1000
-    n_samples = 5000
+    n_burn, n_samples = params.pop('n_burn'), params.pop('n_samples')
 
     mu = torch.randn([D])
     sigma = torch.randn([D]).abs()
 
     nd = NormalDist(mu, sigma)
-    sampler = geoopt.samplers.RHMC(nd.parameters(), n_steps=5, epsilon=0.2)
+    Sampler = getattr(geoopt.samplers, params.pop('sampler'))
+    sampler = Sampler(nd.parameters(), **params)
+    #sampler = geoopt.samplers.RHMC(nd.parameters(), n_steps=5, epsilon=0.2)
 
     for _ in range(n_burn):
         sampler.step(nd)
@@ -90,9 +99,9 @@ def test_sampling():
         sampler.step(nd)
         points.append(nd.x.detach().numpy().copy())
 
-    print(sampler.rejection_rate)
     points = np.asarray(points)
+    points = points[::20]
 
-    assert points.shape == (n_samples, D)
-    np.testing.assert_allclose(mu.numpy(), points.mean(axis=0), atol=1e-2)
-    np.testing.assert_allclose(sigma.numpy(), points.std(axis=0), atol=1e-2)
+    #assert points.shape == (n_samples, D)
+    np.testing.assert_allclose(mu.numpy(), points.mean(axis=0), atol=1e-1)
+    np.testing.assert_allclose(sigma.numpy(), points.std(axis=0), atol=1e-1)
