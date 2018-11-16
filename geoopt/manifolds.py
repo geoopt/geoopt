@@ -38,6 +38,11 @@ class Manifold(metaclass=abc.ABCMeta):
     def projx(self, x):
         return self._projx(x)
 
+    def retr_transp(self, x, u, t):
+        new_x = self.retr(x, u, t)
+        new_u = self.transp(x, u, u, t)
+        return new_x, new_u
+
     @abc.abstractmethod
     def _retr(self, x, u, t):
         raise NotImplementedError
