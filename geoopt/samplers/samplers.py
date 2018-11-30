@@ -7,6 +7,8 @@ from ..tensor import ManifoldParameter, ManifoldTensor
 from ..manifolds import Rn
 from ..optim.mixin import OptimMixin
 
+__all__ = ["RSGLD", "SGRHMC"]
+
 
 class Sampler(OptimMixin, optim.Optimizer):
     def __init__(self, params, defaults):
@@ -119,7 +121,6 @@ class RHMC(Sampler):
                     manifold = Rn()
 
                 proju = manifold.proju
-                retr_transp = manifold.retr_transp
                 state = self.state[p]
 
                 if "r" not in state:
@@ -138,13 +139,6 @@ class RHMC(Sampler):
 
                 epsilon = group["epsilon"]
                 self._step(p, r, epsilon)
-
-                # r.add_(0.5 * epsilon * proju(p.data, p.grad))
-                #
-                # p_, r_ = retr_transp(p.data, r, epsilon)
-                # p.data.set_(p_)
-                # r.set_(r_)
-
                 p.grad.data.zero_()
 
         for i in range(1, self.n_steps):
@@ -164,9 +158,6 @@ class RHMC(Sampler):
         new_logp = logp.item()
         new_H = -new_logp
 
-        # is_nan = False
-        # is_inf = False
-
         for group in self.param_groups:
             for p in group["params"]:
                 if p.grad is None:
@@ -185,16 +176,12 @@ class RHMC(Sampler):
 
                 new_H += 0.5 * (r * r).sum().item()
 
-                # is_nan = is_nan or np.isnan(p.cpu().detach().numpy()).any()
-                # is_inf = is_inf or np.isnan(p.cpu().detach().numpy()).any()
-
         rho = min(1.0, math.exp(old_H - new_H))
 
         if not self.burnin:
             self.steps += 1
             self.acceptance_probs.append(rho)
 
-        # if is_inf or is_nan or np.random.rand(1) >= rho: # reject
         if np.random.rand(1) >= rho:  # reject
             if not self.burnin:
                 self.n_rejected += 1
