@@ -12,6 +12,13 @@ __all__ = ["RSGLD", "SGRHMC"]
 
 class Sampler(OptimMixin, optim.Optimizer):
     def __init__(self, params, defaults):
+        for param in params:
+            if isinstance(param, (ManifoldParameter, ManifoldTensor)):
+                if not param.manifold.reversible:
+                    raise ValueError(
+                        "Sampling methods can't me applied to manifolds that "
+                        "do not implement reversible retraction"
+                    )
         super().__init__(params, defaults)
         self.n_rejected = 0
         self.steps = 0
