@@ -56,8 +56,11 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     )
                     if amsgrad:
                         # Maintains max of all exp. moving avg. of sq. grad. values
+                        shape = p.shape
+                        if manifold.ndim > 0:
+                            shape = shape[: -manifold.ndim]
                         state["max_exp_avg_sq"] = torch.zeros(
-                            p.shape[: -manifold.ndim], dtype=p.dtype, device=p.device
+                            shape, dtype=p.dtype, device=p.device
                         )
 
                 # this is assumed to be already transported
