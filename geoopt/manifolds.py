@@ -8,6 +8,7 @@ __all__ = ["Manifold", "Rn", "Stiefel"]
 class Manifold(metaclass=abc.ABCMeta):
     name = ""
     ndim = 0
+    reversible = False
 
     def broadcast_scalar(self, t):
         if isinstance(t, torch.Tensor):
@@ -73,6 +74,7 @@ class Manifold(metaclass=abc.ABCMeta):
 class Rn(Manifold):
     name = "Rn"
     ndim = 0
+    reversible = True
 
     def check_dims(self, x):
         return True
@@ -81,7 +83,7 @@ class Rn(Manifold):
         return x + t * u
 
     def _inner(self, x, u, v):
-        return (u * v).sum(-1)
+        return u * v
 
     def _proju(self, x, u):
         return u
@@ -96,6 +98,7 @@ class Rn(Manifold):
 class Stiefel(Manifold):
     name = "Stiefel"
     ndim = 2
+    reversible = True
 
     def check_dims(self, x):
         return x.dim() >= 2

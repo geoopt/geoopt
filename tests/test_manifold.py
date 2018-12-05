@@ -1,6 +1,7 @@
 import geoopt
 import numpy.testing
 import torch
+import pytest
 
 
 def test_stiefel_2d():
@@ -23,3 +24,19 @@ def test_stiefel_3d():
     assert isinstance(newt, geoopt.ManifoldTensor)
     numpy.testing.assert_allclose(newt_manual, newt, atol=1e-5)
     numpy.testing.assert_allclose(newt, newt.manifold.projx(newt), atol=1e-5)
+
+
+@pytest.mark.parametrize(
+    'Manifold',
+    [geoopt.Stiefel]
+)
+def test_reversible_retraction(Manifold):
+    man = Manifold()
+    x = torch.randn((10, ) * man.ndim)
+    x.set_(man.projx(x))
+    t = .1
+    u = torch.randn_like(x)
+    u.set_(man.proju(x, u))
+    xt, ut = man.retr_transp(x, u, t)
+    xtmt = man.retr(xt, ut, -t)
+    numpy.testing.assert_allclose(x, xtmt, atol=1e-5)
