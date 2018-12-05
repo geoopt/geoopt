@@ -83,7 +83,7 @@ class Rn(Manifold):
         return x + t * u
 
     def _inner(self, x, u, v):
-        return (u * v).sum(-1)
+        return u * v
 
     def _proju(self, x, u):
         return u
