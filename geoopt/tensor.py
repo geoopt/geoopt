@@ -25,7 +25,7 @@ class ManifoldTensor(torch.Tensor):
         return self
 
     def retr(self, u, t):
-        return ManifoldTensor(self.manifold.retr(self, u, t), manifold=self.manifold)
+        return self.manifold.retr(self, u, t)
 
     def inner(self, u, v=None):
         return self.manifold.inner(self, u, v)
