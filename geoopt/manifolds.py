@@ -13,7 +13,7 @@ class Manifold(metaclass=abc.ABCMeta):
     def broadcast_scalar(self, t):
         if isinstance(t, torch.Tensor):
             extra = (1,) * self.ndim
-            t = t.view(*(t.shape + extra))
+            t = t.view(t.shape + extra)
         return t
 
     @abc.abstractmethod
