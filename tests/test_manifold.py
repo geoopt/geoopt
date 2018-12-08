@@ -8,8 +8,7 @@ def test_stiefel_2d():
     tens1 = geoopt.ManifoldTensor(10, 20, manifold=geoopt.Stiefel()).normal_().proj_()
     vect1 = tens1.proju(torch.randn(*tens1.shape))
     newt = tens1.retr(vect1, 1.)
-    assert isinstance(newt, geoopt.ManifoldTensor)
-    numpy.testing.assert_allclose(newt, newt.manifold.projx(newt), atol=1e-5)
+    numpy.testing.assert_allclose(newt, tens1.manifold.projx(newt), atol=1e-5)
 
 
 def test_stiefel_3d():
@@ -21,9 +20,8 @@ def test_stiefel_3d():
     newt_manual.append(tens1.manifold.retr(tens1[0], vect1[0], t[0]))
     newt_manual.append(tens1.manifold.retr(tens1[1], vect1[1], t[1]))
     newt_manual = torch.stack(newt_manual)
-    assert isinstance(newt, geoopt.ManifoldTensor)
     numpy.testing.assert_allclose(newt_manual, newt, atol=1e-5)
-    numpy.testing.assert_allclose(newt, newt.manifold.projx(newt), atol=1e-5)
+    numpy.testing.assert_allclose(newt, tens1.manifold.projx(newt), atol=1e-5)
 
 
 @pytest.mark.parametrize(

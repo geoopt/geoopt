@@ -29,7 +29,7 @@ All above containers have special methods to work with them as with points on a 
 ### Manifolds
 
 * `geoopt.Rn` -- unconstrained manifold in `R^n` with Euclidean metric
-* `geoopt.Stiefel` -- Stiefel manifold on matrices `A in R^{n x p} : A^t A=I`
+* `geoopt.Stiefel` -- Stiefel manifold on matrices `A in R^{n x p} : A^t A=I`, `n >= p`
 
 ### Optimizers
 
