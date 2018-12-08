@@ -51,16 +51,16 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     # Exponential moving average of gradient values
                     state["exp_avg"] = torch.zeros_like(p.data)
                     # Exponential moving average of squared gradient values
+                    inner_prod_shape = p.shape
+                    if manifold.ndim > 0:
+                        inner_prod_shape = inner_prod_shape[: -manifold.ndim]
                     state["exp_avg_sq"] = torch.zeros(
-                        p.shape[: -manifold.ndim], dtype=p.dtype, device=p.device
+                        inner_prod_shape, dtype=p.dtype, device=p.device
                     )
                     if amsgrad:
                         # Maintains max of all exp. moving avg. of sq. grad. values
-                        shape = p.shape
-                        if manifold.ndim > 0:
-                            shape = shape[: -manifold.ndim]
                         state["max_exp_avg_sq"] = torch.zeros(
-                            shape, dtype=p.dtype, device=p.device
+                            inner_prod_shape, dtype=p.dtype, device=p.device
                         )
 
                 # this is assumed to be already transported
