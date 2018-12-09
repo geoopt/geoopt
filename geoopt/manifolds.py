@@ -274,7 +274,7 @@ class Stiefel(Manifold):
 
     def _proju(self, x, u):
         p = -0.5 * x @ x.transpose(-1, -2)
-        p[..., range(x.shape[-2]), range(x.shape[-2])] += 1
+        p[..., torch.arange(x.shape[-2]), torch.arange(x.shape[-2])] += 1
         return p @ u
 
     def _projx(self, x):
@@ -285,7 +285,7 @@ class Stiefel(Manifold):
         a = self._amat(x, u, project=False)
         rhs = x + t / 2 * a @ x
         lhs = -t / 2 * a
-        lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
+        lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
         qx, _ = torch.gesv(rhs, lhs)
         return qx
 
@@ -296,7 +296,7 @@ class Stiefel(Manifold):
         a = self._amat(x, u, project=False)
         rhs = v + t / 2 * a @ v
         lhs = -t / 2 * a
-        lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
+        lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
         qv, _ = torch.gesv(rhs, lhs)
         return qv
 
@@ -314,4 +314,4 @@ class Stiefel(Manifold):
         """
         xvs = torch.stack((x, v) + more)
         xvs = self._transp_one(x, u, t, xvs)
-        return tuple(xvs)
+        return tuple(xvs[i] for i in range(2 + len(more)))

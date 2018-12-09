@@ -29,7 +29,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     manifold = Rn()
                 proju = manifold.proju
                 projx = manifold.projx
-                retr = manifold.retr
                 retr_transp = manifold.retr_transp
                 inner = manifold.inner
 
