@@ -4,13 +4,7 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize(
-    "params",
-    [
-        dict(lr=1e-2),
-        dict(lr=1, amsgrad=True),
-    ],
-)
+@pytest.mark.parametrize("params", [dict(lr=1e-2), dict(lr=1, amsgrad=True)])
 def test_adam_stiefel(params):
     stiefel = geoopt.manifolds.Stiefel()
     torch.manual_seed(42)
@@ -31,4 +25,7 @@ def test_adam_stiefel(params):
     for _ in range(10000):
         optim.step(closure)
 
-    np.testing.assert_allclose(X.data, Xstar, atol=1e-5)
+    np.testing.assert_allclose(X.data, Xstar, atol=1e-5, rtol=1e-5)
+    optim.load_state_dict(optim.state_dict())
+    optim.step(closure)
+

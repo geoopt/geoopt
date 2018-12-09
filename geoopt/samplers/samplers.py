@@ -101,7 +101,7 @@ class RHMC(Sampler):
         retr_transp = manifold.retr_transp
 
         r.add_(epsilon * proju(p.data, p.grad))
-        p_, r_ = retr_transp(p.data, r, epsilon)
+        p_, r_ = retr_transp(p.data, r, epsilon, r)
         p.data.set_(p_)
         r.set_(r_)
 
@@ -260,7 +260,7 @@ class SGRHMC(Sampler):
 
                         v = self.state[p]["v"]
 
-                        p_, v_ = retr_transp(p.data, v, 1.0)
+                        p_, v_ = retr_transp(p.data, v, 1.0, v)
                         p.data.set_(p_)
                         v.set_(v_)
 

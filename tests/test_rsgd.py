@@ -36,6 +36,8 @@ def test_rsgd_stiefel(params):
         optim.step(closure)
 
     np.testing.assert_allclose(X.data, Xstar, atol=1e-5)
+    optim.load_state_dict(optim.state_dict())
+    optim.step(closure)
 
 
 def test_init_manifold():

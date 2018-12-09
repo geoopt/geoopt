@@ -1,9 +1,11 @@
 # geoopt
 
 [![Build Status](https://travis-ci.com/ferrine/geoopt.svg?branch=master)](https://travis-ci.com/ferrine/geoopt)
+[![Coverage Status](https://coveralls.io/repos/github/ferrine/geoopt/badge.svg?branch=master)](https://coveralls.io/github/ferrine/geoopt?branch=master)
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-Manifold aware `pytorch.optim`
+
+Manifold aware `pytorch.optim`.
 
 Unofficial implementation for ["Riemannian Adaptive Optimization Methods"](https://openreview.net/forum?id=r1eiqi09K7) ICLR2019 (they are likely to be accepted).
 
@@ -23,7 +25,8 @@ All above containers have special methods to work with them as with points on a 
 * `.proju(u)` -- project vector `u` on the tangent space. You need to project all vectors for all methods below.
 * `.inner(u, v=None)` -- inner product at this point for two **tangent** vectors at this point. The passed vectors are not projected, they are assumed to be already projected.
 * `.retr(u, t)` -- retraction map following vector `u` for time `t`
-* `.transp(u, v, t)` -- transport vector `v` with direction `u` for time `t`
+* `.transp(u, t, v, *more)` -- transport vector `v` (and possibly more vectors) with direction `u` for time `t`
+* `.retr_transp(u, t, v, *more)` -- transport `self`, vector `v` (and possibly more vectors) with direction `u` for time `t` (returns are plain tensors)
 
 
 ### Manifolds
