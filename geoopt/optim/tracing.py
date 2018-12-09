@@ -2,7 +2,7 @@ import torch.jit
 
 
 def _compat_trace(fn, args):
-    if tuple(map(int, torch.__version__.split("."))) < (1, 0, 0):
+    if tuple(map(int, torch.__version__.split(".")[:2])) < (1, 0):
         # torch.jit here does not support inplace ops
         return fn
     else:
