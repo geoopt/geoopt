@@ -3,14 +3,14 @@ python:
   - 3.6
 
 env:
-  - TORCH=torch<1.0.0
-  - TORCH=torch>=1.0.0
+  - TORCH='torch<1.0.0'
+  - TORCH='torch>=1.0.0'
 
 install:
   - pip install --upgrade pip
   - pip install $TORCH numpy | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
   - pip install -r requirements-dev.txt | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
-
+  - pip install -e .
 
 script:
   - black --check --diff geoopt
