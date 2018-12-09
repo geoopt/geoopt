@@ -26,7 +26,7 @@ def test_stiefel_3d():
     numpy.testing.assert_allclose(newt, tens1.manifold.projx(newt), atol=1e-5)
 
 
-@pytest.mark.parametrize("Manifold", [geoopt.Stiefel])
+@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Rn])
 def test_reversible_retraction(Manifold):
     man = Manifold()
     x = torch.randn((10,) * man.ndim)
@@ -37,3 +37,35 @@ def test_reversible_retraction(Manifold):
     xt, ut = man.retr_transp(x, u, t, u)
     xtmt = man.retr(xt, ut, -t)
     numpy.testing.assert_allclose(x, xtmt, atol=1e-5)
+
+
+@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Rn])
+def test_transp_many(Manifold):
+    man = Manifold()
+    x = torch.randn((10,) * man.ndim)
+    x.set_(man.projx(x))
+    t = 0.1
+    u = torch.randn_like(x)
+    u.set_(man.proju(x, u))
+    vs = [man.proju(x, torch.randn_like(u)) for _ in range(3)]
+    qvs1 = man.transp(x, u, t, *vs)
+    qvs2 = tuple(man.transp(x, u, t, v) for v in vs)
+    for qv1, qv2 in zip(qvs1, qvs2):
+        numpy.testing.assert_allclose(qv1, qv2, atol=1e-5)
+
+
+@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Rn])
+def test_transp_many(Manifold):
+    man = Manifold()
+    x = torch.randn((10,) * man.ndim)
+    x.set_(man.projx(x))
+    t = 0.1
+    u = torch.randn_like(x)
+    u.set_(man.proju(x, u))
+    vs = [man.proju(x, torch.randn_like(u)) for _ in range(3)]
+    qvs1 = man.retr_transp(x, u, t, *vs)
+    qvs2 = tuple(man.transp(x, u, t, v) for v in vs)
+    qvs2 = (man.retr(x, u, t),) + qvs2
+
+    for qv1, qv2 in zip(qvs1, qvs2):
+        numpy.testing.assert_allclose(qv1, qv2, atol=1e-5)
