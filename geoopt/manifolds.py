@@ -267,7 +267,7 @@ class Stiefel(Manifold):
     def check_point(self, x):
         return x.dim() >= 2 and x.shape[-1] <= x.shape[-2]
 
-    def amat(self, x, u, project=True):
+    def _amat(self, x, u, project=True):
         if project:
             u = self.proju(x, u)
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
@@ -282,7 +282,7 @@ class Stiefel(Manifold):
         return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
 
     def _retr(self, x, u, t):
-        a = self.amat(x, u, project=False)
+        a = self._amat(x, u, project=False)
         rhs = x + t / 2 * a @ x
         lhs = -t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
@@ -293,7 +293,7 @@ class Stiefel(Manifold):
         return (u * v).sum([-1, -2])
 
     def _transp_one(self, x, u, t, v):
-        a = self.amat(x, u, project=False)
+        a = self._amat(x, u, project=False)
         rhs = v + t / 2 * a @ v
         lhs = -t / 2 * a
         lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
