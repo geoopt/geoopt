@@ -304,22 +304,14 @@ class Stiefel(Manifold):
         """
         An optimized transp_many for Stiefel Manifold
         """
-        a = self.amat(x, u, project=False)
         v = torch.stack(vs)
-        rhs = v + t / 2 * a @ v
-        lhs = -t / 2 * a
-        lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
-        qv, _ = torch.gesv(rhs, lhs)
+        qv = self._transp_one(x, u, t, v)
         return tuple(qv)
 
     def _retr_transp(self, x, u, t, v, *more):
         """
         An optimized retr_transp for Stiefel Manifold
         """
-        a = self.amat(x, u, project=False)
         xvs = torch.stack((x, v) + more)
-        rhs = xvs + t / 2 * a @ xvs
-        lhs = -t / 2 * a
-        lhs[..., range(a.shape[-2]), range(x.shape[-2])] += 1
-        xvs, _ = torch.gesv(rhs, lhs)
+        xvs = self._transp_one(x, u, t, xvs)
         return tuple(xvs)
