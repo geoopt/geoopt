@@ -1,15 +1,25 @@
 language: python
-python:
-  - 3.6
 
-env:
-  - TORCH='torch<1.0.0'
-  - TORCH='torch>=1.0.0'
-  - TORCH='torch_nightly' ALLOW_FAIURE=true
+cache:
+  directories:
+    - $HOME/miniconda3
+
+matrix:
+  include:
+    - name: Build against PyTorch < 1.0.0
+      env: TORCH='pytorch<1.0.0'
+    - name: Build against PyTorch >= 1.0.0
+      env: TORCH='pytorch>=1.0.0'
+  allow_failures:
+    - name: Build against nightly PyTorch (allowed to fail)
+      env: TORCH='pytorch-nightly'
+
+before_install:
+  - . ./scripts/install_miniconda.sh
 
 install:
   - pip install --upgrade pip
-  - pip install $TORCH numpy | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
+  - conda install $TORCH -c pytorch
   - pip install -r requirements-dev.txt | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
   - pip install -e . --no-deps
 
