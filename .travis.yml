@@ -14,7 +14,7 @@ matrix:
     - env: TORCH='pytorch-nightly'
 
 before_install:
-  - . ./scripts/install_miniconda.sh
+  - PYTHON_VERSION=3.6 . ./scripts/install_miniconda.sh
 
 install:
   - pip install --upgrade pip
