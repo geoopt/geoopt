@@ -1,8 +1,9 @@
 # geoopt
 
 [![Build Status](https://travis-ci.com/ferrine/geoopt.svg?branch=master)](https://travis-ci.com/ferrine/geoopt)
-<a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 [![Coverage Status](https://coveralls.io/repos/github/ferrine/geoopt/badge.svg?branch=master)](https://coveralls.io/github/ferrine/geoopt?branch=master)
+<a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+
 
 Manifold aware `pytorch.optim`. Requires `torch>=1.0.0`
 
