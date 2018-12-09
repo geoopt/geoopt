@@ -162,7 +162,6 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
         else:
             new_point = manifold.retr(point, grad, -lr)
             point.set_(new_point)
-        return new_point
 
     def _prepare_group(self, group):
         group = group.copy()

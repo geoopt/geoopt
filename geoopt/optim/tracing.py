@@ -34,6 +34,7 @@ def create_traced_update(step, manifold, point, *buffers, **kwargs):
     lr = torch.tensor(0.001).type_as(grad)
 
     def partial(*args):
-        return step(manifold, *args, **kwargs)
+        step(manifold, *args, **kwargs)
+        return args
 
     return _compat_trace(partial, (point, grad, lr) + buffers)
