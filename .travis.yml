@@ -18,7 +18,7 @@ before_install:
 
 install:
   - pip install --upgrade pip
-  - conda install $TORCH -c pytorch
+  - conda install -y $TORCH -c pytorch
   - pip install -r requirements-dev.txt | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
   - pip install -e . --no-deps
 
