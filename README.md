@@ -24,7 +24,8 @@ All above containers have special methods to work with them as with points on a 
 * `.proju(u)` -- project vector `u` on the tangent space. You need to project all vectors for all methods below.
 * `.inner(u, v=None)` -- inner product at this point for two **tangent** vectors at this point. The passed vectors are not projected, they are assumed to be already projected.
 * `.retr(u, t)` -- retraction map following vector `u` for time `t`
-* `.transp(u, v, t)` -- transport vector `v` with direction `u` for time `t`
+* `.transp(u, t, v, *more)` -- transport vector `v` (and possibly more vectors) with direction `u` for time `t`
+* `.retr_transp(u, t, v, *more)` -- transport `self`, vector `v` (and possibly more vectors) with direction `u` for time `t` (returns are plain tensors)
 
 
 ### Manifolds
