@@ -25,4 +25,4 @@ def test_adam_stiefel(params):
     for _ in range(10000):
         optim.step(closure)
 
-    np.testing.assert_allclose(X.data, Xstar, atol=1e-5)
+    np.testing.assert_allclose(X.data, Xstar, atol=1e-5, rtol=1e-5)

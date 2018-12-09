@@ -33,20 +33,20 @@ class OptimMixin(object):
             packed["params"] = [id(p) for p in group["params"]]
             return packed
 
-        param_groups = [pack_group(self._prepare_group(g)) for g in self.param_groups]
+        param_groups = [pack_group(self._sanitize_group(g)) for g in self.param_groups]
         # Remap state to use ids as keys
         packed_state = {
-            (id(k) if isinstance(k, torch.Tensor) else k): self._prepare_state(v)
+            (id(k) if isinstance(k, torch.Tensor) else k): self._sanitize_state(v)
             for k, v in self.state.items()
         }
         return {"state": packed_state, "param_groups": param_groups}
 
-    def _prepare_group(self, group):
+    def _sanitize_group(self, group):
         # some stuff may be converted to tensors
         return group
 
     @staticmethod
-    def _prepare_state(state):
+    def _sanitize_state(state):
         # do not pickle traced_step
         state.pop("traced_step", None)
         return state

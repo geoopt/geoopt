@@ -51,14 +51,15 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
         loss = None
         if closure is not None:
             loss = closure()
+
         for group in self.param_groups:
+            if "step" not in group:
+                group["step"] = 0
             weight_decay = self.group_param_tensor(group, "weight_decay")
             momentum = self.group_param_tensor(group, "momentum")
             dampening = self.group_param_tensor(group, "dampening")
             nesterov = group["nesterov"]
             learning_rate = self.group_param_tensor(group, "lr")
-            if "step" not in group:
-                group["step"] = 0
             for p in group["params"]:
                 if p.grad is None:
                     continue
@@ -119,19 +120,6 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                 self.stabilize_group(group)
         return loss
 
-    def stabilize_group(self, group):
-        for p in group["params"]:
-            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                continue
-            manifold = p.manifold
-            momentum = group["momentum"]
-            p.data.set_(manifold.projx(p.data))
-            if momentum > 0:
-                param_state = self.state[p]
-                if "momentum_buffer" in param_state:
-                    buf = param_state["momentum_buffer"]
-                    buf.data.set_(manifold.proju(p.data, buf))
-
     @staticmethod
     def perform_step(
         manifold,
@@ -163,9 +151,25 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
             new_point = manifold.retr(point, grad, -lr)
             point.set_(new_point)
 
-    def _prepare_group(self, group):
+    def stabilize_group(self, group):
+        for p in group["params"]:
+            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                continue
+            manifold = p.manifold
+            momentum = group["momentum"]
+            p.data.set_(manifold.projx(p.data))
+            if momentum > 0:
+                param_state = self.state[p]
+                if "momentum_buffer" in param_state:
+                    buf = param_state["momentum_buffer"]
+                    buf.data.set_(manifold.proju(p.data, buf))
+
+    def _sanitize_group(self, group):
         group = group.copy()
-        group["weight_decay"] = group["weight_decay"].item()
-        group["dampening"] = group["dampening"].item()
-        group["momentum"] = group["momentum"].item()
+        if isinstance(group["weight_decay"], torch.Tensor):
+            group["weight_decay"] = group["weight_decay"].item()
+        if isinstance(group["dampening"], torch.Tensor):
+            group["dampening"] = group["dampening"].item()
+        if isinstance(group["momentum"], torch.Tensor):
+            group["momentum"] = group["momentum"].item()
         return group
