@@ -14,7 +14,7 @@ install:
 
 script:
   - black --check --diff geoopt
-  - py.test -v
+  - py.test -v --durations=0
 
 after_success:
   - coveralls

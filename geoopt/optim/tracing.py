@@ -1,6 +1,13 @@
 import torch.jit
 
 
+def _compat_trace(fn, *args):
+    if tuple(map(int, torch.__version__.split("."))) < (1, 0, 0):
+        return torch.jit.trace(*args)(fn)
+    else:
+        return torch.jit.trace(fn, args)
+
+
 def create_traced_update(step, manifold, point, *buffers, **kwargs):
     """
     Make data dependent update for a given manifold and kwargs with given example point
@@ -21,10 +28,11 @@ def create_traced_update(step, manifold, point, *buffers, **kwargs):
     -------
     traced `step(point, grad, lr *buffers)` function
     """
+    point = point.clone()
     grad = point.new(point.shape).normal_()
     lr = torch.tensor(0.001).type_as(grad)
 
     def partial(*args):
         return step(manifold, *args, **kwargs)
 
-    return torch.jit.trace(partial, (point, grad, lr) + buffers)
+    return _compat_trace(partial, (point, grad, lr) + buffers)
