@@ -4,7 +4,8 @@ python:
 
 env:
   - TORCH='torch<1.0.0'
-  - TORCH='torch_nightly'
+  - TORCH='torch>=1.0.0'
+  - TORCH='torch_nightly' ALLOW_FAIURE=true
 
 install:
   - pip install --upgrade pip
