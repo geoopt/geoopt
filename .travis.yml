@@ -10,7 +10,7 @@ install:
   - pip install --upgrade pip
   - pip install $TORCH numpy | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
   - pip install -r requirements-dev.txt | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
-  - pip install -e .
+  - pip install -e . --no-deps
 
 script:
   - black --check --diff geoopt
