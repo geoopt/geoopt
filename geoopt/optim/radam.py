@@ -30,7 +30,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 proju = manifold.proju
                 projx = manifold.projx
                 retr = manifold.retr
-                transp = manifold.transp
+                retr_transp = manifold.retr_transp
                 inner = manifold.inner
 
                 grad = p.grad.data
@@ -91,13 +91,12 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 step_size = group["lr"] * math.sqrt(bias_correction2) / bias_correction1
 
                 # copy the state, we need it for retraction
-                exp_avg_old = exp_avg.clone()
                 # get the direction for ascend
-                direction = exp_avg_old / denom
+                direction = exp_avg / denom
                 # transport the exponential averaging to the new point
-                exp_avg.set_(transp(p.data, direction, exp_avg, -step_size))
-                # use the saved direction to calculate the new point
-                p.data.set_(retr(p.data, direction, -step_size))
+                new_p, exp_avg_new = retr_transp(p.data, direction, -step_size, exp_avg)
+                p.data.set_(new_p)
+                exp_avg.set_(exp_avg_new)
                 # now all: point, exp-avg direction are already on manifold
                 if stabilize is not None and (state["step"] - 1) % stabilize == 0:
                     p.data.set_(projx(p.data))

@@ -4,13 +4,7 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize(
-    "params",
-    [
-        dict(lr=1e-2),
-        dict(lr=1, amsgrad=True),
-    ],
-)
+@pytest.mark.parametrize("params", [dict(lr=1e-2), dict(lr=1, amsgrad=True)])
 def test_adam_stiefel(params):
     stiefel = geoopt.manifolds.Stiefel()
     torch.manual_seed(42)

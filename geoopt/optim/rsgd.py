@@ -35,7 +35,7 @@ class RiemannianSGD(OptimMixin, torch.optim.SGD):
                 proju = manifold.proju
                 projx = manifold.projx
                 retr = manifold.retr
-                transp = manifold.transp
+                retr_transp = manifold.retr_transp
 
                 if p.grad is None:
                     continue
@@ -62,8 +62,9 @@ class RiemannianSGD(OptimMixin, torch.optim.SGD):
                     else:
                         d_p = buf.clone()
                     # we have all the things projected
-                    buf.data.set_(transp(p.data, d_p, buf, -group["lr"]))
-                    p.data.set_(retr(p.data, d_p, -group["lr"]))
+                    new_p, new_buf = retr_transp(p.data, d_p, -group["lr"], buf)
+                    buf.data.set_(new_buf)
+                    p.data.set_(new_p)
                     if stabilize is not None and state["step"] % stabilize == 0:
                         p.data.set_(projx(p.data))
                         buf.data.set_(proju(p.data, buf))

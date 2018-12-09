@@ -11,45 +11,191 @@ class Manifold(metaclass=abc.ABCMeta):
     reversible = False
 
     def broadcast_scalar(self, t):
+        """
+        Broadcast scalar t for manifold, appending last dimensions if needed
+
+        Parameters
+        ----------
+        t : scalar
+
+        Returns
+        -------
+        scalar
+
+        Notes
+        -----
+        scalar can be batch sized
+        """
         if isinstance(t, torch.Tensor):
             extra = (1,) * self.ndim
             t = t.view(t.shape + extra)
         return t
 
     @abc.abstractmethod
-    def check_dims(self, x):
+    def check_point(self, x):
+        """
+        Check if point is valid to be used with the manifold
+
+        Parameters
+        ----------
+        x : tensor
+
+        Returns
+        -------
+        boolean indicating if tensor is valid
+        """
         raise NotImplementedError
 
     def retr(self, x, u, t):
+        """
+        Perform a retraction from point with given direction and time
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point x
+        t : scalar
+            time to go with direction u
+
+        Returns
+        -------
+        tensor
+            new_x
+        """
         t = self.broadcast_scalar(t)
         return self._retr(x, u, t)
 
-    def transp(self, x, u, v, t):
+    def transp(self, x, u, t, v, *more):
+        """
+        Perform vector transport from point `x`, direction `u` and time `t` for vector `v`
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point x
+        t : scalar
+            time to go with direction u
+        v : tensor
+            tangent vector at point x to be transported
+        more : tensor
+            other tangent vector at point x to be transported
+
+        Returns
+        -------
+        transported tensors
+        """
         t = self.broadcast_scalar(t)
-        return self._transp(x, u, v, t)
+        if more:
+            return self._transp_many(x, u, t, v, *more)
+        else:
+            return self._transp_one(x, u, t, v)
 
     def inner(self, x, u, v=None):
+        """
+        Inner product for tangent vectors at point x
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point x
+        v : tensor (optional)
+            tangent vector at point x
+
+        Returns
+        -------
+        inner product (broadcasted)
+
+        """
         if v is None:
             v = u
         return self._inner(x, u, v)
 
     def proju(self, x, u):
+        """
+        Project vector u on a tangent space
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            vector to be projected
+
+        Returns
+        -------
+        projected vector
+        """
         return self._proju(x, u)
 
     def projx(self, x):
+        """
+        Project point x on the manifold
+
+        Parameters
+        ----------
+        x : tensor
+            point to be projected
+
+        Returns
+        -------
+        projected point
+        """
         return self._projx(x)
 
-    def retr_transp(self, x, u, t):
-        new_x = self.retr(x, u, t)
-        new_u = self.transp(x, u, u, t)
-        return new_x, new_u
+    def retr_transp(self, x, u, t, v, *more):
+        """
+        Perform a retraction + vector transport at once
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point x
+        t : scalar
+            time to go with direction u
+        v : tensor
+            tangent vector at point x to be transported
+        more : tensor
+            other tangent vector at point x to be transported
+
+        Notes
+        -----
+        Sometimes this is a far more optimal way to preform retraction + vector transport
+
+        Returns
+        -------
+        tuple of tensors
+            (new_x, *new_vs)
+        """
+        return self._retr_transp(x, u, t, v, *more)
+
+    def _transp_many(self, x, u, t, *vs):
+        new_vs = []
+        for v in vs:
+            new_vs.append(self._transp_one(x, u, t, v))
+        return tuple(new_vs)
+
+    def _retr_transp(self, x, u, t, v, *more):
+        out = (self.retr(x, u, t),)
+        if more:
+            out = out + self._transp_many(x, u, t, v, *more)
+        else:
+            out = out + (self._transp_one(x, u, t, v),)
+        return out
 
     @abc.abstractmethod
     def _retr(self, x, u, t):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _transp(self, x, u, v, t):
+    def _transp_one(self, x, u, t, v):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -72,11 +218,15 @@ class Manifold(metaclass=abc.ABCMeta):
 
 
 class Rn(Manifold):
+    """
+    An unconstrained manifold
+    """
+
     name = "Rn"
     ndim = 0
     reversible = True
 
-    def check_dims(self, x):
+    def check_point(self, x):
         return True
 
     def _retr(self, x, u, t):
@@ -91,17 +241,31 @@ class Rn(Manifold):
     def _projx(self, x):
         return x
 
-    def _transp(self, x, u, v, t):
+    def _transp_one(self, x, u, t, v):
         return v
 
 
 class Stiefel(Manifold):
+    R"""
+    Manifold induced by the following matrix constraint:
+
+    .. math::
+
+        X^\top X = I
+        X \in \mathrm{R}^{n\times m}
+        n \ge m
+
+    Notes
+    -----
+    works with batch sized tensors
+    """
+
     name = "Stiefel"
     ndim = 2
     reversible = True
 
-    def check_dims(self, x):
-        return x.dim() >= 2
+    def check_point(self, x):
+        return x.dim() >= 2 and x.shape[-1] <= x.shape[-2]
 
     def amat(self, x, u, project=True):
         if project:
@@ -128,7 +292,7 @@ class Stiefel(Manifold):
     def _inner(self, x, u, v):
         return (u * v).sum([-1, -2])
 
-    def _transp(self, x, u, v, t):
+    def _transp_one(self, x, u, t, v):
         a = self.amat(x, u, project=False)
         rhs = v + t / 2 * a @ v
         lhs = -t / 2 * a

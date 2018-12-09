@@ -11,8 +11,13 @@ class ManifoldTensor(torch.Tensor):
     """
 
     def __new__(cls, *args, manifold=Rn(), requires_grad=False, **kwargs):
-        data = torch.Tensor.__new__(cls, *args, **kwargs)
-        if not manifold.check_dims(data):
+        if len(args) == 1 and isinstance(args[0], torch.Tensor):
+            data = args[0].data
+        else:
+            data = torch.Tensor.__new__(cls, *args, **kwargs)
+        if kwargs.get("device") is not None:
+            data.data = data.data.to(kwargs.get("device"))
+        if not manifold.check_point(data):
             raise ValueError(
                 "Incorrect shape {} for manifold {}".format(tuple(data.shape), manifold)
             )
@@ -21,7 +26,7 @@ class ManifoldTensor(torch.Tensor):
         return instance
 
     def proj_(self):
-        self.data.set_(self.manifold.projx(self.detach()))
+        self.data.set_(self.manifold.projx(self.data))
         return self
 
     def retr(self, u, t):
@@ -34,7 +39,7 @@ class ManifoldTensor(torch.Tensor):
         return self.manifold.proju(self, u)
 
     def transp(self, u, v, t):
-        return self.manifold.transp(self, u, v, t)
+        return self.manifold.transp(self, u, t, v)
 
     def __repr__(self):
         return "Tensor on {} containing:\n".format(
