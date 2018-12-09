@@ -5,22 +5,20 @@ cache:
     - $HOME/miniconda3
 
 env:
-  - TORCH='pytorch<1.0.0'
-  - TORCH='pytorch>=1.0.0'
-  - TORCH='pytorch-nightly'
+  - PYTHON_VERSION=3.6 TORCH='pytorch<1.0.0'
+  - PYTHON_VERSION=3.6 TORCH='pytorch>=1.0.0'
+  - PYTHON_VERSION=3.6 TORCH='pytorch-nightly'
 
 matrix:
   allow_failures:
-    - env: TORCH='pytorch-nightly'
+    - env: PYTHON_VERSION=3.6 TORCH='pytorch-nightly'
 
 before_install:
-  - PYTHON_VERSION=3.6 . ./scripts/install_miniconda.sh
+  - . ./scripts/install_miniconda.sh
 
 install:
-  - pip install --upgrade pip
-  - conda install -y $TORCH numpy -c pytorch
-  - pip install -r requirements-dev.txt | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
-  - pip install -e . --no-deps
+  - . ./scripts/create_testenv.sh
+  - conda install -y $TORCH -c pytorch
 
 script:
   - black --check --diff geoopt
