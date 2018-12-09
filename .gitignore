@@ -108,4 +108,5 @@ exman
 .tests
 Makefile
 cfg/
-data
+data/
+notebooks/

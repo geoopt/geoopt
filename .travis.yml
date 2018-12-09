@@ -1,13 +1,31 @@
 language: python
-python:
-  - 3.6
+
+cache:
+  directories:
+    - $HOME/miniconda3
+
+env:
+  - PYTHON_VERSION=3.6 TORCH='pytorch<1.0.0'
+  - PYTHON_VERSION=3.6 TORCH='pytorch>=1.0.0'
+  - PYTHON_VERSION=3.6 TORCH='pytorch-nightly'
+
+matrix:
+  allow_failures:
+    - env: PYTHON_VERSION=3.6 TORCH='pytorch-nightly'
+
+before_install:
+  - . ./scripts/install_miniconda.sh
 
 install:
-  - pip install --upgrade pip
-  - pip install -e . | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
-  - pip install -r requirements-dev.txt | grep 'Collecting\|Using cached\|Requirement already satisfied\| installed'
-
+  - . ./scripts/create_testenv.sh
+  - conda install --yes numpy mkl-service
+  - conda install --yes $TORCH -c pytorch
+  - pip install -r requirements-dev.txt
+  - pip install -e . --no-deps
 
 script:
   - black --check --diff geoopt
-  - py.test -v
+  - py.test -v --durations=0
+
+after_success:
+  - coveralls
