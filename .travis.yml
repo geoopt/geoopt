@@ -18,7 +18,10 @@ before_install:
 
 install:
   - . ./scripts/create_testenv.sh
-  - conda install -y $TORCH -c pytorch
+  - conda install --yes numpy mkl-service
+  - conda install --yes $TORCH -c pytorch
+  - pip install -r requirements-dev.txt
+  - pip install -e . --no-deps
 
 script:
   - black --check --diff geoopt

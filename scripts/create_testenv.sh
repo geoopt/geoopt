@@ -33,9 +33,4 @@ then
     fi
     source activate ${ENVNAME}
 fi
-conda install --yes numpy mkl-service
-
 pip install --upgrade pip
-
-pip install -r requirements-dev.txt
-pip install -e . --no-deps
