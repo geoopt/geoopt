@@ -453,10 +453,8 @@ class Stiefel(Manifold):
         if not shape_is_ok:
             return (
                 False,
-                (
-                    "Should be shape[-1] <= shape[-2], got {} </= {}".format(
-                        x.shape[-1], x.shape[-2]
-                    )
+                "Should be shape[-1] <= shape[-2], got {} </= {}".format(
+                    x.shape[-1], x.shape[-2]
                 ),
             )
         return True, None
@@ -470,9 +468,7 @@ class Stiefel(Manifold):
             return False, "`X^T X != I` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def _amat(self, x, u, project=True):
-        if project:
-            u = self.proju(x, u)
+    def _amat(self, x, u):
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
     def _proju(self, x, u):
@@ -485,7 +481,7 @@ class Stiefel(Manifold):
         return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
 
     def _retr(self, x, u, t):
-        a = self._amat(x, u, project=False)
+        a = self._amat(x, u)
         rhs = x + t / 2 * a @ x
         lhs = -t / 2 * a
         lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
