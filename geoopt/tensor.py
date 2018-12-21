@@ -1,5 +1,5 @@
 import torch.nn
-from .manifolds import Rn
+from .manifolds import Euclidean
 
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
@@ -10,17 +10,14 @@ class ManifoldTensor(torch.Tensor):
     It is a very tiny wrapper over regular tensor so that all API is the same
     """
 
-    def __new__(cls, *args, manifold=Rn(), requires_grad=False, **kwargs):
+    def __new__(cls, *args, manifold=Euclidean(), requires_grad=False, **kwargs):
         if len(args) == 1 and isinstance(args[0], torch.Tensor):
             data = args[0].data
         else:
             data = torch.Tensor.__new__(cls, *args, **kwargs)
         if kwargs.get("device") is not None:
             data.data = data.data.to(kwargs.get("device"))
-        if not manifold.check_point(data):
-            raise ValueError(
-                "Incorrect shape {} for manifold {}".format(tuple(data.shape), manifold)
-            )
+        manifold.assert_check_point(data.data)
         instance = torch.Tensor._make_subclass(cls, data, requires_grad)
         instance.manifold = manifold
         return instance
@@ -55,7 +52,7 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
         if data is None:
             data = ManifoldTensor(manifold=manifold)
         elif not isinstance(data, ManifoldTensor):
-            data = ManifoldTensor(data, manifold=manifold or Rn())
+            data = ManifoldTensor(data, manifold=manifold or Euclidean())
         else:
             if manifold is not None and data.manifold != manifold:
                 raise ValueError(

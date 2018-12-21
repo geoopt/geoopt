@@ -8,7 +8,7 @@ def test_stiefel_2d():
     tens1 = geoopt.ManifoldTensor(20, 10, manifold=geoopt.Stiefel()).normal_().proj_()
     vect1 = tens1.proju(torch.randn(*tens1.shape))
     newt = tens1.retr(vect1, 1.0)
-    numpy.testing.assert_allclose(newt, tens1.manifold.projx(newt), atol=1e-5)
+    tens1.manifold.assert_check_point_on_manifold(newt)
 
 
 def test_stiefel_3d():
@@ -23,10 +23,10 @@ def test_stiefel_3d():
     newt_manual.append(tens1.manifold.retr(tens1[1], vect1[1], t[1]))
     newt_manual = torch.stack(newt_manual)
     numpy.testing.assert_allclose(newt_manual, newt, atol=1e-5)
-    numpy.testing.assert_allclose(newt, tens1.manifold.projx(newt), atol=1e-5)
+    tens1.manifold.assert_check_point_on_manifold(newt)
 
 
-@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Rn])
+@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Euclidean])
 def test_reversible_retraction(Manifold):
     man = Manifold()
     x = torch.randn((10,) * man.ndim)
@@ -39,7 +39,7 @@ def test_reversible_retraction(Manifold):
     numpy.testing.assert_allclose(x, xtmt, atol=1e-5)
 
 
-@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Rn])
+@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Euclidean])
 def test_transp_many(Manifold):
     man = Manifold()
     x = torch.randn((10,) * man.ndim)
@@ -54,7 +54,7 @@ def test_transp_many(Manifold):
         numpy.testing.assert_allclose(qv1, qv2, atol=1e-5)
 
 
-@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Rn])
+@pytest.mark.parametrize("Manifold", [geoopt.Stiefel, geoopt.Euclidean])
 def test_transp_many(Manifold):
     man = Manifold()
     x = torch.randn((10,) * man.ndim)
