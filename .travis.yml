@@ -5,13 +5,13 @@ cache:
     - $HOME/miniconda3
 
 env:
-  - PYTHON_VERSION=3.6 TORCH='pytorch<1.0.0'
-  - PYTHON_VERSION=3.6 TORCH='pytorch>=1.0.0'
-  - PYTHON_VERSION=3.6 TORCH='pytorch-nightly'
+  - PYTHON_VERSION=3.6 TORCH='pytorch<1.0.0' COVERAGE=''
+  - PYTHON_VERSION=3.6 TORCH='pytorch>=1.0.0' COVERAGE='--cov geoopt'
+  - PYTHON_VERSION=3.6 TORCH='pytorch-nightly' COVERAGE=''
 
 matrix:
   allow_failures:
-    - env: PYTHON_VERSION=3.6 TORCH='pytorch-nightly'
+    - env: PYTHON_VERSION=3.6 TORCH='pytorch-nightly' COVERAGE=''
 
 before_install:
   - . ./scripts/install_miniconda.sh
@@ -25,7 +25,7 @@ install:
 
 script:
   - black --check --diff geoopt
-  - py.test -v --durations=0
+  - py.test -v --durations=0 $COVERAGE
 
 after_success:
   - coveralls
