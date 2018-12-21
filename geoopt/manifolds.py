@@ -509,8 +509,8 @@ class Stiefel(Manifold):
         """
         n = len(vs)
         vs = torch.cat(vs, -1)
-        qv = self._transp_one(x, u, t, vs).view(*x.shape[:-1], -1, x.shape[-1])
-        return tuple(qv[..., i, :] for i in range(n))
+        qvs = self._transp_one(x, u, t, vs).view(*x.shape[:-1], -1, x.shape[-1])
+        return tuple(qvs[..., i, :] for i in range(n))
 
     def _retr_transp(self, x, u, t, v, *more):
         """
