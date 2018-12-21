@@ -6,7 +6,7 @@ __all__ = ["Manifold", "Euclidean", "Stiefel"]
 
 
 class Manifold(metaclass=abc.ABCMeta):
-    R"""
+    r"""
     Base class for Manifolds
 
     Every subclass should provide its `name`, `ndim`,
@@ -96,8 +96,8 @@ class Manifold(metaclass=abc.ABCMeta):
         ok, reason = self._check_point(x)
         if not ok:
             raise ValueError(
-                '`x` seems to be not valid '
-                'tensor for {} manifold.\nerror: {}'.format(self.name, reason)
+                "`x` seems to be not valid "
+                "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
     def check_point_on_manifold(self, x, explain=False, atol=1e-5, rtol=1e-5):
@@ -140,8 +140,8 @@ class Manifold(metaclass=abc.ABCMeta):
         ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
         if not ok:
             raise ValueError(
-                '`x` seems to be a tensor '
-                'not lying on {} manifold.\nerror: {}'.format(self.name, reason)
+                "`x` seems to be a tensor "
+                "not lying on {} manifold.\nerror: {}".format(self.name, reason)
             )
 
     def retr(self, x, u, t):
@@ -398,6 +398,7 @@ class Manifold(metaclass=abc.ABCMeta):
     def __eq__(self, other):
         return type(self) is type(other)
 
+
 class Euclidean(Manifold):
     """
     Euclidean manifold
@@ -447,11 +448,17 @@ class Stiefel(Manifold):
     def _check_point(self, x):
         dim_is_ok = x.dim() >= 2
         if not dim_is_ok:
-            return False, 'Not enough dimensions'
+            return False, "Not enough dimensions"
         shape_is_ok = x.shape[-1] <= x.shape[-2]
         if not shape_is_ok:
-            return False, ('Should be shape[-1] <= shape[-2], got {} </= {}'
-                           .format(x.shape[-1], x.shape[-2]))
+            return (
+                False,
+                (
+                    "Should be shape[-1] <= shape[-2], got {} </= {}".format(
+                        x.shape[-1], x.shape[-2]
+                    )
+                ),
+            )
         return True, None
 
     def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):

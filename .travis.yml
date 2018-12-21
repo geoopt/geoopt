@@ -24,7 +24,7 @@ install:
   - pip install -e . --no-deps
 
 script:
-  - black --check --diff geoopt
+  - black --check --diff geoopt tests
   - py.test -v --durations=0 $COVERAGE
 
 after_success:
