@@ -17,6 +17,8 @@ class Manifold(metaclass=abc.ABCMeta):
         Checks point has valid dims, shapes, etc
     * :meth:`_check_point_on_manifold(x)` if needed
         Checks point lies on manifold
+    * :meth:`_check_vector_on_tangent(x, u)` if needed
+        Checks vector lies on tangent space to :math:`x`
     * :meth:`_projv(x)` required
         Projects :math:`x` on manifold
     * :meth:`_proju(x, u)` required
@@ -77,7 +79,7 @@ class Manifold(metaclass=abc.ABCMeta):
         bool
             boolean indicating if tensor is valid and reason of failure if False
         """
-        ok, reason = self._check_point(x)
+        ok, reason = self._check_shape(x, "x")
         if explain:
             return ok, reason
         else:
@@ -93,16 +95,54 @@ class Manifold(metaclass=abc.ABCMeta):
         x : tensor
         """
 
-        ok, reason = self._check_point(x)
+        ok, reason = self._check_shape(x, "x")
         if not ok:
             raise ValueError(
                 "`x` seems to be not valid "
                 "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
+    def check_vector(self, u, explain=False):
+        """
+        Check if point is valid to be used with the manifold
+
+        Parameters
+        ----------
+        u : tensor
+        explain: bool
+            return an additional information on check
+
+        Returns
+        -------
+        bool
+            boolean indicating if tensor is valid and reason of failure if False
+        """
+        ok, reason = self._check_shape(u, "u")
+        if explain:
+            return ok, reason
+        else:
+            return ok
+
+    def assert_check_vector(self, u):
+        """
+        Check if point is valid to be used with the manifold and
+        raise an error with informative message on failure
+
+        Parameters
+        ----------
+        u : tensor
+        """
+
+        ok, reason = self._check_shape(u, "u")
+        if not ok:
+            raise ValueError(
+                "`u` seems to be not valid "
+                "tensor for {} manifold.\nerror: {}".format(self.name, reason)
+            )
+
     def check_point_on_manifold(self, x, explain=False, atol=1e-5, rtol=1e-5):
         """
-        Check if point :math:`x` is lying on the the manifold
+        Check if point :math:`x` is lying on the manifold
 
         Parameters
         ----------
@@ -117,7 +157,7 @@ class Manifold(metaclass=abc.ABCMeta):
         bool
             boolean indicating if tensor is valid and reason of failure if False
         """
-        ok, reason = self._check_point(x)
+        ok, reason = self._check_shape(x, "x")
         if ok:
             ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
         if explain:
@@ -127,7 +167,7 @@ class Manifold(metaclass=abc.ABCMeta):
 
     def assert_check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
         """
-        Check if point is lying on the the manifold and
+        Check if point is lying on the manifold and
         raise an error with informative message on failure
 
         Parameters
@@ -142,6 +182,69 @@ class Manifold(metaclass=abc.ABCMeta):
             raise ValueError(
                 "`x` seems to be a tensor "
                 "not lying on {} manifold.\nerror: {}".format(self.name, reason)
+            )
+
+    def check_vector_on_tangent(self, x, u, explain=False, atol=1e-5, rtol=1e-5):
+        """
+        Check if u :math:`u` is lying on the tangent space to x
+
+        Parameters
+        ----------
+        x : tensor
+        u : tensor
+        atol: float
+        rtol: float
+        explain: bool
+            return an additional information on check
+
+        Returns
+        -------
+        bool
+            boolean indicating if tensor is valid and reason of failure if False
+        """
+        ok, reason = self._check_shape(x, "x")
+        if ok:
+            ok, reason = self._check_shape(u, "u")
+        if ok:
+            ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
+        if ok:
+            ok, reason = self._check_vector_on_tangent(x, u, atol=atol, rtol=rtol)
+        if explain:
+            return ok, reason
+        else:
+            return ok
+
+    def assert_check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+        """
+        Check if u :math:`u` is lying on the tangent space to x
+
+        Parameters
+        ----------
+        x : tensor
+        u : tensor
+        atol: float
+        rtol: float
+        explain: bool
+            return an additional information on check
+
+        Returns
+        -------
+        bool
+            boolean indicating if tensor is valid and reason of failure if False
+        """
+        ok, reason = self._check_shape(x, "x")
+        if ok:
+            ok, reason = self._check_shape(u, "u")
+        if ok:
+            ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
+        if ok:
+            ok, reason = self._check_vector_on_tangent(x, u, atol=atol, rtol=rtol)
+        if not ok:
+            raise ValueError(
+                "`u` seems to be a tensor "
+                "not lying on tangent space to `x` for {} manifold.\nerror: {}".format(
+                    self.name, reason
+                )
             )
 
     def retr(self, x, u, t):
@@ -278,7 +381,7 @@ class Manifold(metaclass=abc.ABCMeta):
 
     # private implementation, public documentation design
 
-    def _check_point(self, x):
+    def _check_shape(self, x, name):
         """
         Developer Guide
 
@@ -290,6 +393,8 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+        name : str
+            name to be present in errors
 
         Returns
         -------
@@ -311,6 +416,31 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+        atol : float
+            absolute tolerance
+        rtol :
+            relative tolerance
+        Returns
+        -------
+        bool, str or None
+        """
+        return True, None
+
+    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+        """
+        Developer Guide
+
+        Exhaustive implementation for checking if
+        a given point lies on the manifold. It
+        should return boolean and a reason of
+        failure if check is not passed. You can
+        assume assert_check_point is already
+        passed beforehand
+
+        Parameters
+        ----------
+        x : tensor
+        u : tensor
         atol : float
             absolute tolerance
         rtol :
@@ -445,7 +575,7 @@ class Stiefel(Manifold):
     ndim = 2
     reversible = True
 
-    def _check_point(self, x):
+    def _check_shape(self, x, name):
         dim_is_ok = x.dim() >= 2
         if not dim_is_ok:
             return False, "Not enough dimensions"
@@ -453,8 +583,8 @@ class Stiefel(Manifold):
         if not shape_is_ok:
             return (
                 False,
-                "Should be shape[-1] <= shape[-2], got {} </= {}".format(
-                    x.shape[-1], x.shape[-2]
+                "`{}` should have shape[-1] <= shape[-2], got {} </= {}".format(
+                    name, x.shape[-1], x.shape[-2]
                 ),
             )
         return True, None
@@ -468,13 +598,18 @@ class Stiefel(Manifold):
             return False, "`X^T X != I` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
+    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+        diff = u.transpose(-1, -2) @ x + x.transpose(-1, -2) @ u
+        ok = torch.allclose(diff, diff.new((1,)).fill_(0), atol=atol, rtol=rtol)
+        if not ok:
+            return False, "`u^T x + x^T u !=0` with atol={}, rtol={}".format(atol, rtol)
+        return True, None
+
     def _amat(self, x, u):
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
     def _proju(self, x, u):
-        p = -0.5 * x @ x.transpose(-1, -2)
-        p[..., torch.arange(x.shape[-2]), torch.arange(x.shape[-2])] += 1
-        return p @ u
+        return u - x @ u.transpose(-1, -2) @ x
 
     def _projx(self, x):
         U, d, V = util.svd(x)

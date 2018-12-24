@@ -62,6 +62,15 @@ def test_vector_projection(unary_case):
     np.testing.assert_allclose(pv, pv_star)
 
 
+def test_vector_projection_via_assert(unary_case):
+    x = unary_case.x
+    ev = unary_case.ev
+
+    pv = x.proju(ev)
+
+    unary_case.manifold.assert_check_vector_on_tangent(x, pv)
+
+
 def test_retraction(unary_case):
     x = unary_case.x
     v = unary_case.v
