@@ -4,7 +4,7 @@ import torch
 import torch.optim as optim
 
 from ..tensor import ManifoldParameter, ManifoldTensor
-from ..manifolds import Rn
+from ..manifolds import Euclidean
 from ..optim.mixin import OptimMixin
 
 __all__ = ["RSGLD", "SGRHMC"]
@@ -59,7 +59,7 @@ class RSGLD(Sampler):
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
-                        manifold = Rn()
+                        manifold = Euclidean()
 
                     proju, retr = manifold.proju, manifold.retr
                     epsilon = group["epsilon"]
@@ -95,7 +95,7 @@ class RHMC(Sampler):
         if isinstance(p, (ManifoldParameter, ManifoldTensor)):
             manifold = p.manifold
         else:
-            manifold = Rn()
+            manifold = Euclidean()
 
         proju = manifold.proju
         retr_transp = manifold.retr_transp
@@ -126,7 +126,7 @@ class RHMC(Sampler):
                 if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                     manifold = p.manifold
                 else:
-                    manifold = Rn()
+                    manifold = Euclidean()
 
                 proju = manifold.proju
                 state = self.state[p]
@@ -174,7 +174,7 @@ class RHMC(Sampler):
                 if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                     manifold = p.manifold
                 else:
-                    manifold = Rn()
+                    manifold = Euclidean()
 
                 proju = manifold.proju
 
@@ -251,7 +251,7 @@ class SGRHMC(Sampler):
                         if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                             manifold = p.manifold
                         else:
-                            manifold = Rn()
+                            manifold = Euclidean()
 
                         proju = manifold.proju
                         retr_transp = manifold.retr_transp

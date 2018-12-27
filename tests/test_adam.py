@@ -23,9 +23,10 @@ def test_adam_stiefel(params):
     optim = geoopt.optim.RiemannianAdam([X], stabilize=4500, **params)
     assert (X - Xstar).norm() > 1e-5
     for _ in range(10000):
+        if (X - Xstar).norm() < 1e-5:
+            break
         optim.step(closure)
 
     np.testing.assert_allclose(X.data, Xstar, atol=1e-5, rtol=1e-5)
     optim.load_state_dict(optim.state_dict())
     optim.step(closure)
-
