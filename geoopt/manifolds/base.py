@@ -18,7 +18,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Checks point lies on manifold
     * :meth:`_check_vector_on_tangent(x, u)` if needed
         Checks vector lies on tangent space to :math:`x`
-    * :meth:`_projv(x)` required
+    * :meth:`_projx(x)` required
         Projects :math:`x` on manifold
     * :meth:`_proju(x, u)` required
         Projects :math:`u` on tangent space at point :math:`x`

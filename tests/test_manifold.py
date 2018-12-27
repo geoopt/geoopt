@@ -21,12 +21,17 @@ def manifold(request):
 
 
 mannopt = {
-    geoopt.manifolds.Stiefel: pymanopt.manifolds.Stiefel,
+    geoopt.manifolds.EuclideanStiefel: pymanopt.manifolds.Stiefel,
+    geoopt.manifolds.CanonicalStiefel: pymanopt.manifolds.Stiefel,
     geoopt.manifolds.Euclidean: pymanopt.manifolds.Euclidean,
 }
 
 # shapes to verify unary element implementation
-shapes = {geoopt.manifolds.Stiefel: (10, 5), geoopt.manifolds.Euclidean: (1,)}
+shapes = {
+    geoopt.manifolds.EuclideanStiefel: (10, 5),
+    geoopt.manifolds.CanonicalStiefel: (10, 5),
+    geoopt.manifolds.Euclidean: (1,),
+}
 
 UnaryCase = collections.namedtuple(
     "UnaryCase", "shape,x,ex,v,ev,manifold,manopt_manifold"
@@ -60,10 +65,7 @@ def test_projection_via_assert(unary_case):
 
 
 def test_vector_projection(unary_case):
-    if (
-        isinstance(unary_case.manifold, geoopt.Stiefel)
-        and unary_case.manifold.canonical
-    ):
+    if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")
     x = unary_case.x
     ev = unary_case.ev
@@ -84,10 +86,7 @@ def test_vector_projection_via_assert(unary_case):
 
 
 def test_retraction(unary_case):
-    if (
-        isinstance(unary_case.manifold, geoopt.Stiefel)
-        and unary_case.manifold.canonical
-    ):
+    if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")
     x = unary_case.x
     v = unary_case.v
@@ -99,10 +98,7 @@ def test_retraction(unary_case):
 
 
 def test_transport(unary_case):
-    if (
-        isinstance(unary_case.manifold, geoopt.Stiefel)
-        and unary_case.manifold.canonical
-    ):
+    if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")
     x = unary_case.x
     v = unary_case.v
