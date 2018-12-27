@@ -73,4 +73,4 @@ Samplers
 .. |Coverage Status| image:: https://coveralls.io/repos/github/ferrine/geoopt/badge.svg?branch=master
    :target: https://coveralls.io/github/ferrine/geoopt?branch=master
 .. |Codestyle Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/ambv/black
+   :target: https://github.com/ambv/black
