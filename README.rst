@@ -1,7 +1,7 @@
 geoopt
 ======
 
-|Build Status| |Coverage Status|
+|Build Status| |Coverage Status| |Codestyle Black|
 
 Manifold aware ``pytorch.optim``.
 
@@ -72,3 +72,5 @@ Samplers
    :target: https://travis-ci.com/ferrine/geoopt
 .. |Coverage Status| image:: https://coveralls.io/repos/github/ferrine/geoopt/badge.svg?branch=master
    :target: https://coveralls.io/github/ferrine/geoopt?branch=master
+.. |Codestyle Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/ambv/black
