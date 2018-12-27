@@ -1,5 +1,5 @@
 import torch.optim.optimizer
-from ..manifolds import Rn
+from ..manifolds import Euclidean
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin
 from .tracing import create_traced_update
@@ -73,7 +73,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
-                        manifold = Rn()
+                        manifold = Euclidean()
 
                     if group["use_momentum"]:
                         state["traced_step"] = create_traced_update(
