@@ -155,7 +155,7 @@ class Stiefel(Manifold):
     def _retr_euclidean(x, u, t):
         q, r = util.linalg.qr(x + u * t)
         unflip = torch.sign(torch.sign(util.linalg.extract_diag(r)) + 0.5)
-        q *= unflip
+        q *= unflip[..., None, :]
         return q
 
     def _retr(self, x, u, t):
@@ -194,3 +194,6 @@ class Stiefel(Manifold):
 
     def __eq__(self, other):
         return super().__eq__(other) and self.canonical == other.canonical
+
+    def __repr__(self):
+        return "{}(canonical={})".format(self.name, self.canonical)

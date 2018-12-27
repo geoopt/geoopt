@@ -215,7 +215,7 @@ class Manifold(metaclass=abc.ABCMeta):
 
     def assert_check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
         """
-        Check if u :math:`u` is lying on the tangent space to x
+        Check if u :math:`u` is lying on the tangent space to x and raise an error on fail
 
         Parameters
         ----------
@@ -223,13 +223,6 @@ class Manifold(metaclass=abc.ABCMeta):
         u : tensor
         atol: float
         rtol: float
-        explain: bool
-            return an additional information on check
-
-        Returns
-        -------
-        bool
-            boolean indicating if tensor is valid and reason of failure if False
         """
         ok, reason = self._check_shape(x, "x")
         if ok:
