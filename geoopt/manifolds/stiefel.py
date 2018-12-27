@@ -39,7 +39,7 @@ class Stiefel(Manifold):
     def _check_shape(self, x, name):
         dim_is_ok = x.dim() >= 2
         if not dim_is_ok:
-            return False, "Not enough dimensions"
+            return False, "Not enough dimensions for `{}`".format(name)
         shape_is_ok = x.shape[-1] <= x.shape[-2]
         if not shape_is_ok:
             return (

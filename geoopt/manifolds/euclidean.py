@@ -14,6 +14,15 @@ class Euclidean(Manifold):
     ndim = 0
     reversible = True
 
+    def _check_shape(self, x, name):
+        return True, None
+
+    def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
+        return True, None
+
+    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+        return True, None
+
     def _retr(self, x, u, t):
         return x + t * u
 

@@ -12,11 +12,11 @@ class Manifold(metaclass=abc.ABCMeta):
     indicate if it is `reversible`
     and implement the following:
 
-    * :meth:`_check_point(x)` if needed
+    * :meth:`_check_point(x, ...)` required
         Checks point has valid dims, shapes, etc
-    * :meth:`_check_point_on_manifold(x)` if needed
+    * :meth:`_check_point_on_manifold(x)` required
         Checks point lies on manifold
-    * :meth:`_check_vector_on_tangent(x, u)` if needed
+    * :meth:`_check_vector_on_tangent(x, u)` required
         Checks vector lies on tangent space to :math:`x`
     * :meth:`_projx(x)` required
         Projects :math:`x` on manifold
@@ -395,7 +395,8 @@ class Manifold(metaclass=abc.ABCMeta):
         -------
         bool, str
         """
-        return True, None
+        # return True, None
+        raise NotImplementedError
 
     def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
         """
@@ -419,7 +420,8 @@ class Manifold(metaclass=abc.ABCMeta):
         -------
         bool, str or None
         """
-        return True, None
+        # return True, None
+        raise NotImplementedError
 
     def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
         """
@@ -444,7 +446,8 @@ class Manifold(metaclass=abc.ABCMeta):
         -------
         bool, str or None
         """
-        return True, None
+        # return True, None
+        raise NotImplementedError
 
     def _transp_many(self, x, u, t, *vs):
         """
