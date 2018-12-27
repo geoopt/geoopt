@@ -25,10 +25,7 @@ class Stiefel(Manifold):
     -----
     works with batch sized tensors
     """
-
-    name = "Stiefel"
     ndim = 2
-    reversible = True
 
     def __new__(cls, canonical=True):
         if cls is Stiefel:
@@ -79,6 +76,7 @@ class Stiefel(Manifold):
 
 class CanonicalStiefel(Stiefel):
     name = "Stiefel(canonical)"
+    reversible = True
 
     def _inner(self, x, u, v):
         # <u, v>_x = tr(u^T(I-1/2xx^T)v)

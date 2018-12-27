@@ -38,9 +38,9 @@ class Manifold(metaclass=abc.ABCMeta):
     -----
     Public documentation, private implementation design is used
     """
-    name = ""
-    ndim = 0
-    reversible = False
+    name = None
+    ndim = None
+    reversible = None
 
     def broadcast_scalar(self, t):
         """
