@@ -3,12 +3,17 @@ import numpy as np
 import torch
 import collections
 import pytest
+import functools
 import pymanopt.manifolds
 
 
-@pytest.fixture('session', params=[geoopt.manifolds.Stiefel, geoopt.manifolds.Euclidean])
-def Manifold(request):
-    return request.param
+@pytest.fixture('session', params=[
+    # match implementation of pymanopt for stiefel
+    functools.partial(geoopt.manifolds.Stiefel, canonical=False),
+    geoopt.manifolds.Euclidean
+])
+def manifold(request):
+    return request.param()
 
 
 mannopt = {
@@ -26,10 +31,9 @@ UnaryCase = collections.namedtuple('UnaryCase', 'shape,x,ex,v,ev,manifold,manopt
 
 
 @pytest.fixture()
-def unary_case(Manifold):
-    shape = shapes[Manifold]
-    manifold = Manifold()
-    manopt_manifold = mannopt[Manifold](*shape)
+def unary_case(manifold):
+    shape = shapes[type(manifold)]
+    manopt_manifold = mannopt[type(manifold)](*shape)
     np.random.seed(42)
     rand = manopt_manifold.rand()
     x = geoopt.ManifoldTensor(torch.from_numpy(rand), manifold=manifold)

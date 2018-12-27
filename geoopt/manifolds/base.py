@@ -1,8 +1,7 @@
 import abc
 import torch
-from . import util
 
-__all__ = ["Manifold", "Euclidean", "Stiefel"]
+__all__ = ["Manifold"]
 
 
 class Manifold(metaclass=abc.ABCMeta):
@@ -315,9 +314,12 @@ class Manifold(metaclass=abc.ABCMeta):
         inner product (broadcasted)
 
         """
-        if v is None:
+        if v is None and self._inner_autofill:
             v = u
         return self._inner(x, u, v)
+
+    # dev: autofill None parameter or propagate None?
+    _inner_autofill = True
 
     def proju(self, x, u):
         """
@@ -527,122 +529,3 @@ class Manifold(metaclass=abc.ABCMeta):
 
     def __eq__(self, other):
         return type(self) is type(other)
-
-
-class Euclidean(Manifold):
-    """
-    Euclidean manifold
-
-    An unconstrained manifold
-    """
-
-    name = "Euclidean"
-    ndim = 0
-    reversible = True
-
-    def _retr(self, x, u, t):
-        return x + t * u
-
-    def _inner(self, x, u, v):
-        return u * v
-
-    def _proju(self, x, u):
-        return u
-
-    def _projx(self, x):
-        return x
-
-    def _transp_one(self, x, u, t, v):
-        return v
-
-
-class Stiefel(Manifold):
-    r"""
-    Manifold induced by the following matrix constraint:
-
-    .. math::
-
-        X^\top X = I
-        X \in \mathrm{R}^{n\times m}
-        n \ge m
-
-    Notes
-    -----
-    works with batch sized tensors
-    """
-
-    name = "Stiefel"
-    ndim = 2
-    reversible = True
-
-    def _check_shape(self, x, name):
-        dim_is_ok = x.dim() >= 2
-        if not dim_is_ok:
-            return False, "Not enough dimensions"
-        shape_is_ok = x.shape[-1] <= x.shape[-2]
-        if not shape_is_ok:
-            return (
-                False,
-                "`{}` should have shape[-1] <= shape[-2], got {} </= {}".format(
-                    name, x.shape[-1], x.shape[-2]
-                ),
-            )
-        return True, None
-
-    def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
-        xtx = x.transpose(-1, -2) @ x
-        # less memory usage for substract diagonal
-        xtx[..., torch.arange(x.shape[-1]), torch.arange(x.shape[-1])] -= 1
-        ok = torch.allclose(xtx, xtx.new((1,)).fill_(0), atol=atol, rtol=rtol)
-        if not ok:
-            return False, "`X^T X != I` with atol={}, rtol={}".format(atol, rtol)
-        return True, None
-
-    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
-        diff = u.transpose(-1, -2) @ x + x.transpose(-1, -2) @ u
-        ok = torch.allclose(diff, diff.new((1,)).fill_(0), atol=atol, rtol=rtol)
-        if not ok:
-            return False, "`u^T x + x^T u !=0` with atol={}, rtol={}".format(atol, rtol)
-        return True, None
-
-    def _amat(self, x, u):
-        return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
-
-    def _proju(self, x, u):
-        return u - x @ u.transpose(-1, -2) @ x
-
-    def _projx(self, x):
-        U, d, V = util.svd(x)
-        return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
-
-    def _inner(self, x, u, v):
-        return (u * v).sum([-1, -2])
-
-    def _transp_one(self, x, u, t, v):
-        a = self._amat(x, u)
-        rhs = v + t / 2 * a @ v
-        lhs = -t / 2 * a
-        lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
-        qv, _ = torch.gesv(rhs, lhs)
-        return qv
-
-    def _retr(self, x, u, t):
-        return self._transp_one(x, u, t, x)
-
-    def _transp_many(self, x, u, t, *vs):
-        """
-        An optimized transp_many for Stiefel Manifold
-        """
-        n = len(vs)
-        vs = torch.cat(vs, -1)
-        qvs = self._transp_one(x, u, t, vs).view(*x.shape[:-1], -1, x.shape[-1])
-        return tuple(qvs[..., i, :] for i in range(n))
-
-    def _retr_transp(self, x, u, t, v, *more):
-        """
-        An optimized retr_transp for Stiefel Manifold
-        """
-        n = 2 + len(more)
-        xvs = torch.cat((x, v) + more, -1)
-        qxvs = self._transp_one(x, u, t, xvs).view(*x.shape[:-1], -1, x.shape[-1])
-        return tuple(qxvs[..., i, :] for i in range(n))
