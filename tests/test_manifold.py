@@ -217,3 +217,19 @@ def test_broadcast_retr_transp_many(unary_case):
         np.testing.assert_allclose(zz, y, atol=1e-5)
         np.testing.assert_allclose(q, qq, atol=1e-5)
         np.testing.assert_allclose(p, pp, atol=1e-5)
+
+
+def test_reversibility(unary_case):
+    torch.manual_seed(43)
+    X = torch.randn(*unary_case.shape)
+    U = torch.randn(*unary_case.shape)
+    X = unary_case.manifold.projx(X)
+    U = unary_case.manifold.proju(X, U)
+    Z, Q = unary_case.manifold.retr_transp(X, U, 1.0, U)
+    X1, U1 = unary_case.manifold.retr_transp(Z, Q, -1.0, Q)
+    if unary_case.manifold.reversible:
+        np.testing.assert_allclose(X1, X, atol=1e-5)
+        np.testing.assert_allclose(U1, U, atol=1e-5)
+    else:
+        assert not np.allclose(X1, X, atol=1e-5)
+        assert not np.allclose(U1, U, atol=1e-5)

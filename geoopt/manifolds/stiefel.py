@@ -133,6 +133,7 @@ class CanonicalStiefel(Stiefel):
 
 class EuclideanStiefel(Stiefel):
     name = "Stiefel(euclidean)"
+    reversible = False
 
     def _proju(self, x, u):
         return u - x @ util.linalg.sym(x.transpose(-1, -2) @ u)
