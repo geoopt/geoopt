@@ -4,3 +4,5 @@ readme2tex
 pytest-cov
 coveralls
 pymanopt
+twine
+wheel
