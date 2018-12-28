@@ -3,6 +3,9 @@ import re
 from setuptools import setup, find_packages
 
 DESCRIPTION = """Unofficial implementation for “Riemannian Adaptive Optimization Methods” ICLR2019 and more"""
+PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(PROJECT_ROOT, 'README.rst'), encoding='utf-8') as buff:
+    LONG_DESCRIPTION = buff.read()
 
 
 def get_version(*path):
@@ -33,6 +36,7 @@ if __name__ == "__main__":
         name="geoopt",
         author="Maxim Kochurov, Victor Yanush",
         description=DESCRIPTION,
+        long_description=LONG_DESCRIPTION,
         packages=find_packages(),
         install_requires=["torch>=0.4.1", "numpy"],
         version=get_version("geoopt", "__init__.py"),
