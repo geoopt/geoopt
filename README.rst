@@ -6,10 +6,7 @@ geoopt
 Manifold aware ``pytorch.optim``.
 
 Unofficial implementation for `“Riemannian Adaptive Optimization
-Methods”`_ ICLR2019
-
-Here gonna be all easy to implement optimizers starting from RSGD and
-ending up with adaptive methods
+Methods”`_ ICLR2019 and more.
 
 What is done so far
 -------------------
@@ -45,7 +42,7 @@ points on a certain manifold
 Manifolds
 ~~~~~~~~~
 
--  ``geoopt.Euclidean`` – unconstrained manifold in ``R^n`` with
+-  ``geoopt.Euclidean`` – unconstrained manifold in ``R`` with
    Euclidean metric
 -  ``geoopt.Stiefel`` – Stiefel manifold on matrices
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
