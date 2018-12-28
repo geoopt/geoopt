@@ -42,6 +42,6 @@ if __name__ == "__main__":
         version=get_version("geoopt", "__init__.py"),
         url="https://github.com/ferrine/geoopt",
         python_requires=">=3.6.0",
-        licence="Apache License, Version 2.0",
+        license="Apache License, Version 2.0",
         classifiers=classifiers
     )
