@@ -11,7 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-
+   manifolds
+   optimizers
 
 Indices and tables
 ==================
