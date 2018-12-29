@@ -51,73 +51,73 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
         loss = None
         if closure is not None:
             loss = closure()
+        with torch.no_grad():
+            for group in self.param_groups:
+                if "step" not in group:
+                    group["step"] = 0
+                weight_decay = self.group_param_tensor(group, "weight_decay")
+                momentum = self.group_param_tensor(group, "momentum")
+                dampening = self.group_param_tensor(group, "dampening")
+                nesterov = group["nesterov"]
+                learning_rate = self.group_param_tensor(group, "lr")
+                for p in group["params"]:
+                    if p.grad is None:
+                        continue
+                    state = self.state[p]
 
-        for group in self.param_groups:
-            if "step" not in group:
-                group["step"] = 0
-            weight_decay = self.group_param_tensor(group, "weight_decay")
-            momentum = self.group_param_tensor(group, "momentum")
-            dampening = self.group_param_tensor(group, "dampening")
-            nesterov = group["nesterov"]
-            learning_rate = self.group_param_tensor(group, "lr")
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                state = self.state[p]
+                    # State initialization
+                    if len(state) == 0:
+                        if momentum != 0:
+                            state["momentum_buffer"] = p.grad.clone()
+                    if "traced_step" not in state:
+                        if isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                            manifold = p.manifold
+                        else:
+                            manifold = Euclidean()
 
-                # State initialization
-                if len(state) == 0:
-                    if momentum != 0:
-                        state["momentum_buffer"] = p.grad.clone()
-                if "traced_step" not in state:
-                    if isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                        manifold = p.manifold
-                    else:
-                        manifold = Euclidean()
-
+                        if group["use_momentum"]:
+                            state["traced_step"] = create_traced_update(
+                                self.perform_step,
+                                manifold,
+                                p,
+                                weight_decay.type_as(p),
+                                momentum.type_as(p),
+                                state["momentum_buffer"],
+                                dampening=dampening,
+                                nesterov=nesterov,
+                                use_momentum=group["use_momentum"],
+                            )
+                        else:
+                            state["traced_step"] = create_traced_update(
+                                self.perform_step,
+                                manifold,
+                                p,
+                                weight_decay.type_as(p),
+                                momentum=None,
+                                momentum_buffer=None,
+                                dampening=dampening,
+                                nesterov=nesterov,
+                                use_momentum=group["use_momentum"],
+                            )
                     if group["use_momentum"]:
-                        state["traced_step"] = create_traced_update(
-                            self.perform_step,
-                            manifold,
-                            p.data,
+                        state["traced_step"](
+                            p,
+                            p.grad,
+                            learning_rate.type_as(p),
                             weight_decay.type_as(p),
                             momentum.type_as(p),
                             state["momentum_buffer"],
-                            dampening=dampening,
-                            nesterov=nesterov,
-                            use_momentum=group["use_momentum"],
                         )
                     else:
-                        state["traced_step"] = create_traced_update(
-                            self.perform_step,
-                            manifold,
-                            p.data,
+                        state["traced_step"](
+                            p,
+                            p.grad,
+                            learning_rate.type_as(p),
                             weight_decay.type_as(p),
-                            momentum=None,
-                            momentum_buffer=None,
-                            dampening=dampening,
-                            nesterov=nesterov,
-                            use_momentum=group["use_momentum"],
                         )
-                if group["use_momentum"]:
-                    state["traced_step"](
-                        p.data,
-                        p.grad,
-                        learning_rate.type_as(p),
-                        weight_decay.type_as(p),
-                        momentum.type_as(p),
-                        state["momentum_buffer"],
-                    )
-                else:
-                    state["traced_step"](
-                        p.data,
-                        p.grad,
-                        learning_rate.type_as(p),
-                        weight_decay.type_as(p),
-                    )
-            group["step"] += 1
-            if self._stabilize is not None and group["step"] % self._stabilize == 0:
-                self.stabilize_group(group)
+                group["step"] += 1
+                if self._stabilize is not None and group["step"] % self._stabilize == 0:
+                    self.stabilize_group(group)
         return loss
 
     @staticmethod
@@ -152,17 +152,18 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
             point.set_(new_point)
 
     def stabilize_group(self, group):
-        for p in group["params"]:
-            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                continue
-            manifold = p.manifold
-            momentum = group["momentum"]
-            p.data.set_(manifold.projx(p.data))
-            if momentum > 0:
-                param_state = self.state[p]
-                if "momentum_buffer" in param_state:
-                    buf = param_state["momentum_buffer"]
-                    buf.data.set_(manifold.proju(p.data, buf))
+        with torch.no_grad():
+            for p in group["params"]:
+                if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                    continue
+                manifold = p.manifold
+                momentum = group["momentum"]
+                p.set_(manifold.projx(p))
+                if momentum > 0:
+                    param_state = self.state[p]
+                    if "momentum_buffer" in param_state:
+                        buf = param_state["momentum_buffer"]
+                        buf.set_(manifold.proju(p, buf))
 
     def _sanitize_group(self, group):
         group = group.copy()

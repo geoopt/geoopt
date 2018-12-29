@@ -17,13 +17,15 @@ class ManifoldTensor(torch.Tensor):
             data = torch.Tensor.__new__(cls, *args, **kwargs)
         if kwargs.get("device") is not None:
             data.data = data.data.to(kwargs.get("device"))
-        manifold.assert_check_point(data.data)
+        with torch.no_grad():
+            manifold.assert_check_point(data)
         instance = torch.Tensor._make_subclass(cls, data, requires_grad)
         instance.manifold = manifold
         return instance
 
     def proj_(self):
-        self.data.set_(self.manifold.projx(self.data))
+        with torch.no_grad():
+            self.set_(self.manifold.projx(self.data))
         return self
 
     def retr(self, u, t):

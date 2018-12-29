@@ -7,7 +7,7 @@ from ..tensor import ManifoldParameter, ManifoldTensor
 from ..manifolds import Euclidean
 from ..optim.mixin import OptimMixin
 
-__all__ = ["RSGLD", "SGRHMC"]
+__all__ = ["RSGLD", "SGRHMC", "RHMC"]
 
 
 class Sampler(OptimMixin, optim.Optimizer):
@@ -65,10 +65,10 @@ class RSGLD(Sampler):
                     epsilon = group["epsilon"]
 
                     n = torch.randn_like(p).mul_(math.sqrt(epsilon))
-                    r = proju(p.data, 0.5 * epsilon * p.grad + n)
+                    r = proju(p, 0.5 * epsilon * p.grad + n)
 
-                    p.data.set_(retr(p.data, r, 1.0))
-                    p.grad.data.zero_()
+                    p.set_(retr(p.data, r, 1.0))
+                    p.grad.zero_()
 
         if not self.burnin:
             self.steps += 1
@@ -101,8 +101,8 @@ class RHMC(Sampler):
         retr_transp = manifold.retr_transp
 
         r.add_(epsilon * proju(p.data, p.grad))
-        p_, r_ = retr_transp(p.data, r, epsilon, r)
-        p.data.set_(p_)
+        p_, r_ = retr_transp(p, r, epsilon, r)
+        p.set_(p_)
         r.set_(r_)
 
     def step(self, closure):
@@ -118,95 +118,97 @@ class RHMC(Sampler):
         old_logp = logp.item()
         old_H = -old_logp
 
-        for group in self.param_groups:
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-
-                if isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                    manifold = p.manifold
-                else:
-                    manifold = Euclidean()
-
-                proju = manifold.proju
-                state = self.state[p]
-
-                if "r" not in state:
-                    state["old_p"] = torch.zeros_like(p)
-                    state["old_r"] = torch.zeros_like(p)
-                    state["r"] = torch.zeros_like(p)
-
-                r = state["r"]
-                r.normal_()
-                r.set_(proju(p.data, r))
-
-                old_H += 0.5 * (r * r).sum().item()
-
-                state["old_p"].copy_(p.data)
-                state["old_r"].copy_(r)
-
-                epsilon = group["epsilon"]
-                self._step(p, r, epsilon)
-                p.grad.data.zero_()
-
-        for i in range(1, self.n_steps):
-            logp = closure()
-            logp.backward()
+        with torch.no_grad():
             for group in self.param_groups:
                 for p in group["params"]:
                     if p.grad is None:
                         continue
 
-                    self._step(p, self.state[p]["r"], group["epsilon"])
+                    if isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                        manifold = p.manifold
+                    else:
+                        manifold = Euclidean()
+
+                    proju = manifold.proju
+                    state = self.state[p]
+
+                    if "r" not in state:
+                        state["old_p"] = torch.zeros_like(p)
+                        state["old_r"] = torch.zeros_like(p)
+                        state["r"] = torch.zeros_like(p)
+
+                    r = state["r"]
+                    r.normal_()
+                    r.set_(proju(p, r))
+
+                    old_H += 0.5 * (r * r).sum().item()
+
+                    state["old_p"].copy_(p)
+                    state["old_r"].copy_(r)
+
+                    epsilon = group["epsilon"]
+                    self._step(p, r, epsilon)
                     p.grad.data.zero_()
+
+        for i in range(1, self.n_steps):
+            logp = closure()
+            logp.backward()
+            with torch.no_grad():
+                for group in self.param_groups:
+                    for p in group["params"]:
+                        if p.grad is None:
+                            continue
+
+                        self._step(p, self.state[p]["r"], group["epsilon"])
+                        p.grad.data.zero_()
 
         logp = closure()
         logp.backward()
 
         new_logp = logp.item()
         new_H = -new_logp
-
-        for group in self.param_groups:
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-
-                if isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                    manifold = p.manifold
-                else:
-                    manifold = Euclidean()
-
-                proju = manifold.proju
-
-                r = self.state[p]["r"]
-                r.add_(0.5 * epsilon * proju(p.data, p.grad))
-                p.grad.data.zero_()
-
-                new_H += 0.5 * (r * r).sum().item()
-
-        rho = min(1.0, math.exp(old_H - new_H))
-
-        if not self.burnin:
-            self.steps += 1
-            self.acceptance_probs.append(rho)
-
-        if np.random.rand(1) >= rho:  # reject
-            if not self.burnin:
-                self.n_rejected += 1
-
+        with torch.no_grad():
             for group in self.param_groups:
                 for p in group["params"]:
                     if p.grad is None:
                         continue
 
-                    state = self.state[p]
-                    r = state["r"]
-                    p.data.copy_(state["old_p"])
-                    r.copy_(state["old_r"])
+                    if isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                        manifold = p.manifold
+                    else:
+                        manifold = Euclidean()
 
-            self.log_probs.append(old_logp)
-        else:
-            self.log_probs.append(new_logp)
+                    proju = manifold.proju
+
+                    r = self.state[p]["r"]
+                    r.add_(0.5 * epsilon * proju(p, p.grad))
+                    p.grad.zero_()
+
+                    new_H += 0.5 * (r * r).sum().item()
+
+            rho = min(1.0, math.exp(old_H - new_H))
+
+            if not self.burnin:
+                self.steps += 1
+                self.acceptance_probs.append(rho)
+
+            if np.random.rand(1) >= rho:  # reject
+                if not self.burnin:
+                    self.n_rejected += 1
+
+                for group in self.param_groups:
+                    for p in group["params"]:
+                        if p.grad is None:
+                            continue
+
+                        state = self.state[p]
+                        r = state["r"]
+                        p.copy_(state["old_p"])
+                        r.copy_(state["old_r"])
+
+                self.log_probs.append(old_logp)
+            else:
+                self.log_probs.append(new_logp)
 
 
 class SGRHMC(Sampler):
@@ -260,15 +262,15 @@ class SGRHMC(Sampler):
 
                         v = self.state[p]["v"]
 
-                        p_, v_ = retr_transp(p.data, v, 1.0, v)
-                        p.data.set_(p_)
+                        p_, v_ = retr_transp(p, v, 1.0, v)
+                        p.set_(p_)
                         v.set_(v_)
 
-                        n = proju(p.data, torch.randn_like(v))
+                        n = proju(p, torch.randn_like(v))
                         v.mul_(1 - alpha).add_(epsilon * p.grad).add_(
                             math.sqrt(2 * alpha * epsilon) * n
                         )
-                        p.grad.data.zero_()
+                        p.grad.zero_()
 
                         r = v / epsilon
                         H_new += 0.5 * (r * r).sum().item()
@@ -278,13 +280,14 @@ class SGRHMC(Sampler):
             self.log_probs.append(logp.item())
 
     def stabilize(self):
-        for group in self.param_groups:
-            for p in group["params"]:
-                if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                    continue
+        with torch.no_grad():
+            for group in self.param_groups:
+                for p in group["params"]:
+                    if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                        continue
 
-                manifold = p.manifold
-                v = self.state[p]["v"]
+                    manifold = p.manifold
+                    v = self.state[p]["v"]
 
-                p.data.set_(manifold.projx(p.data))
-                v.data.set_(manifold.proju(p.data, v))
+                    p.set_(manifold.projx(p))
+                    v.set_(manifold.proju(p, v))
