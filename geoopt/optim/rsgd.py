@@ -110,10 +110,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                         )
                     else:
                         state["traced_step"](
-                            p,
-                            p.grad,
-                            learning_rate.type_as(p),
-                            weight_decay.type_as(p),
+                            p, p.grad, learning_rate.type_as(p), weight_decay.type_as(p)
                         )
                 group["step"] += 1
                 if self._stabilize is not None and group["step"] % self._stabilize == 0:
