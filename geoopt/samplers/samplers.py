@@ -67,7 +67,7 @@ class RSGLD(Sampler):
                     n = torch.randn_like(p).mul_(math.sqrt(epsilon))
                     r = proju(p, 0.5 * epsilon * p.grad + n)
 
-                    p.set_(retr(p.data, r, 1.0))
+                    p.set_(retr(p, r, 1.0))
                     p.grad.zero_()
 
         if not self.burnin:
@@ -80,7 +80,7 @@ class RSGLD(Sampler):
                 if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
                     continue
 
-                p.data.set_(p.manifold.projx(p.data))
+                p.set_(p.manifold.projx(p))
 
 
 class RHMC(Sampler):
@@ -100,7 +100,7 @@ class RHMC(Sampler):
         proju = manifold.proju
         retr_transp = manifold.retr_transp
 
-        r.add_(epsilon * proju(p.data, p.grad))
+        r.add_(epsilon * proju(p, p.grad))
         p_, r_ = retr_transp(p, r, epsilon, r)
         p.set_(p_)
         r.set_(r_)
@@ -148,7 +148,7 @@ class RHMC(Sampler):
 
                     epsilon = group["epsilon"]
                     self._step(p, r, epsilon)
-                    p.grad.data.zero_()
+                    p.grad.zero_()
 
         for i in range(1, self.n_steps):
             logp = closure()
@@ -160,7 +160,7 @@ class RHMC(Sampler):
                             continue
 
                         self._step(p, self.state[p]["r"], group["epsilon"])
-                        p.grad.data.zero_()
+                        p.grad.zero_()
 
         logp = closure()
         logp.backward()
