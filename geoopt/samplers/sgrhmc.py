@@ -11,7 +11,19 @@ __all__ = ["SGRHMC"]
 
 
 class SGRHMC(Sampler):
-    """Stochastic Gradient Riemannian Hamiltonian Monte-Carlo"""
+    """Stochastic Gradient Riemannian Hamiltonian Monte-Carlo
+
+    Parameters
+    ----------
+    params : iterable[tensor]
+        iterables of tensors for which to perform sampling
+    epsilon : float
+        step size
+    n_steps : int
+        number of leapfrog steps
+    alpha : float
+        :math:`1 - alpha` - momentum term
+    """
 
     def __init__(self, params, epsilon=1e-3, n_steps=1, alpha=0.1):
         defaults = dict(epsilon=epsilon, alpha=alpha)

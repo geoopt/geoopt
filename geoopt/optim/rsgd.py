@@ -9,7 +9,24 @@ __all__ = ["RiemannianSGD"]
 
 
 class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
-    """Riemannian Stochastic Gradient Descent"""
+    """Riemannian Stochastic Gradient Descent
+
+    Parameters
+    ----------
+    params : iterable
+        iterable of parameters to optimize or dicts defining
+        parameter groups
+    lr : float
+        learning rate
+    momentum : float (optional)
+        momentum factor (default: 0)
+    weight_decay : float (optional)
+        weight decay (L2 penalty) (default: 0)
+    dampening : float (optional)
+        dampening for momentum (default: 0)
+    nesterov : bool (optional)
+        enables Nesterov momentum (default: False)
+    """
 
     def __init__(
         self,

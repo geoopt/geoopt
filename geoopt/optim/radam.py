@@ -7,7 +7,32 @@ from ..manifolds import Euclidean
 
 
 class RiemannianAdam(OptimMixin, torch.optim.Adam):
-    """Riemannian Adam"""
+    R"""Riemannian Adam
+
+    Parameters
+    ----------
+    params : iterable
+        iterable of parameters to optimize or dicts defining
+        parameter groups
+    lr : float (optional)
+        learning rate (default: 1e-3)
+    betas : Tuple[float, float] (optional)
+        coefficients used for computing
+        running averages of gradient and its square (default: (0.9, 0.999))
+    eps : float (optional)
+        term added to the denominator to improve
+        numerical stability (default: 1e-8)
+    weight_decay : float (optional)
+        weight decay (L2 penalty) (default: 0)
+    amsgrad : bool (optional)
+        whether to use the AMSGrad variant of this
+        algorithm from the paper `On the Convergence of Adam and Beyond`_
+        (default: False)
+
+
+    .. _On the Convergence of Adam and Beyond:
+        https://openreview.net/forum?id=ryQu7f-RZ
+    """
 
     def step(self, closure=None):
         """Performs a single optimization step.
