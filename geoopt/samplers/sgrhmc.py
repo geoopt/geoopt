@@ -11,11 +11,11 @@ __all__ = ["SGRHMC"]
 
 
 class SGRHMC(Sampler):
-    """Stochastic Gradient Riemannian Hamiltonian Monte-Carlo
+    R"""Stochastic Gradient Riemannian Hamiltonian Monte-Carlo
 
     Parameters
     ----------
-    params : iterable[tensor]
+    params : iterable
         iterables of tensors for which to perform sampling
     epsilon : float
         step size

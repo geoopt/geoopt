@@ -12,11 +12,11 @@ __all__ = ["RHMC"]
 
 
 class RHMC(Sampler):
-    """Riemannian Hamiltonian Monte-Carlo
+    R"""Riemannian Hamiltonian Monte-Carlo
 
     Parameters
     ----------
-    params : iterable[tensor]
+    params : iterable
         iterables of tensors for which to perform sampling
     epsilon : float
         step size

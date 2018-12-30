@@ -11,15 +11,14 @@ __all__ = ["RSGLD"]
 
 
 class RSGLD(Sampler):
-    """Riemannian Stochastic Gradient Langevin Dynamics
+    R"""Riemannian Stochastic Gradient Langevin Dynamics
 
     Parameters
     ----------
-    params : iterable[tensor]
+    params : iterable
         iterables of tensors for which to perform sampling
     epsilon : float
         step size
-
     """
 
     def __init__(self, params, epsilon=1e-3):
