@@ -13,6 +13,8 @@ Contents:
 
    manifolds
    optimizers
+   tensors
+   samplers
 
 Indices and tables
 ==================

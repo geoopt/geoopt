@@ -18,6 +18,7 @@ class Stiefel(Manifold):
         n \ge m
 
     Parameters
+    ----------
     canonical : bool
         Use canonical inner product instead of euclidean one (defaults to canonical)
 

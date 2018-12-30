@@ -5,3 +5,4 @@ Manifolds
 
 .. automodule:: geoopt.manifolds
    :members:
+   :imported-members: True

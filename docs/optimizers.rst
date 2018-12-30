@@ -5,3 +5,4 @@ Optimizers
 
 .. automodule:: geoopt.optim
    :members:
+   :imported-members: True

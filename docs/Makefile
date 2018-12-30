@@ -43,6 +43,7 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 	@echo "  dummy      to check syntax errors of document sources"
+	@echo "  serve      to check syntax errors of document sources"
 
 .PHONY: clean
 clean:
@@ -223,3 +224,6 @@ dummy:
 	$(SPHINXBUILD) -b dummy $(ALLSPHINXOPTS) $(BUILDDIR)/dummy
 	@echo
 	@echo "Build finished. Dummy builder generates no files."
+
+serve: html
+	cd $(BUILDDIR)/html && python -m http.server

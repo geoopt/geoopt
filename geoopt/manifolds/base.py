@@ -8,31 +8,31 @@ class Manifold(metaclass=abc.ABCMeta):
     r"""
     Base class for Manifolds
 
-    Every subclass should provide its `name`, `ndim`,
-    indicate if it is `reversible`
+    Every subclass should provide its :attr:`name`, :attr:`ndim`,
+    indicate if it is :attr:`reversible`
     and implement the following:
 
-    * :meth:`_check_point(x, ...)` required
+    * ``_check_point(x, ...)`` required
         Checks point has valid dims, shapes, etc
-    * :meth:`_check_point_on_manifold(x)` required
+    * ``_check_point_on_manifold(x)`` required
         Checks point lies on manifold
-    * :meth:`_check_vector_on_tangent(x, u)` required
+    * ``_check_vector_on_tangent(x, u)`` required
         Checks vector lies on tangent space to :math:`x`
-    * :meth:`_projx(x)` required
+    * ``_projx(x)`` required
         Projects :math:`x` on manifold
-    * :meth:`_proju(x, u)` required
+    * ``_proju(x, u)`` required
         Projects :math:`u` on tangent space at point :math:`x`
-    * :meth:`_inner(x, u, v)` required
+    * ``_inner(x, u, v)`` required
         Computes inner product :math:`\langle u, v\rangle_x`
-    * :meth:`_retr(x, u, t)` required
+    * ``_retr(x, u, t)`` required
         Performs retraction map for :math:`x` with direction :math:`u` and time :math:`t`
-    * :meth:`_transp_one(x, u, t, v)` required
+    * ``_transp_one(x, u, t, v)`` required
         Performs vector transport for :math:`v` with direction :math:`u` and time :math:`t`
-    * :meth:`_transp_many(x, u, t, *vs)` desired
-        Same as :meth:`_transp_one(x, u, t, v)` with multiple inputs
-    * :meth:`_retr_transp(x, u, t, *vs)` desired
-        Combines :meth:`_transp_many(x, u, t, *vs)` and :meth:`_retr(x, u, t)`
-    * :meth:`__eq__(other)` if needed
+    * ``_transp_many(x, u, t, *vs)`` desired
+        Same as ``_transp_one(x, u, t, v)`` with multiple inputs
+    * ``_retr_transp(x, u, t, *vs)`` desired
+        Combines ``_transp_many(x, u, t, *vs)`` and ``_retr(x, u, t)``
+    * ``__eq__(other)`` if needed
 
     Notes
     -----
@@ -370,7 +370,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Returns
         -------
         tuple of tensors
-            (new_x, *new_vs)
+            (new_x, new_vs, ...)
         """
         return self._retr_transp(x, u, t, v, *more)
 
