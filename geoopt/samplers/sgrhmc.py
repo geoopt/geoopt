@@ -75,15 +75,15 @@ class SGRHMC(Sampler):
 
                         v = self.state[p]["v"]
 
-                        p_, v_ = retr_transp(p.data, v, 1.0, v)
-                        p.data.set_(p_)
+                        p_, v_ = retr_transp(p, v, 1.0, v)
+                        p.set_(p_)
                         v.set_(v_)
 
-                        n = proju(p.data, torch.randn_like(v))
+                        n = proju(p, torch.randn_like(v))
                         v.mul_(1 - alpha).add_(epsilon * p.grad).add_(
                             math.sqrt(2 * alpha * epsilon) * n
                         )
-                        p.grad.data.zero_()
+                        p.grad.zero_()
 
                         r = v / epsilon
                         H_new += 0.5 * (r * r).sum().item()
@@ -104,5 +104,5 @@ class SGRHMC(Sampler):
                 manifold = p.manifold
                 v = self.state[p]["v"]
 
-                p.data.set_(manifold.projx(p.data))
-                v.data.set_(manifold.proju(p.data, v))
+                p.set_(manifold.projx(p))
+                v.set_(manifold.proju(p, v))

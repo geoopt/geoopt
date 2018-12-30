@@ -50,10 +50,10 @@ class RSGLD(Sampler):
                     epsilon = group["epsilon"]
 
                     n = torch.randn_like(p).mul_(math.sqrt(epsilon))
-                    r = proju(p.data, 0.5 * epsilon * p.grad + n)
+                    r = proju(p, 0.5 * epsilon * p.grad + n)
 
-                    p.data.set_(retr(p.data, r, 1.0))
-                    p.grad.data.zero_()
+                    p.set_(retr(p, r, 1.0))
+                    p.grad.zero_()
 
         if not self.burnin:
             self.steps += 1
@@ -62,9 +62,10 @@ class RSGLD(Sampler):
     def stabilize(self):
         """Stabilize parameters if they are off-manifold due to numerical reasons
         """
-        for group in self.param_groups:
-            for p in group["params"]:
-                if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                    continue
+        with torch.no_grad():
+            for group in self.param_groups:
+                for p in group["params"]:
+                    if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                        continue
 
-                p.data.set_(p.manifold.projx(p.data))
+                    p.set_(p.manifold.projx(p))
