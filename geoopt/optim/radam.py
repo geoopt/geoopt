@@ -7,12 +7,16 @@ from ..manifolds import Euclidean
 
 
 class RiemannianAdam(OptimMixin, torch.optim.Adam):
+    """Riemannian Adam"""
+
     def step(self, closure=None):
         """Performs a single optimization step.
 
-        Arguments:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
+        Arguments
+        ---------
+        closure : callable (optional)
+            A closure that reevaluates the model
+            and returns the loss.
         """
         loss = None
         if closure is not None:
