@@ -6,7 +6,7 @@ cache:
 
 env:
   - PYTHON_VERSION=3.6 TORCH='pytorch<1.0.0' COVERAGE=''
-  - PYTHON_VERSION=3.6 TORCH='pytorch>=1.0.0' COVERAGE='--cov geoopt'
+  - PYTHON_VERSION=3.6 TORCH='pytorch>=1.0.0' COVERAGE='--cov geoopt' BUILD_DOCS="true"
   - PYTHON_VERSION=3.6 TORCH='pytorch-nightly' COVERAGE=''
 
 matrix:
@@ -21,11 +21,14 @@ install:
   - conda install --yes numpy mkl-service
   - conda install --yes $TORCH -c pytorch
   - pip install -r requirements-dev.txt
+  - pip install travis-sphinx
   - pip install -e . --no-deps
 
 script:
   - black --check --diff geoopt tests
   - py.test -v --durations=0 $COVERAGE
+  - if [[ "$BUILD_DOCS" == "true" ]]; then travis-sphinx build --source=docs; fi
 
 after_success:
+  - if [[ "$BUILD_DOCS" == "true" ]]; then travis-sphinx deploy; fi
   - coveralls
