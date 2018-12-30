@@ -9,7 +9,7 @@ __all__ = ["RiemannianSGD"]
 
 
 class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
-    R"""Riemannian Stochastic Gradient Descent
+    r"""Riemannian Stochastic Gradient Descent
 
     Parameters
     ----------

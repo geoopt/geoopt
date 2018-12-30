@@ -12,7 +12,7 @@ __all__ = ["RHMC"]
 
 
 class RHMC(Sampler):
-    R"""Riemannian Hamiltonian Monte-Carlo
+    r"""Riemannian Hamiltonian Monte-Carlo
 
     Parameters
     ----------

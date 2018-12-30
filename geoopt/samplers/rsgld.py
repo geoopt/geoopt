@@ -11,7 +11,7 @@ __all__ = ["RSGLD"]
 
 
 class RSGLD(Sampler):
-    R"""Riemannian Stochastic Gradient Langevin Dynamics
+    r"""Riemannian Stochastic Gradient Langevin Dynamics
 
     Parameters
     ----------

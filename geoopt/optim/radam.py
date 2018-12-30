@@ -7,7 +7,7 @@ from ..manifolds import Euclidean
 
 
 class RiemannianAdam(OptimMixin, torch.optim.Adam):
-    R"""Riemannian Adam
+    r"""Riemannian Adam
 
     Parameters
     ----------

@@ -11,7 +11,7 @@ __all__ = ["SGRHMC"]
 
 
 class SGRHMC(Sampler):
-    R"""Stochastic Gradient Riemannian Hamiltonian Monte-Carlo
+    r"""Stochastic Gradient Riemannian Hamiltonian Monte-Carlo
 
     Parameters
     ----------
