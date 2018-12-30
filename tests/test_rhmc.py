@@ -44,14 +44,16 @@ def test_leapfrog_reversibility(params):
     for i in range(n_steps):
         logp = nd()
         logp.backward()
-        sampler._step(nd.x, r, epsilon)
-        nd.x.grad.zero_()
+        with torch.no_grad():
+            sampler._step(nd.x, r, epsilon)
+            nd.x.grad.zero_()
 
     for i in range(n_steps):
         logp = nd()
         logp.backward()
-        sampler._step(nd.x, r, -epsilon)
-        nd.x.grad.zero_()
+        with torch.no_grad():
+            sampler._step(nd.x, r, -epsilon)
+            nd.x.grad.zero_()
 
     new_x = nd.x.data.numpy().copy()
     np.testing.assert_allclose(init_x, new_x, rtol=1e-5)

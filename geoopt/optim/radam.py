@@ -17,55 +17,83 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         loss = None
         if closure is not None:
             loss = closure()
+        with torch.no_grad():
+            for group in self.param_groups:
+                if "step" not in group:
+                    group["step"] = 0
+                betas = self.group_param_tensor(group, "betas")
+                weight_decay = self.group_param_tensor(group, "weight_decay")
+                eps = self.group_param_tensor(group, "eps")
+                learning_rate = self.group_param_tensor(group, "lr")
+                amsgrad = group["amsgrad"]
+                for p in group["params"]:
+                    if p.grad is None:
+                        continue
+                    if isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                        manifold = p.manifold
+                    else:
+                        manifold = Euclidean()
 
-        for group in self.param_groups:
-            if "step" not in group:
-                group["step"] = 0
-            betas = self.group_param_tensor(group, "betas")
-            weight_decay = self.group_param_tensor(group, "weight_decay")
-            eps = self.group_param_tensor(group, "eps")
-            learning_rate = self.group_param_tensor(group, "lr")
-            amsgrad = group["amsgrad"]
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                if isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                    manifold = p.manifold
-                else:
-                    manifold = Euclidean()
-
-                if p.grad.is_sparse:
-                    raise RuntimeError(
-                        "Adam does not support sparse gradients, please consider SparseAdam instead"
-                    )
-
-                state = self.state[p]
-
-                # State initialization
-                if len(state) == 0:
-                    state["step"] = torch.tensor(0)
-                    # Exponential moving average of gradient values
-                    state["exp_avg"] = torch.zeros_like(p.data)
-                    # Exponential moving average of squared gradient values
-                    inner_prod_shape = p.shape
-                    if manifold.ndim > 0:
-                        inner_prod_shape = inner_prod_shape[: -manifold.ndim]
-                    state["exp_avg_sq"] = torch.zeros(
-                        inner_prod_shape, dtype=p.dtype, device=p.device
-                    )
-                    if amsgrad:
-                        # Maintains max of all exp. moving avg. of sq. grad. values
-                        state["max_exp_avg_sq"] = torch.zeros(
-                            inner_prod_shape, dtype=p.dtype, device=p.device
+                    if p.grad.is_sparse:
+                        raise RuntimeError(
+                            "Adam does not support sparse gradients, please consider SparseAdam instead"
                         )
 
-                # this is assumed to be already transported
-                if "traced_step" not in state:
+                    state = self.state[p]
+
+                    # State initialization
+                    if len(state) == 0:
+                        state["step"] = torch.tensor(0)
+                        # Exponential moving average of gradient values
+                        state["exp_avg"] = torch.zeros_like(p)
+                        # Exponential moving average of squared gradient values
+                        inner_prod_shape = p.shape
+                        if manifold.ndim > 0:
+                            inner_prod_shape = inner_prod_shape[: -manifold.ndim]
+                        state["exp_avg_sq"] = torch.zeros(
+                            inner_prod_shape, dtype=p.dtype, device=p.device
+                        )
+                        if amsgrad:
+                            # Maintains max of all exp. moving avg. of sq. grad. values
+                            state["max_exp_avg_sq"] = torch.zeros(
+                                inner_prod_shape, dtype=p.dtype, device=p.device
+                            )
+
+                    # this is assumed to be already transported
+                    if "traced_step" not in state:
+                        if amsgrad:
+                            state["traced_step"] = create_traced_update(
+                                self.perform_step,
+                                manifold,
+                                p,
+                                weight_decay.type_as(p),
+                                betas.type_as(p),
+                                eps.type_as(p),
+                                state["step"],
+                                state["exp_avg"],
+                                state["exp_avg_sq"],
+                                state["max_exp_avg_sq"],
+                                amsgrad=True,
+                            )
+                        else:
+                            state["traced_step"] = create_traced_update(
+                                self.perform_step,
+                                manifold,
+                                p,
+                                weight_decay.type_as(p),
+                                betas.type_as(p),
+                                eps.type_as(p),
+                                state["step"],
+                                state["exp_avg"],
+                                state["exp_avg_sq"],
+                                max_exp_avg_sq=None,
+                                amsgrad=False,
+                            )
                     if amsgrad:
-                        state["traced_step"] = create_traced_update(
-                            self.perform_step,
-                            manifold,
-                            p.data,
+                        state["traced_step"](
+                            p,
+                            p.grad,
+                            learning_rate.type_as(p),
                             weight_decay.type_as(p),
                             betas.type_as(p),
                             eps.type_as(p),
@@ -73,51 +101,23 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                             state["exp_avg"],
                             state["exp_avg_sq"],
                             state["max_exp_avg_sq"],
-                            amsgrad=True,
                         )
                     else:
-                        state["traced_step"] = create_traced_update(
-                            self.perform_step,
-                            manifold,
-                            p.data,
+                        state["traced_step"](
+                            p,
+                            p.grad,
+                            learning_rate.type_as(p),
                             weight_decay.type_as(p),
                             betas.type_as(p),
                             eps.type_as(p),
                             state["step"],
                             state["exp_avg"],
                             state["exp_avg_sq"],
-                            max_exp_avg_sq=None,
-                            amsgrad=False,
                         )
-                if amsgrad:
-                    state["traced_step"](
-                        p.data,
-                        p.grad,
-                        learning_rate.type_as(p),
-                        weight_decay.type_as(p),
-                        betas.type_as(p),
-                        eps.type_as(p),
-                        state["step"],
-                        state["exp_avg"],
-                        state["exp_avg_sq"],
-                        state["max_exp_avg_sq"],
-                    )
-                else:
-                    state["traced_step"](
-                        p.data,
-                        p.grad,
-                        learning_rate.type_as(p),
-                        weight_decay.type_as(p),
-                        betas.type_as(p),
-                        eps.type_as(p),
-                        state["step"],
-                        state["exp_avg"],
-                        state["exp_avg_sq"],
-                    )
 
-            group["step"] += 1
-            if self._stabilize is not None and group["step"] % self._stabilize == 0:
-                self.stabilize_group(group)
+                group["step"] += 1
+                if self._stabilize is not None and group["step"] % self._stabilize == 0:
+                    self.stabilize_group(group)
         return loss
 
     @staticmethod
@@ -163,14 +163,15 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         exp_avg.set_(exp_avg_new)
 
     def stabilize_group(self, group):
-        for p in group["params"]:
-            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                continue
-            state = self.state[p]
-            manifold = p.manifold
-            exp_avg = state["exp_avg"]
-            p.data.set_(manifold.projx(p.data))
-            exp_avg.set_(manifold.proju(p.data, exp_avg))
+        with torch.no_grad():
+            for p in group["params"]:
+                if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                    continue
+                state = self.state[p]
+                manifold = p.manifold
+                exp_avg = state["exp_avg"]
+                p.set_(manifold.projx(p))
+                exp_avg.set_(manifold.proju(p, exp_avg))
 
     def _sanitize_group(self, group):
         group = group.copy()
