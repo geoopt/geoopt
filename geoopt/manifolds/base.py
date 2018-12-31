@@ -49,14 +49,12 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         t : scalar
+            Potentially batched (individual for every point in a batch) scalar for points on the manifold.
 
         Returns
         -------
         scalar
-
-        Notes
-        -----
-        scalar can be batch sized
+            broadcasted representation for ``t``
         """
         if isinstance(t, torch.Tensor):
             extra = (1,) * self.ndim
@@ -70,6 +68,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+            point on the manifold
         explain: bool
             return an additional information on check
 
@@ -92,6 +91,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+            point on the manifold
         """
 
         ok, reason = self._check_shape(x, "x")
@@ -108,6 +108,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         u : tensor
+            vector on the tangent plane
         explain: bool
             return an additional information on check
 
@@ -130,6 +131,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         u : tensor
+            vector on the tangent plane
         """
 
         ok, reason = self._check_shape(u, "u")
@@ -146,8 +148,11 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+            point on the manifold
         atol: float
+            absolute tolerance as in :func:`numpy.allclose`
         rtol: float
+            relative tolerance as in :func:`numpy.allclose`
         explain: bool
             return an additional information on check
 
@@ -172,8 +177,11 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+            point on the manifold
         atol: float
+            absolute tolerance as in :func:`numpy.allclose`
         rtol: float
+            relative tolerance as in :func:`numpy.allclose`
         """
         self.assert_check_point(x)
         ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
@@ -190,9 +198,13 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+            point on the manifold
         u : tensor
+            vector on the tangent space to ``x``
         atol: float
+            absolute tolerance as in :func:`numpy.allclose`
         rtol: float
+            relative tolerance as in :func:`numpy.allclose`
         explain: bool
             return an additional information on check
 
@@ -220,9 +232,13 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+            point on the manifold
         u : tensor
+            vector on the tangent space to ``x``
         atol: float
+            absolute tolerance as in :func:`numpy.allclose`
         rtol: float
+            relative tolerance as in :func:`numpy.allclose`
         """
         ok, reason = self._check_shape(x, "x")
         if ok:
@@ -256,7 +272,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Returns
         -------
         tensor
-            new_x
+            transported point
         """
         t = self.broadcast_scalar(t)
         return self._retr(x, u, t)
@@ -281,7 +297,8 @@ class Manifold(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        transported tensors
+        tensor or tuple of tensors
+            transported tensor(s)
         """
         t = self.broadcast_scalar(t)
         if more:
@@ -304,8 +321,8 @@ class Manifold(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        inner product (broadcasted)
-
+        scalar
+            inner product (broadcasted)
         """
         if v is None and self._inner_autofill:
             v = u
@@ -327,7 +344,8 @@ class Manifold(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        projected vector
+        tensor
+            projected vector
         """
         return self._proju(x, u)
 
@@ -342,7 +360,8 @@ class Manifold(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        projected point
+        tensor
+            projected point
         """
         return self._projx(x)
 
@@ -370,7 +389,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Returns
         -------
         tuple of tensors
-            (new_x, new_vs, ...)
+            transported point and vectors
         """
         return self._retr_transp(x, u, t, v, *more)
 
@@ -388,12 +407,14 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
+            point on the manifold
         name : str
             name to be present in errors
 
         Returns
         -------
-        bool, str
+        bool, str or None
+            check result and the reason of fail if any
         """
         # return True, None
         raise NotImplementedError
@@ -412,13 +433,16 @@ class Manifold(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x : tensor
-        atol : float
-            absolute tolerance
-        rtol :
-            relative tolerance
+            point on the manifold
+        atol: float
+            absolute tolerance as in :func:`numpy.allclose`
+        rtol: float
+            relative tolerance as in :func:`numpy.allclose`
+
         Returns
         -------
         bool, str or None
+            check result and the reason of fail if any
         """
         # return True, None
         raise NotImplementedError
@@ -445,6 +469,7 @@ class Manifold(metaclass=abc.ABCMeta):
         Returns
         -------
         bool, str or None
+            check result and the reason of fail if any
         """
         # return True, None
         raise NotImplementedError

@@ -22,7 +22,7 @@ class SGRHMC(Sampler):
     n_steps : int
         number of leapfrog steps
     alpha : float
-        :math:`1 - alpha` - momentum term
+        :math:`(1 - alpha)` -- momentum term
     """
 
     def __init__(self, params, epsilon=1e-3, n_steps=1, alpha=0.1):
