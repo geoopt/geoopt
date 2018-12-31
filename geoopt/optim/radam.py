@@ -7,7 +7,7 @@ from ..manifolds import Euclidean
 
 
 class RiemannianAdam(OptimMixin, torch.optim.Adam):
-    r"""Riemannian Adam
+    r"""Riemannian Adam with the same API as :class:`torch.optim.Adam`
 
     Parameters
     ----------
@@ -29,9 +29,16 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         algorithm from the paper `On the Convergence of Adam and Beyond`_
         (default: False)
 
+    Other Parameters
+    ----------------
+    stabilize : int
+        Stabilize parameters if they are off-manifold due to numerical
+        reasons every ``stabilize`` steps (default: ``None`` -- no stabilize)
+
 
     .. _On the Convergence of Adam and Beyond:
         https://openreview.net/forum?id=ryQu7f-RZ
+
     """
 
     def step(self, closure=None):

@@ -6,8 +6,12 @@ __all__ = ["ManifoldTensor", "ManifoldParameter"]
 
 
 class ManifoldTensor(torch.Tensor):
-    """A regular tensor that has information about its manifold.
-    It is a very tiny wrapper over regular tensor so that all API is the same
+    """Same as :class:`torch.Tensor` that has information about its manifold.
+
+    Other Parameters
+    ----------------
+    manifold : :class:`geoopt.Manifold`
+        A manifold for the tensor, (default: :class:`geoopt.Euclidean`)
     """
 
     def __new__(cls, *args, manifold=Euclidean(), requires_grad=False, **kwargs):
@@ -50,6 +54,16 @@ class ManifoldTensor(torch.Tensor):
 
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
+    """Same as :class:`torch.nn.Parameter` that has information about its manifold.
+    It should be used within :class:`torch.nn.Module` to be recognized
+    in parameter collection.
+
+    Other Parameters
+    ----------------
+    manifold : :class:`geoopt.Manifold` (optional)
+        A manifold for the tensor if ``data`` is not a :class:`geoopt.ManifoldTensor`
+    """
+
     def __new__(cls, data=None, manifold=None, requires_grad=True):
         if data is None:
             data = ManifoldTensor(manifold=manifold)

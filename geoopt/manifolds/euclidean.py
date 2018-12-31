@@ -5,9 +5,7 @@ __all__ = ["Euclidean"]
 
 class Euclidean(Manifold):
     """
-    Euclidean manifold
-
-    An unconstrained manifold
+    Simple Euclidean manifold
     """
 
     name = "Euclidean"

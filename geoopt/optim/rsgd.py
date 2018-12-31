@@ -9,7 +9,7 @@ __all__ = ["RiemannianSGD"]
 
 
 class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
-    r"""Riemannian Stochastic Gradient Descent
+    r"""Riemannian Stochastic Gradient Descent with the same API as :class:`torch.optim.SGD`
 
     Parameters
     ----------
@@ -26,6 +26,12 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
         dampening for momentum (default: 0)
     nesterov : bool (optional)
         enables Nesterov momentum (default: False)
+
+    Other Parameters
+    ----------------
+    stabilize : int
+        Stabilize parameters if they are off-manifold due to numerical
+        reasons every ``stabilize`` steps (default: ``None`` -- no stabilize)
     """
 
     def __init__(

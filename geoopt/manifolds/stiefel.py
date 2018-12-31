@@ -7,25 +7,28 @@ from .base import Manifold
 __all__ = ["Stiefel", "EuclideanStiefel", "CanonicalStiefel"]
 
 
-class Stiefel(Manifold):
-    r"""
+_stiefel_doc = r"""
     Manifold induced by the following matrix constraint:
 
     .. math::
 
-        X^\top X = I
-        X \in \mathrm{R}^{n\times m}
+        X^\top X = I\\
+        X \in \mathrm{R}^{n\times m}\\
         n \ge m
+"""
+
+
+class Stiefel(Manifold):
+    __doc__ = r"""
+    {}
 
     Parameters
     ----------
     canonical : bool
         Use canonical inner product instead of euclidean one (defaults to canonical)
-
-    Notes
-    -----
-    works with batch sized tensors
-    """
+    """.format(
+        _stiefel_doc
+    )
     ndim = 2
 
     def __new__(cls, canonical=True):
@@ -76,6 +79,13 @@ class Stiefel(Manifold):
 
 
 class CanonicalStiefel(Stiefel):
+    __doc__ = r"""Stiefel Manifold with Canonical inner product
+
+    {}
+    """.format(
+        _stiefel_doc
+    )
+
     name = "Stiefel(canonical)"
     reversible = True
 
@@ -131,6 +141,13 @@ class CanonicalStiefel(Stiefel):
 
 
 class EuclideanStiefel(Stiefel):
+    __doc__ = r"""Stiefel Manifold with Euclidean inner product
+
+    {}
+    """.format(
+        _stiefel_doc
+    )
+
     name = "Stiefel(euclidean)"
     reversible = False
 
