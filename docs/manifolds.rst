@@ -4,4 +4,4 @@ Manifolds
 .. currentmodule:: geoopt.manifolds
 
 .. automodule:: geoopt.manifolds
-   :members: Stiefel, Euclidean
+   :members: Stiefel, Euclidean, Manifold
