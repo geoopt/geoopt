@@ -1,7 +1,7 @@
 geoopt
 ======
 
-|Build Status| |Coverage Status| |Codestyle Black|
+|Python Package Index| |Read The Docs| |Build Status| |Coverage Status| |Codestyle Black|
 
 Manifold aware ``pytorch.optim``.
 
@@ -65,6 +65,11 @@ Samplers
 
 .. _“Riemannian Adaptive Optimization Methods”: https://openreview.net/forum?id=r1eiqi09K7
 
+.. |Python Package Index| image:: https://img.shields.io/pypi/v/geoopt.svg
+   :target: https://pypi.python.org/pypi/heamy
+.. |Read The Docs| image:: https://readthedocs.org/projects/geoopt/badge/?version=latest
+   :target: https://geoopt.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
 .. |Build Status| image:: https://travis-ci.com/ferrine/geoopt.svg?branch=master
    :target: https://travis-ci.com/ferrine/geoopt
 .. |Coverage Status| image:: https://coveralls.io/repos/github/ferrine/geoopt/badge.svg?branch=master

@@ -6,8 +6,10 @@
 Welcome to geoopt's documentation!
 ==================================
 
-Contents:
+.. include:: ../README.rst
 
+API
+===
 .. toctree::
    :maxdepth: 2
 
