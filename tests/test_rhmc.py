@@ -3,6 +3,8 @@ import torch
 import numpy as np
 import pytest
 
+import geoopt.samplers.rhmc
+
 
 @pytest.mark.parametrize(
     "params",
@@ -37,7 +39,7 @@ def test_leapfrog_reversibility(params):
     init_x = nd.x.data.numpy().copy()
 
     torch.manual_seed(42)
-    sampler = geoopt.samplers.RHMC(nd.parameters(), **params)
+    sampler = geoopt.samplers.rhmc.RHMC(nd.parameters(), **params)
 
     r = torch.randn([10])
 
