@@ -38,7 +38,7 @@ if __name__ == "__main__":
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
         packages=find_packages(),
-        install_requires=["torch>=0.4.1", "numpy"],
+        install_requires=["torch", "numpy"],
         version=get_version("geoopt", "__init__.py"),
         url="https://github.com/ferrine/geoopt",
         python_requires=">=3.6.0",

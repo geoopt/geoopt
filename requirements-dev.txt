@@ -6,3 +6,4 @@ coveralls
 pymanopt
 twine
 wheel
+sphinx
