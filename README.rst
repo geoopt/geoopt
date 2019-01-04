@@ -66,7 +66,7 @@ Samplers
 .. _“Riemannian Adaptive Optimization Methods”: https://openreview.net/forum?id=r1eiqi09K7
 
 .. |Python Package Index| image:: https://img.shields.io/pypi/v/geoopt.svg
-   :target: https://pypi.python.org/pypi/heamy
+   :target: https://pypi.python.org/pypi/geoopt
 .. |Read The Docs| image:: https://readthedocs.org/projects/geoopt/badge/?version=latest
    :target: https://geoopt.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
