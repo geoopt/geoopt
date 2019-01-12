@@ -4,6 +4,13 @@ from .base import Manifold
 
 
 class Sphere(Manifold):
+    """
+    Sphere manifold induced by the following constraint
+
+    .. math::
+
+        \|x\|=1
+    """
     ndim = 1
     name = "Sphere"
     reversible = False

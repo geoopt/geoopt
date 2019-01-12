@@ -26,7 +26,6 @@ mannopt = {
     geoopt.manifolds.CanonicalStiefel: pymanopt.manifolds.Stiefel,
     geoopt.manifolds.Euclidean: pymanopt.manifolds.Euclidean,
     geoopt.manifolds.Sphere: pymanopt.manifolds.Sphere,
-
 }
 
 # shapes to verify unary element implementation
@@ -34,7 +33,7 @@ shapes = {
     geoopt.manifolds.EuclideanStiefel: (10, 5),
     geoopt.manifolds.CanonicalStiefel: (10, 5),
     geoopt.manifolds.Euclidean: (1,),
-    geoopt.manifolds.Sphere: (10, ),
+    geoopt.manifolds.Sphere: (10,),
 }
 
 UnaryCase = collections.namedtuple(
