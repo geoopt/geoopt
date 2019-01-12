@@ -46,6 +46,7 @@ Manifolds
    Euclidean metric
 -  ``geoopt.Stiefel`` – Stiefel manifold on matrices
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
+-  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
 
 Optimizers
 ~~~~~~~~~~
