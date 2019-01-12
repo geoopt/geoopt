@@ -11,6 +11,7 @@ class Sphere(Manifold):
 
         \|x\|=1
     """
+
     ndim = 1
     name = "Sphere"
     reversible = False
