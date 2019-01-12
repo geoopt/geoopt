@@ -5,6 +5,6 @@ from . import samplers
 from . import util
 
 from .tensor import ManifoldParameter, ManifoldTensor
-from .manifolds import Stiefel, Euclidean
+from .manifolds import Stiefel, Euclidean, Sphere
 
 __version__ = "0.0.1"
