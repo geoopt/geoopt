@@ -1,6 +1,13 @@
 import torch
 
 from .base import Manifold
+import geoopt.util.linalg
+
+__all__ = [
+    "Sphere",
+    "SphereSubspaceIntersection",
+    "SphereSubspaceComplementIntersection"
+]
 
 
 class Sphere(Manifold):
@@ -67,3 +74,83 @@ class Sphere(Manifold):
         y = self._retr(x, u, t)
         vs = self._transp_many(x, u, t, v, *more, y=y)
         return (y,) + vs
+
+
+class SphereSubspaceIntersection(Sphere):
+    """
+    Sphere manifold induced by the following constraint
+
+    .. math::
+
+        \|x\|=1\\
+        x \in \mathbb{span}(U)
+
+    Parameters
+    ----------
+    span : matrix
+        the subspace to intersect with
+    """
+
+    name = "SphereSubspace"
+
+    def __init__(self, span):
+        self._configure_manifold(span)
+        if (geoopt.util.linalg.matrix_rank(self._projector) == 1).any():
+            raise ValueError(
+                "Manifold only consists of isolated points when "
+                "subspace is 1-dimensional."
+            )
+
+    def _check_shape(self, x, name):
+        ok, reason = super()._check_shape(x, name)
+        if ok:
+
+            ok = x.shape[-1] == self._projector.shape[-2]
+            if not ok:
+                reason = "The leftmost shape of `span` does not match `x`: {}, {}".format(
+                    x.shape[-1], self._projector.shape[-1]
+                )
+            elif x.dim() < (self._projector.dim() - 1):
+                reason = "`x` should have at least {} dimensions but has {}".format(
+                    self._projector.dim() - 1, x.dim()
+                )
+            else:
+                reason = None
+        return ok, reason
+
+    def _configure_manifold(self, span):
+        Q, _ = geoopt.util.linalg.qr(span)
+        self._projector = Q @ Q.transpose(-1, -2)
+
+    def _project_on_subspace(self, x):
+        return x @ self._projector.transpose(-1, -2)
+
+    def _proju(self, x, u):
+        u = super()._proju(x, u)
+        return self._project_on_subspace(u)
+
+    def _projx(self, x):
+        x = self._project_on_subspace(x)
+        return super()._projx(x)
+
+
+class SphereSubspaceComplementIntersection(SphereSubspaceIntersection):
+    """
+    Sphere manifold induced by the following constraint
+
+    .. math::
+
+        \|x\|=1\\
+        x \in \mathbb{span}(U)
+
+    Parameters
+    ----------
+    span : matrix
+        the subspace to compliment (being orthogonal to)
+    """
+
+    def _configure_manifold(self, span):
+        Q, _ = geoopt.util.linalg.qr(span)
+        P = -Q @ Q.transpose(-1, -2)
+        P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
+        self._projector = P
