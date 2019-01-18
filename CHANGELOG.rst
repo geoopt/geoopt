@@ -9,10 +9,11 @@ New Features
 
 Maintenance
 -----------
+* Add gitter chat (#30)
+
 
 Deprecations
 ------------
 
 Bug Fixes
 ---------
-
