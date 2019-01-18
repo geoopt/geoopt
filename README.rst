@@ -1,7 +1,7 @@
 geoopt
 ======
 
-|Python Package Index| |Read The Docs| |Build Status| |Coverage Status| |Codestyle Black|
+|Python Package Index| |Read The Docs| |Build Status| |Coverage Status| |Codestyle Black| |Gitter|
 
 Manifold aware ``pytorch.optim``.
 
@@ -77,3 +77,5 @@ Samplers
    :target: https://coveralls.io/github/ferrine/geoopt?branch=master
 .. |Codestyle Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/ambv/black
+.. |Gitter| image:: https://badges.gitter.im/geoopt/community.png
+   :target: https://gitter.im/geoopt/community
