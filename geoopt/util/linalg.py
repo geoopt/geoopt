@@ -65,7 +65,7 @@ def matrix_rank(x):
         import numpy as np
 
         return torch.from_numpy(
-            np.linalg.matrix_rank(x.detach().cpu().numpy())
+            np.asarray(np.linalg.matrix_rank(x.detach().cpu().numpy()))
         ).type_as(x)
     with torch.no_grad():
         batches = x.shape[:-2]
