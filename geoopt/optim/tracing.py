@@ -1,8 +1,9 @@
 import torch.jit
+from .._compat import _TORCH_LESS_THAN_ONE
 
 
 def _compat_trace(fn, args):
-    if tuple(map(int, torch.__version__.split(".")[:2])) < (1, 0):
+    if _TORCH_LESS_THAN_ONE:
         # torch.jit here does not support inplace ops
         return fn
     else:
