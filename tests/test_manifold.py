@@ -35,7 +35,8 @@ mannopt = {
     geoopt.manifolds.Euclidean: pymanopt.manifolds.Euclidean,
     geoopt.manifolds.Sphere: pymanopt.manifolds.Sphere,
     geoopt.manifolds.SphereSubspaceIntersection: functools.partial(
-        pymanopt.manifolds.SphereSubspaceIntersection, U=np.random.RandomState(42).randn(10, 3)
+        pymanopt.manifolds.SphereSubspaceIntersection,
+        U=np.random.RandomState(42).randn(10, 3),
     ),
     geoopt.manifolds.SphereSubspaceComplementIntersection: functools.partial(
         pymanopt.manifolds.SphereSubspaceComplementIntersection,
@@ -63,7 +64,7 @@ def unary_case(manifold):
     shape = shapes[type(manifold)]
     manopt_manifold = mannopt[type(manifold)](*shape)
     np.random.seed(42)
-    rand = manopt_manifold.rand().astype('float64')
+    rand = manopt_manifold.rand().astype("float64")
     x = geoopt.ManifoldTensor(torch.from_numpy(rand), manifold=manifold)
     torch.manual_seed(43)
     ex = geoopt.ManifoldTensor(torch.randn_like(x), manifold=manifold)
