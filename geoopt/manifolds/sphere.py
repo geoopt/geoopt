@@ -6,7 +6,7 @@ import geoopt.util.linalg
 __all__ = [
     "Sphere",
     "SphereSubspaceIntersection",
-    "SphereSubspaceComplementIntersection"
+    "SphereSubspaceComplementIntersection",
 ]
 
 
