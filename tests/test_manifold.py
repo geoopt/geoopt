@@ -17,11 +17,11 @@ import pymanopt.manifolds
         geoopt.manifolds.Sphere,
         functools.partial(
             geoopt.manifolds.SphereSubspaceIntersection,
-            torch.arange(30).reshape(10, 3).double(),
+            torch.from_numpy(np.random.RandomState(42).randn(10, 3)),
         ),
         functools.partial(
             geoopt.manifolds.SphereSubspaceComplementIntersection,
-            torch.arange(30).reshape(10, 3).double(),
+            torch.from_numpy(np.random.RandomState(42).randn(10, 3)),
         ),
     ],
 )
@@ -35,11 +35,11 @@ mannopt = {
     geoopt.manifolds.Euclidean: pymanopt.manifolds.Euclidean,
     geoopt.manifolds.Sphere: pymanopt.manifolds.Sphere,
     geoopt.manifolds.SphereSubspaceIntersection: functools.partial(
-        pymanopt.manifolds.SphereSubspaceIntersection, U=np.arange(30).reshape(10, 3)
+        pymanopt.manifolds.SphereSubspaceIntersection, U=np.random.RandomState(42).randn(10, 3)
     ),
     geoopt.manifolds.SphereSubspaceComplementIntersection: functools.partial(
         pymanopt.manifolds.SphereSubspaceComplementIntersection,
-        U=np.arange(30).reshape(10, 3),
+        U=np.random.RandomState(42).randn(10, 3),
     ),
 }
 
