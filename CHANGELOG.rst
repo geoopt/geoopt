@@ -6,6 +6,7 @@ geoopt v0.1.0 (unreleased)
 New Features
 ------------
 * Added ``Sphere`` manifold (#25)
+* Added ``SphereSubspaceIntersection``, ``SphereSubspaceComplementIntersection`` manifolds (#29)
 
 Maintenance
 -----------
