@@ -11,7 +11,7 @@ __all__ = [
 
 
 class Sphere(Manifold):
-    """
+    r"""
     Sphere manifold induced by the following constraint
 
     .. math::
@@ -77,7 +77,7 @@ class Sphere(Manifold):
 
 
 class SphereSubspaceIntersection(Sphere):
-    """
+    r"""
     Sphere manifold induced by the following constraint
 
     .. math::
@@ -135,7 +135,7 @@ class SphereSubspaceIntersection(Sphere):
 
 
 class SphereSubspaceComplementIntersection(SphereSubspaceIntersection):
-    """
+    r"""
     Sphere manifold induced by the following constraint
 
     .. math::

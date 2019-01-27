@@ -27,7 +27,7 @@ def svd(x):
             k = min(n, m)
             U, d, V = x.new(*batches, n, k), x.new(*batches, k), x.new(*batches, m, k)
             for idx in itertools.product(*map(range, batches)):
-                torch.svd(x[idx], out=(U[idx], d[idx], V[idx]))
+                U[idx], d[idx], V[idx] = torch.svd(x[idx])
             return U, d, V
         else:
             return torch.svd(x)
@@ -44,7 +44,7 @@ def qr(x):
             n, m = x.shape[-2:]
             Q, R = x.new(*batches, n, m), x.new(*batches, m, m)
             for idx in itertools.product(*map(range, batches)):
-                torch.qr(x[idx], out=(Q[idx], R[idx]))
+                Q[idx], R[idx] = torch.qr(x[idx])
             return Q, R
         else:
             return torch.qr(x)
