@@ -15,6 +15,14 @@ import pymanopt.manifolds
         functools.partial(geoopt.manifolds.Stiefel, canonical=True),
         geoopt.manifolds.Euclidean,
         geoopt.manifolds.Sphere,
+        functools.partial(
+            geoopt.manifolds.SphereSubspaceIntersection,
+            torch.from_numpy(np.random.RandomState(42).randn(10, 3)),
+        ),
+        functools.partial(
+            geoopt.manifolds.SphereSubspaceComplementIntersection,
+            torch.from_numpy(np.random.RandomState(42).randn(10, 3)),
+        ),
     ],
 )
 def manifold(request):
@@ -26,6 +34,14 @@ mannopt = {
     geoopt.manifolds.CanonicalStiefel: pymanopt.manifolds.Stiefel,
     geoopt.manifolds.Euclidean: pymanopt.manifolds.Euclidean,
     geoopt.manifolds.Sphere: pymanopt.manifolds.Sphere,
+    geoopt.manifolds.SphereSubspaceIntersection: functools.partial(
+        pymanopt.manifolds.SphereSubspaceIntersection,
+        U=np.random.RandomState(42).randn(10, 3),
+    ),
+    geoopt.manifolds.SphereSubspaceComplementIntersection: functools.partial(
+        pymanopt.manifolds.SphereSubspaceComplementIntersection,
+        U=np.random.RandomState(42).randn(10, 3),
+    ),
 }
 
 # shapes to verify unary element implementation
@@ -34,6 +50,8 @@ shapes = {
     geoopt.manifolds.CanonicalStiefel: (10, 5),
     geoopt.manifolds.Euclidean: (1,),
     geoopt.manifolds.Sphere: (10,),
+    geoopt.manifolds.SphereSubspaceIntersection: (10,),
+    geoopt.manifolds.SphereSubspaceComplementIntersection: (10,),
 }
 
 UnaryCase = collections.namedtuple(
@@ -46,7 +64,7 @@ def unary_case(manifold):
     shape = shapes[type(manifold)]
     manopt_manifold = mannopt[type(manifold)](*shape)
     np.random.seed(42)
-    rand = manopt_manifold.rand()
+    rand = manopt_manifold.rand().astype("float64")
     x = geoopt.ManifoldTensor(torch.from_numpy(rand), manifold=manifold)
     torch.manual_seed(43)
     ex = geoopt.ManifoldTensor(torch.randn_like(x), manifold=manifold)
@@ -117,7 +135,7 @@ def test_transport(unary_case):
 
 def test_broadcast_projx(unary_case):
     torch.manual_seed(43)
-    X = torch.randn(4, *unary_case.shape)
+    X = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     pX = unary_case.manifold.projx(X)
     unary_case.manifold.assert_check_point_on_manifold(pX)
     for px in pX:
@@ -129,8 +147,8 @@ def test_broadcast_projx(unary_case):
 
 def test_broadcast_proju(unary_case):
     torch.manual_seed(43)
-    X = torch.randn(4, *unary_case.shape)
-    U = torch.randn(4, *unary_case.shape)
+    X = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     pX = unary_case.manifold.projx(X)
     pU = unary_case.manifold.proju(pX, U)
     unary_case.manifold.assert_check_vector_on_tangent(pX, pU)
@@ -143,8 +161,8 @@ def test_broadcast_proju(unary_case):
 
 def test_broadcast_retr(unary_case):
     torch.manual_seed(43)
-    X = torch.randn(4, *unary_case.shape)
-    U = torch.randn(4, *unary_case.shape)
+    X = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     pX = unary_case.manifold.projx(X)
     pU = unary_case.manifold.proju(pX, U)
     Y = unary_case.manifold.retr(pX, pU, 1.0)
@@ -158,9 +176,9 @@ def test_broadcast_retr(unary_case):
 
 def test_broadcast_transp(unary_case):
     torch.manual_seed(43)
-    X = torch.randn(4, *unary_case.shape)
-    U = torch.randn(4, *unary_case.shape)
-    V = torch.randn(4, *unary_case.shape)
+    X = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     pX = unary_case.manifold.projx(X)
     pU = unary_case.manifold.proju(pX, U)
     pV = unary_case.manifold.proju(pX, V)
@@ -176,10 +194,10 @@ def test_broadcast_transp(unary_case):
 
 def test_broadcast_transp_many(unary_case):
     torch.manual_seed(43)
-    X = torch.randn(4, *unary_case.shape)
-    U = torch.randn(4, *unary_case.shape)
-    V = torch.randn(4, *unary_case.shape)
-    F = torch.randn(4, *unary_case.shape)
+    X = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    F = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     pX = unary_case.manifold.projx(X)
     pU = unary_case.manifold.proju(pX, U)
     pV = unary_case.manifold.proju(pX, V)
@@ -199,10 +217,10 @@ def test_broadcast_transp_many(unary_case):
 
 def test_broadcast_retr_transp_many(unary_case):
     torch.manual_seed(43)
-    X = torch.randn(4, *unary_case.shape)
-    U = torch.randn(4, *unary_case.shape)
-    V = torch.randn(4, *unary_case.shape)
-    F = torch.randn(4, *unary_case.shape)
+    X = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    F = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     pX = unary_case.manifold.projx(X)
     pU = unary_case.manifold.proju(pX, U)
     pV = unary_case.manifold.proju(pX, V)
@@ -224,8 +242,8 @@ def test_broadcast_retr_transp_many(unary_case):
 
 def test_reversibility(unary_case):
     torch.manual_seed(43)
-    X = torch.randn(*unary_case.shape)
-    U = torch.randn(*unary_case.shape)
+    X = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
+    U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
     X = unary_case.manifold.projx(X)
     U = unary_case.manifold.proju(X, U)
     Z, Q = unary_case.manifold.retr_transp(X, U, 1.0, U)
