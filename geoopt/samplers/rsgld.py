@@ -45,11 +45,11 @@ class RSGLD(Sampler):
                     else:
                         manifold = Euclidean()
 
-                    proju, retr = manifold.proju, manifold.retr
+                    egrad2rgrad, retr = manifold.egrad2rgrad, manifold.retr
                     epsilon = group["epsilon"]
 
                     n = torch.randn_like(p).mul_(math.sqrt(epsilon))
-                    r = proju(p, 0.5 * epsilon * p.grad + n)
+                    r = egrad2rgrad(p, 0.5 * epsilon * p.grad + n)
 
                     p.set_(retr(p, r, 1.0))
                     p.grad.zero_()

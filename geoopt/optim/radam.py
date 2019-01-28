@@ -172,7 +172,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         amsgrad,
     ):
         grad.add_(weight_decay, point)
-        grad = manifold.proju(point, grad)
+        grad = manifold.egrad2rgrad(point, grad)
         exp_avg.mul_(betas[0]).add_(1 - betas[0], grad)
         exp_avg_sq.mul_(betas[1]).add_(1 - betas[1], manifold.inner(point, grad))
         if amsgrad:

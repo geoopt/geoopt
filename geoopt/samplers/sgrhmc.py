@@ -68,7 +68,7 @@ class SGRHMC(Sampler):
                         else:
                             manifold = Euclidean()
 
-                        proju = manifold.proju
+                        egrad2rgrad = manifold.egrad2rgrad
                         retr_transp = manifold.retr_transp
 
                         epsilon, alpha = group["epsilon"], group["alpha"]
@@ -79,7 +79,7 @@ class SGRHMC(Sampler):
                         p.set_(p_)
                         v.set_(v_)
 
-                        n = proju(p, torch.randn_like(v))
+                        n = egrad2rgrad(p, torch.randn_like(v))
                         v.mul_(1 - alpha).add_(epsilon * p.grad).add_(
                             math.sqrt(2 * alpha * epsilon) * n
                         )
@@ -105,4 +105,5 @@ class SGRHMC(Sampler):
                 v = self.state[p]["v"]
 
                 p.set_(manifold.projx(p))
+                # proj here is ok
                 v.set_(manifold.proju(p, v))

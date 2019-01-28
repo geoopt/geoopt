@@ -35,10 +35,10 @@ class RHMC(Sampler):
         else:
             manifold = Euclidean()
 
-        proju = manifold.proju
+        egrad2rgrad = manifold.egrad2rgrad
         retr_transp = manifold.retr_transp
 
-        r.add_(epsilon * proju(p, p.grad))
+        r.add_(epsilon * egrad2rgrad(p, p.grad))
         p_, r_ = retr_transp(p, r, epsilon, r)
         p.set_(p_)
         r.set_(r_)
@@ -69,7 +69,7 @@ class RHMC(Sampler):
                     else:
                         manifold = Euclidean()
 
-                    proju = manifold.proju
+                    egrad2rgrad = manifold.egrad2rgrad
                     state = self.state[p]
 
                     if "r" not in state:
@@ -79,7 +79,7 @@ class RHMC(Sampler):
 
                     r = state["r"]
                     r.normal_()
-                    r.set_(proju(p, r))
+                    r.set_(egrad2rgrad(p, r))
 
                     old_H += 0.5 * (r * r).sum().item()
 
@@ -118,10 +118,10 @@ class RHMC(Sampler):
                     else:
                         manifold = Euclidean()
 
-                    proju = manifold.proju
+                    egrad2rgrad = manifold.egrad2rgrad
 
                     r = self.state[p]["r"]
-                    r.add_(0.5 * epsilon * proju(p, p.grad))
+                    r.add_(0.5 * epsilon * egrad2rgrad(p, p.grad))
                     p.grad.zero_()
 
                     new_H += 0.5 * (r * r).sum().item()
