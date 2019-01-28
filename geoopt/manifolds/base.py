@@ -33,6 +33,9 @@ class Manifold(metaclass=abc.ABCMeta):
     * ``_retr_transp(x, u, t, *vs)`` desired
         Combines ``_transp_many(x, u, t, *vs)`` and ``_retr(x, u, t)``
     * ``__eq__(other)`` if needed
+        Checks if manifolds are the same
+    * ``_egrad2rgrad(u)`` if needed
+        Transforms euclidean grad to Riemannian gradient. It is the same as projection in most cases
 
     Notes
     -----
@@ -349,6 +352,24 @@ class Manifold(metaclass=abc.ABCMeta):
         """
         return self._proju(x, u)
 
+    def egrad2rgrad(self, x, u):
+        """
+        Embed euclidean gradient into Riemannian manifold
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            gradient to be projected
+
+        Returns
+        -------
+        tensor
+            grad vector in the Riemainnian manifold
+        """
+        return self._egrad2rgrad(x, u)
+
     def projx(self, x):
         """
         Project point :math:`x` on the manifold
@@ -544,6 +565,15 @@ class Manifold(metaclass=abc.ABCMeta):
         Private implementation for point projection. Should allow broadcasting.
         """
         raise NotImplementedError
+
+    def _egrad2rgrad(self, x, u):
+        """
+        Developer Guide
+
+        Private implementation for gradient transformation, may do things efficiently in some cases.
+        Should allow broadcasting.
+        """
+        return self._proju(x, u)
 
     def __repr__(self):
         return self.name + " manifold"
