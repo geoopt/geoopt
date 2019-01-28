@@ -21,7 +21,7 @@ class Manifold(metaclass=abc.ABCMeta):
     * ``_projx(x)`` required
         Projects :math:`x` on manifold
     * ``_proju(x, u)`` required
-        Projects :math:`u` on tangent space at point :math:`x`
+        Projects :math:`u` on tangent space at point :math:`x`, usually the same as ``_egrad2rgrad``
     * ``_inner(x, u, v)`` required
         Computes inner product :math:`\langle u, v\rangle_x`
     * ``_retr(x, u, t)`` required
@@ -34,8 +34,8 @@ class Manifold(metaclass=abc.ABCMeta):
         Combines ``_transp_many(x, u, t, *vs)`` and ``_retr(x, u, t)``
     * ``__eq__(other)`` if needed
         Checks if manifolds are the same
-    * ``_egrad2rgrad(u)`` if needed
-        Transforms euclidean grad to Riemannian gradient. It is the same as projection in most cases
+    * ``_egrad2rgrad(u)`` if differs
+        Transforms euclidean grad to Riemannian gradient.
 
     Notes
     -----
@@ -336,7 +336,7 @@ class Manifold(metaclass=abc.ABCMeta):
 
     def proju(self, x, u):
         """
-        Project vector :math:`u` on a tangent space for :math:`x`
+        Project vector :math:`u` on a tangent space for :math:`x`, usually is the same as :meth:`egrad2rgrad`
 
         Parameters
         ----------
