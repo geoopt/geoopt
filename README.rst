@@ -28,6 +28,7 @@ points on a certain manifold
 -  ``.proj_()`` – inplace projection on the manifold.
 -  ``.proju(u)`` – project vector ``u`` on the tangent space. You need
    to project all vectors for all methods below.
+-  ``.egrad2rgrad(u)`` – project gradient ``u`` on Riemannian manifold
 -  ``.inner(u, v=None)`` – inner product at this point for two
    **tangent** vectors at this point. The passed vectors are not
    projected, they are assumed to be already projected.
