@@ -8,6 +8,26 @@ Manifold aware ``pytorch.optim``.
 Unofficial implementation for `“Riemannian Adaptive Optimization
 Methods”`_ ICLR2019 and more.
 
+Installation
+------------
+There are two ways to install geoopt:
+
+1. GitHub (preferred so far) due to active development
+
+.. code-block::
+
+    pip install git+https://github.com/ferrine/geoopt.git
+
+
+2. pypi (this might be significantly behind master branch)
+
+.. code-block::
+
+    pip install geoopt
+
+The preferred way to install geoopt will change once stable project stage is achieved.
+Now, pypi is behind master as we actively develop and implement new features.
+
 What is done so far
 -------------------
 
