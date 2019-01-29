@@ -12,17 +12,21 @@ Installation
 ------------
 There are two ways to install geoopt:
 
-1. GitHub (preferred) due to active development
+1. GitHub (preferred so far) due to active development
 
 .. code-block::
 
     pip install git+https://github.com/ferrine/geoopt.git
 
-2. pypi
+
+2. pypi (this might be significantly behind master branch)
 
 .. code-block::
 
     pip install geoopt
+
+The preferred way to install geoopt will change once stable project stage is achieved.
+Now, pypi is behind master as we actively develop and implement new features.
 
 What is done so far
 -------------------
