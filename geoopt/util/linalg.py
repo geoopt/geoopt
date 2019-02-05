@@ -80,7 +80,7 @@ def matrix_rank(x):
         flat = x.view((-1,) + other)
         slices = flat.unbind(0)
         ranks = []
-        # I with I had a parallel_for
+        # I wish I had a parallel_for
         for i in range(flat.shape[0]):
             r = torch.matrix_rank(slices[i])
             ranks.append(r)
