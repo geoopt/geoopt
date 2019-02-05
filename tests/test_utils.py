@@ -33,17 +33,13 @@ def test_qr(A):
             np.testing.assert_allclose(r.detach()[i], rt.detach())
 
 
-def test_expm():
+def test_expm(A):
     from scipy.linalg import expm
     import numpy as np
 
-    torch.manual_seed(42)
-    n = 10
-    A = torch.randn(n, 3, 3)
-    A[:, 2, :] = 0
-
-    expm_scipy = np.zeros_like(A)
-    for i in range(n):
-        expm_scipy[i] = expm(A[i].numpy())
+    expm_scipy = np.zeros_like(A.detach())
+    for i in range(A.shape[0]):
+        expm_scipy[i] = expm(A.detach()[i].numpy())
     expm_torch = geoopt.linalg.expm(A)
-    np.testing.assert_allclose(expm_torch, expm_scipy, rtol=1e-6)
+    np.testing.assert_allclose(expm_torch.detach(), expm_scipy, rtol=1e-6)
+    expm_torch.sum().backward()  # this should work
