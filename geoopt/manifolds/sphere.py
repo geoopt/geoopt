@@ -1,7 +1,7 @@
 import torch
 
 from .base import Manifold
-import geoopt.util.linalg
+import geoopt.linalg.batch_linalg
 
 __all__ = [
     "Sphere",
@@ -95,7 +95,7 @@ class SphereSubspaceIntersection(Sphere):
 
     def __init__(self, span):
         self._configure_manifold(span)
-        if (geoopt.util.linalg.matrix_rank(self._projector) == 1).any():
+        if (geoopt.linalg.batch_linalg.matrix_rank(self._projector) == 1).any():
             raise ValueError(
                 "Manifold only consists of isolated points when "
                 "subspace is 1-dimensional."
@@ -119,7 +119,7 @@ class SphereSubspaceIntersection(Sphere):
         return ok, reason
 
     def _configure_manifold(self, span):
-        Q, _ = geoopt.util.linalg.qr(span)
+        Q, _ = geoopt.linalg.batch_linalg.qr(span)
         self._projector = Q @ Q.transpose(-1, -2)
 
     def _project_on_subspace(self, x):
@@ -150,7 +150,7 @@ class SphereSubspaceComplementIntersection(SphereSubspaceIntersection):
     """
 
     def _configure_manifold(self, span):
-        Q, _ = geoopt.util.linalg.qr(span)
+        Q, _ = geoopt.linalg.batch_linalg.qr(span)
         P = -Q @ Q.transpose(-1, -2)
         P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
         self._projector = P
