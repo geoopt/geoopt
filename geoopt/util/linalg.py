@@ -10,7 +10,7 @@ def svd(x):
     # prolonged here:
     if x.dim() == 2:
         # 17 milliseconds on my mac to check that condition, that is low overhead
-        return torch.svd(x)
+        result = torch.svd(x)
     else:
         batches = x.shape[:-2]
         other = x.shape[-2:]
@@ -26,7 +26,8 @@ def svd(x):
         U = torch.stack(U).view(batches + U[0].shape)
         D = torch.stack(D).view(batches + D[0].shape)
         V = torch.stack(V).view(batches + V[0].shape)
-        return U, D, V
+        result = U, D, V
+    return result
 
 
 @torch.jit.script
@@ -35,7 +36,7 @@ def qr(x):
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
     if x.dim() == 2:
-        return torch.qr(x)
+        result = torch.qr(x)
     else:
         batches = x.shape[:-2]
         other = x.shape[-2:]
@@ -49,7 +50,8 @@ def qr(x):
             R.append(r)
         Q = torch.stack(Q).view(batches + Q[0].shape)
         R = torch.stack(R).view(batches + R[0].shape)
-        return Q, R
+        result = Q, R
+    return result
 
 
 @torch.jit.script
@@ -73,7 +75,7 @@ def matrix_rank(x):
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
     if x.dim() == 2:
-        return torch.matrix_rank(x)
+        ranks = torch.matrix_rank(x)
     else:
         batches = x.shape[:-2]
         other = x.shape[-2:]
@@ -85,4 +87,4 @@ def matrix_rank(x):
             r = torch.matrix_rank(slices[i])
             ranks.append(r)
         ranks = torch.stack(ranks).view(batches)
-        return ranks
+    return ranks
