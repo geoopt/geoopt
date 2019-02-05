@@ -65,6 +65,7 @@ def extract_diag(x):
     batch = x.shape[:-2]
     k = n if n < m else m
     idx = torch.arange(k, dtype=torch.long, device=x.device)
+    # torch script does not support Ellipsis indexing
     x = x.view(-1, n, m)
     return x[:, idx, idx].view(batch + (k,))
 
