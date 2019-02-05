@@ -17,7 +17,7 @@ def svd(x):
         flat = x.view((-1,) + other)
         slices = flat.unbind(0)
         U, D, V = [], [], []
-        # I with I had a parallel_for
+        # I wish I had a parallel_for
         for i in range(flat.shape[0]):
             u, d, v = torch.svd(slices[i])
             U.append(u)
@@ -42,7 +42,7 @@ def qr(x):
         flat = x.view((-1,) + other)
         slices = flat.unbind(0)
         Q, R = [], []
-        # I with I had a parallel_for
+        # I wish I had a parallel_for
         for i in range(flat.shape[0]):
             q, r = torch.qr(slices[i])
             Q.append(q)
