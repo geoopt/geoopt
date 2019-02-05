@@ -1,13 +1,4 @@
-import torch.jit
-from .._compat import _TORCH_LESS_THAN_ONE
-
-
-def _compat_trace(fn, args):
-    if _TORCH_LESS_THAN_ONE:
-        # torch.jit here does not support inplace ops
-        return fn
-    else:
-        return torch.jit.trace(fn, args)
+import torch
 
 
 def create_traced_update(step, manifold, point, *buffers, **kwargs):
@@ -38,4 +29,4 @@ def create_traced_update(step, manifold, point, *buffers, **kwargs):
         step(manifold, *args, **kwargs)
         return args
 
-    return _compat_trace(partial, (point, grad, lr) + buffers)
+    return torch.jit.trace(partial, (point, grad, lr) + buffers)

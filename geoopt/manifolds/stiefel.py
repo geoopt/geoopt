@@ -1,6 +1,6 @@
 import torch
 
-from geoopt import util
+from geoopt import linalg
 from .base import Manifold
 
 
@@ -74,7 +74,7 @@ class Stiefel(Manifold):
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
     def _projx(self, x):
-        U, d, V = util.linalg.svd(x)
+        U, d, V = linalg.batch_linalg.svd(x)
         return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
 
 
@@ -152,7 +152,7 @@ class EuclideanStiefel(Stiefel):
     reversible = False
 
     def _proju(self, x, u):
-        return u - x @ util.linalg.sym(x.transpose(-1, -2) @ u)
+        return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
     def _transp_one(self, x, u, t, v, y=None):
         if y is None:
@@ -173,7 +173,7 @@ class EuclideanStiefel(Stiefel):
         return (u * v).sum([-1, -2])
 
     def _retr(self, x, u, t):
-        q, r = util.linalg.qr(x + u * t)
-        unflip = torch.sign(torch.sign(util.linalg.extract_diag(r)) + 0.5)
+        q, r = linalg.batch_linalg.qr(x + u * t)
+        unflip = torch.sign(torch.sign(linalg.batch_linalg.extract_diag(r)) + 0.5)
         q *= unflip[..., None, :]
         return q

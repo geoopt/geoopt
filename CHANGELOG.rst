@@ -11,7 +11,7 @@ New Features
 Maintenance
 -----------
 * Add gitter chat (#31)
-
+* Maintain torch>=1.0.0 only
 
 Deprecations
 ------------
