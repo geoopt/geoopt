@@ -64,7 +64,7 @@ def extract_diag(x):
     k = n if n < m else m
     idx = torch.arange(k, dtype=torch.long, device=x.device)
     x = x.view(-1, n, m)
-    return x[:, idx, idx].view(batch + (k, ))
+    return x[:, idx, idx].view(batch + (k,))
 
 
 @torch.jit.script
