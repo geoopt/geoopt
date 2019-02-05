@@ -20,9 +20,9 @@ def svd(x):
         # I wish I had a parallel_for
         for i in range(flat.shape[0]):
             u, d, v = torch.svd(slices[i])
-            U.append(u)
-            D.append(d)
-            V.append(v)
+            U += [u]
+            D += [d]
+            V += [v]
         U = torch.stack(U).view(batches + U[0].shape)
         D = torch.stack(D).view(batches + D[0].shape)
         V = torch.stack(V).view(batches + V[0].shape)
@@ -46,8 +46,8 @@ def qr(x):
         # I wish I had a parallel_for
         for i in range(flat.shape[0]):
             q, r = torch.qr(slices[i])
-            Q.append(q)
-            R.append(r)
+            Q += [q]
+            R += [r]
         Q = torch.stack(Q).view(batches + Q[0].shape)
         R = torch.stack(R).view(batches + R[0].shape)
         result = Q, R
@@ -75,7 +75,7 @@ def matrix_rank(x):
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
     if x.dim() == 2:
-        ranks = torch.matrix_rank(x)
+        result = torch.matrix_rank(x)
     else:
         batches = x.shape[:-2]
         other = x.shape[-2:]
@@ -85,6 +85,10 @@ def matrix_rank(x):
         # I wish I had a parallel_for
         for i in range(flat.shape[0]):
             r = torch.matrix_rank(slices[i])
-            ranks.append(r)
-        ranks = torch.stack(ranks).view(batches)
-    return ranks
+            # interesting,
+            # ranks.append(r)
+            # does not work on pytorch 1.0.0
+            # but the below code does
+            ranks += [r]
+        result = torch.stack(ranks).view(batches)
+    return result
