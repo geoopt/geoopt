@@ -1,6 +1,7 @@
 import torch
+from . import _expm
 
-__all__ = ["svd", "qr", "sym", "extract_diag", "matrix_rank"]
+__all__ = ["svd", "qr", "sym", "extract_diag", "matrix_rank", "expm"]
 
 
 @torch.jit.script
@@ -92,4 +93,24 @@ def matrix_rank(x):
             # but the below code does
             ranks += [r]
         result = torch.stack(ranks).view(batches)
+    return result
+
+
+@torch.jit.script
+def expm(x):
+    # inspired by
+    # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
+    # prolonged here:
+    if x.dim() == 2:
+        result = _expm.expm_one(x)
+    else:
+        other = x.shape[-2:]
+        flat = x.view((-1,) + other)
+        slices = flat.unbind(0)
+        exp = []
+        # I wish I had a parallel_for
+        for i in range(flat.shape[0]):
+            e = _expm.expm_one(slices[i])
+            exp += [e]
+        result = torch.stack(exp).view(x.shape)
     return result
