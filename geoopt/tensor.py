@@ -32,11 +32,11 @@ class ManifoldTensor(torch.Tensor):
             self.set_(self.manifold.projx(self.data))
         return self
 
-    def retr(self, u, t):
-        return self.manifold.retr(self, u, t)
+    def retr(self, u, t=1.):
+        return self.manifold.retr(self, u=u, t=t)
 
     def inner(self, u, v=None):
-        return self.manifold.inner(self, u, v)
+        return self.manifold.inner(self, u=u, v=v)
 
     def proju(self, u):
         return self.manifold.proju(self, u)
