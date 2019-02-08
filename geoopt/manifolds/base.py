@@ -258,7 +258,7 @@ class Manifold(metaclass=abc.ABCMeta):
                 )
             )
 
-    def retr(self, x, u, t, order="auto"):
+    def retr(self, x, u, t, order=None):
         """
         Perform a retraction from point :math:`x` with
         given direction :math:`u` and time :math:`t`
@@ -271,6 +271,9 @@ class Manifold(metaclass=abc.ABCMeta):
             tangent vector at point x
         t : scalar
             time to go with direction u
+        order : int
+            order of retraction approximation, by default uses the simplest.
+            Possible choices depend on a concrete manifold and -1 stays for exponential map
 
         Returns
         -------
@@ -280,23 +283,33 @@ class Manifold(metaclass=abc.ABCMeta):
         t = self.broadcast_scalar(t)
         return self._retr(x, u, t)
 
-    def transp(self, x, v, *more, u=None, t=None, y=None, order="auto"):
+    def transp(self, x, v, *more, u=None, t=None, y=None, order=None):
         """
-        Perform vector transport from point :math:`x`,
-        direction :math:`xu` and time :math:`t` for vector :math:`v`
+        Perform vector transport from point :math:`x` for vector :math:`v` using one of the following:
+
+        1. Go by direction :math:`u` and time :math:`t`
+        2. Use target point :math:`y` directly
+
+        Either :math:`y` or :math:`u` should present but not both
 
         Parameters
         ----------
         x : tensor
             point on the manifold
-        u : tensor
-            tangent vector at point x
-        t : scalar
-            time to go with direction u
         v : tensor
             tangent vector at point x to be transported
-        more : tensor
-            other tangent vector at point x to be transported
+        more : tensors
+            other tangent vectors at point x to be transported
+        u : tensor
+            tangent vector at point x (required if :math:`y` is not provided)
+        t : scalar
+            time to go with direction u
+        y : tensor
+            the target point for vector transport  (required if :math:`u` is not provided)
+        order : int
+            order of retraction approximation, by default uses the simplest.
+            Possible choices depend on a concrete manifold and -1 stays for exponential map
+            This argument is used only if :math:`u` is provided
 
         Returns
         -------
@@ -386,7 +399,7 @@ class Manifold(metaclass=abc.ABCMeta):
         """
         return self._projx(x)
 
-    def retr_transp(self, x, u, t, v, *more, order="auto"):
+    def retr_transp(self, x, v, *more, u, t=1., order=None):
         """
         Perform a retraction + vector transport at once
 
@@ -394,14 +407,17 @@ class Manifold(metaclass=abc.ABCMeta):
         ----------
         x : tensor
             point on the manifold
-        u : tensor
             tangent vector at point x
         t : scalar
             time to go with direction u
         v : tensor
-            tangent vector at point x to be transported
-        more : tensor
+            tangent vector at point x to be transported (required keyword only argument)
+        more : tensors
             other tangent vector at point x to be transported
+        u : tensor
+        order : int
+            order of retraction approximation, by default uses the simplest.
+            Possible choices depend on a concrete manifold and -1 stays for exponential map
 
         Notes
         -----

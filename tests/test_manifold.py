@@ -126,7 +126,7 @@ def test_transport(unary_case):
 
     y = x.retr(v, 1.0)
 
-    u = x.transp(v, 1.0, v)
+    u = x.transp(v, u=v, t=1.0)
 
     u_star = unary_case.manopt_manifold.transp(x.numpy(), y.numpy(), v.numpy())
 
@@ -183,12 +183,12 @@ def test_broadcast_transp(unary_case):
     pU = unary_case.manifold.proju(pX, U)
     pV = unary_case.manifold.proju(pX, V)
     Y = unary_case.manifold.retr(pX, pU, 1.0)
-    Q = unary_case.manifold.transp(pX, pU, 1.0, pV)
+    Q = unary_case.manifold.transp(pX, pV, u=pU, t=1.0)
     unary_case.manifold.assert_check_vector_on_tangent(Y, Q)
     for y, q in zip(Y, Q):
         unary_case.manifold.assert_check_vector_on_tangent(y, q)
     for px, pu, pv, y, q in zip(pX, pU, pV, Y, Q):
-        qq = unary_case.manifold.transp(px, pu, 1.0, pv)
+        qq = unary_case.manifold.transp(px, pv, u=pu, t=1.0)
         np.testing.assert_allclose(q, qq, atol=1e-5)
 
 
@@ -203,14 +203,14 @@ def test_broadcast_transp_many(unary_case):
     pV = unary_case.manifold.proju(pX, V)
     pF = unary_case.manifold.proju(pX, F)
     Y = unary_case.manifold.retr(pX, pU, 1.0)
-    Q, P = unary_case.manifold.transp(pX, pU, 1.0, pV, pF)
+    Q, P = unary_case.manifold.transp(pX, pV, pF, u=pU, t=1.0)
     unary_case.manifold.assert_check_vector_on_tangent(Y, Q)
     unary_case.manifold.assert_check_vector_on_tangent(Y, P)
     for y, q, p in zip(Y, Q, P):
         unary_case.manifold.assert_check_vector_on_tangent(y, q)
         unary_case.manifold.assert_check_vector_on_tangent(y, p)
     for px, pu, pv, pf, y, q, p in zip(pX, pU, pV, pF, Y, Q, P):
-        qq, pp = unary_case.manifold.transp(px, pu, 1.0, pv, pf)
+        qq, pp = unary_case.manifold.transp(px, pv, pf, u=pu, t=1.0)
         np.testing.assert_allclose(q, qq, atol=1e-5)
         np.testing.assert_allclose(p, pp, atol=1e-5)
 
@@ -226,7 +226,7 @@ def test_broadcast_retr_transp_many(unary_case):
     pV = unary_case.manifold.proju(pX, V)
     pF = unary_case.manifold.proju(pX, F)
     Y = unary_case.manifold.retr(pX, pU, 1.0)
-    Z, Q, P = unary_case.manifold.retr_transp(pX, pU, 1.0, pV, pF)
+    Z, Q, P = unary_case.manifold.retr_transp(pX, pV, pF, u=pU, t=1.0)
     np.testing.assert_allclose(Z, Y, atol=1e-5)
     unary_case.manifold.assert_check_vector_on_tangent(Y, Q)
     unary_case.manifold.assert_check_vector_on_tangent(Y, P)
@@ -234,7 +234,7 @@ def test_broadcast_retr_transp_many(unary_case):
         unary_case.manifold.assert_check_vector_on_tangent(y, q)
         unary_case.manifold.assert_check_vector_on_tangent(y, p)
     for px, pu, pv, pf, y, q, p in zip(pX, pU, pV, pF, Y, Q, P):
-        zz, qq, pp = unary_case.manifold.retr_transp(px, pu, 1.0, pv, pf)
+        zz, qq, pp = unary_case.manifold.retr_transp(px, pv, pf, u=pu, t=1.0)
         np.testing.assert_allclose(zz, y, atol=1e-5)
         np.testing.assert_allclose(q, qq, atol=1e-5)
         np.testing.assert_allclose(p, pp, atol=1e-5)
@@ -246,8 +246,8 @@ def test_reversibility(unary_case):
     U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
     X = unary_case.manifold.projx(X)
     U = unary_case.manifold.proju(X, U)
-    Z, Q = unary_case.manifold.retr_transp(X, U, 1.0, U)
-    X1, U1 = unary_case.manifold.retr_transp(Z, Q, -1.0, Q)
+    Z, Q = unary_case.manifold.retr_transp(X, U, u=U, t=1.0)
+    X1, U1 = unary_case.manifold.retr_transp(Z, Q, u=Q, t=-1.0)
     if unary_case.manifold.reversible:
         np.testing.assert_allclose(X1, X, atol=1e-5)
         np.testing.assert_allclose(U1, U, atol=1e-5)

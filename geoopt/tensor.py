@@ -41,11 +41,11 @@ class ManifoldTensor(torch.Tensor):
     def proju(self, u):
         return self.manifold.proju(self, u)
 
-    def transp(self, u, t, v, *more):
-        return self.manifold.transp(self, u, t, v, *more)
+    def transp(self, v, *more, u=None, t=1., y=None):
+        return self.manifold.transp(self, v, *more, u=u, t=t, y=y)
 
-    def retr_transp(self, u, t, v, *more):
-        return self.manifold.retr_transp(self, u, t, v, *more)
+    def retr_transp(self, v, *more, u, t=1.):
+        return self.manifold.retr_transp(self, u, *more, u=v, t=t)
 
     def __repr__(self):
         return "Tensor on {} containing:\n".format(

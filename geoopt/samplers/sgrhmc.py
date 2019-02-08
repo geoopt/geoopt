@@ -75,7 +75,7 @@ class SGRHMC(Sampler):
 
                         v = self.state[p]["v"]
 
-                        p_, v_ = retr_transp(p, v, 1.0, v)
+                        p_, v_ = retr_transp(p, v, u=v, t=1.0)
                         p.set_(p_)
                         v.set_(v_)
 
