@@ -272,7 +272,7 @@ class Manifold(metaclass=abc.ABCMeta):
         t : scalar
             time to go with direction u
         order : int
-            order of retraction approximation, by default uses the simplest.
+            order of retraction approximation, by default uses the simplest that is usually a first order approximation.
             Possible choices depend on a concrete manifold and -1 stays for exponential map
 
         Returns
@@ -307,7 +307,7 @@ class Manifold(metaclass=abc.ABCMeta):
         y : tensor
             the target point for vector transport  (required if :math:`u` is not provided)
         order : int
-            order of retraction approximation, by default uses the simplest.
+            order of retraction approximation, by default uses the simplest that is usually a first order approximation.
             Possible choices depend on a concrete manifold and -1 stays for exponential map
             This argument is used only if :math:`u` is provided
 
