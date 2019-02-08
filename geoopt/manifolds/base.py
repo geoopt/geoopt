@@ -258,7 +258,7 @@ class Manifold(metaclass=abc.ABCMeta):
                 )
             )
 
-    def retr(self, x, u, t):
+    def retr(self, x, u, t, order="auto"):
         """
         Perform a retraction from point :math:`x` with
         given direction :math:`u` and time :math:`t`
@@ -280,7 +280,7 @@ class Manifold(metaclass=abc.ABCMeta):
         t = self.broadcast_scalar(t)
         return self._retr(x, u, t)
 
-    def transp(self, x, u, t, v, *more):
+    def transp(self, x, v, *more, u=None, t=None, y=None, order="auto"):
         """
         Perform vector transport from point :math:`x`,
         direction :math:`xu` and time :math:`t` for vector :math:`v`
@@ -386,7 +386,7 @@ class Manifold(metaclass=abc.ABCMeta):
         """
         return self._projx(x)
 
-    def retr_transp(self, x, u, t, v, *more):
+    def retr_transp(self, x, u, t, v, *more, order="auto"):
         """
         Perform a retraction + vector transport at once
 
