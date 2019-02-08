@@ -164,7 +164,9 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
             else:
                 grad = momentum_buffer
             # we have all the things projected
-            new_point, new_momentum_buffer = manifold.retr_transp(point, momentum_buffer, u=grad, t=-lr)
+            new_point, new_momentum_buffer = manifold.retr_transp(
+                point, momentum_buffer, u=grad, t=-lr
+            )
             momentum_buffer.set_(new_momentum_buffer)
             point.set_(new_point)
         else:

@@ -399,7 +399,7 @@ class Manifold(metaclass=abc.ABCMeta):
         """
         return self._projx(x)
 
-    def retr_transp(self, x, v, *more, u, t=1., order=None):
+    def retr_transp(self, x, v, *more, u, t=1.0, order=None):
         """
         Perform a retraction + vector transport at once
 
@@ -419,14 +419,14 @@ class Manifold(metaclass=abc.ABCMeta):
             order of retraction approximation, by default uses the simplest.
             Possible choices depend on a concrete manifold and -1 stays for exponential map
 
-        Notes
-        -----
-        Sometimes this is a far more optimal way to preform retraction + vector transport
-
         Returns
         -------
         tuple of tensors
             transported point and vectors
+
+        Notes
+        -----
+        Sometimes this is a far more optimal way to preform retraction + vector transport
         """
         return self._retr_transp(x, u, t, v, *more)
 
@@ -503,6 +503,7 @@ class Manifold(metaclass=abc.ABCMeta):
             absolute tolerance
         rtol :
             relative tolerance
+
         Returns
         -------
         bool, str or None
