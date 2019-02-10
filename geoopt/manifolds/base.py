@@ -690,14 +690,14 @@ class Manifold(metaclass=ManifoldMeta):
         y = self._retr(x, u, t)
         if self._retr_transp_default_preference == "follow":
             if more:
-                out = (y, ) + self._transp_follow(x, v, *more, u=u, t=t)
+                out = (y,) + self._transp_follow(x, v, *more, u=u, t=t)
             else:
-                out = (y, self._transp_follow(x, v, *more, u=u, t=t),)
+                out = (y, self._transp_follow(x, v, *more, u=u, t=t))
         else:
             if more:
-                out = (y, ) + self._transp2y(x, v, *more, y=y)
+                out = (y,) + self._transp2y(x, v, *more, y=y)
             else:
-                out = (y, self._transp2y(x, v, *more, y=y),)
+                out = (y, self._transp2y(x, v, *more, y=y))
         return out
 
     _retr_transp_default_preference = "follow"
