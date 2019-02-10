@@ -191,9 +191,23 @@ class Manifold(metaclass=ManifoldMeta):
 
     # noinspection PyAttributeOutsideInit
     def set_default_order(self, order):
+        """
+        Set the default order of approximation. This might be useful to specify retraction being used in optimizers
+
+        Parameters
+        ----------
+        order : int|None
+            default order of retraction approximation (None stays for Manifold default value)
+
+        Returns
+        -------
+        self
+            returns same instance
+        """
+        if order is None:
+            order = type(self)._default_order
         if (
-            order is None
-            or order not in self._retr_transport_funcs
+            order not in self._retr_transport_funcs
             or order not in self._retr_funcs
             or order not in self._transport_follow_funcs
         ):
@@ -211,7 +225,28 @@ class Manifold(metaclass=ManifoldMeta):
         self._retr_funcs[None] = self._retr_funcs[order]
         self._transport_follow_funcs = self._transport_follow_funcs.copy()
         self._retr_funcs[None] = self._retr_funcs[order]
+        self._default_order = order
         return self
+
+    def reset_default_order(self):
+        """
+        Reset the default order of approximation. The new order will
+        be the initial default approximation order for the manifold.
+
+        Returns
+        -------
+        self
+            returns same instance
+        """
+        return self.set_default_order(None)
+
+    @property
+    def default_order(self):
+        return self._default_order
+
+    @default_order.setter
+    def default_order(self, order):
+        self.set_default_order(order)
 
     def broadcast_scalar(self, t):
         """
