@@ -1,10 +1,114 @@
+from collections import defaultdict
 import abc
 import torch
+import re
 
 __all__ = ["Manifold"]
 
 
-class Manifold(metaclass=abc.ABCMeta):
+class ManifoldMeta(abc.ABCMeta):
+    def __new__(mcs, name, bases, namespace):
+        cls = super().__new__(mcs, name, bases, namespace)
+        # get the default order for the class
+        if cls._retr_transp_default_preference not in {"follow", "2y"}:
+            raise RuntimeError(
+                "class attribute _retr_transp_default_preference should be in {'follow', '2y'}"
+            )
+        default_order = cls._default_order
+        # create dict access for orders for a range of methods
+        retractoins = MethodDict()
+        retractoins_transport = MethodDict()
+        transports_follow = MethodDict()
+        # loop for all class members
+        for name in dir(cls):
+            # retraction pattern
+            if re.match(r"^_retr(\d+)?$", name):
+                order = int(name[len("_retr") :] or "1")
+                meth = getattr(cls, name)
+                retractoins[order] = meth
+            # retraction + transport pattern
+            elif re.match(r"^_retr(\d+)?_transp$", name):
+                meth = getattr(cls, name)
+                # if some method is not implemented it should be set as `not_implemented`
+                # function from exactply this module
+                # to make metaclass work properly
+                order = int(name[len("_retr") : -len("_transp")] or "1")
+                retractoins_transport[order] = meth
+            # exponential map pattern
+            elif re.match(r"^_expmap$", name):
+                meth = getattr(cls, name)
+                retractoins[-1] = meth
+            # exponential map + transport pattern
+            elif re.match(r"^_expmap_transp$", name):
+                meth = getattr(cls, name)
+                retractoins_transport[-1] = meth
+            # transport using retraction pattern
+            elif re.match(r"^_transp_follow(\d+)?$", name):
+                meth = getattr(cls, name)
+                order = int(name[len("_transp_follow") :] or "1")
+                transports_follow[order] = meth
+            # transport using expmap pattern
+            elif re.match(r"^_transp_follow_expmap$", name):
+                meth = getattr(cls, name)
+                transports_follow[-1] = meth
+        # set best possible retraction to use in expmap as a fallback
+        if transports_follow[-1] is not_implemented:
+            best_transport_follow = max(
+                (o for o, m in transports_follow.items() if m is not not_implemented),
+                default=None,
+            )
+        else:
+            best_transport_follow = -1
+        if retractoins[-1] is not_implemented:
+            best_retraction = max(
+                (o for o, m in retractoins.items() if m is not not_implemented),
+                default=None,
+            )
+        else:
+            best_retraction = -1
+        if retractoins_transport[-1] is not_implemented:
+            best_retraction_transport = max(
+                (
+                    o
+                    for o, m in retractoins_transport.items()
+                    if m is not not_implemented
+                ),
+                default=None,
+            )
+        else:
+            best_retraction_transport = -1
+        # assign default methods
+        retractoins[None] = retractoins[default_order]
+        retractoins_transport[None] = retractoins_transport[default_order]
+        transports_follow[None] = transports_follow[default_order]
+        # assign best possible options
+        retractoins[-1] = retractoins[best_retraction]
+        retractoins_transport[-1] = retractoins_transport[best_retraction_transport]
+        transports_follow[-1] = transports_follow[best_transport_follow]
+        # set class attributes
+        cls._transport_follow_funcs = transports_follow
+        cls._retr_transport_funcs = retractoins_transport
+        cls._retr_funcs = retractoins
+        # set best options for methods in terms of approximation
+        cls._best_retraction_transport = best_retraction_transport
+        cls._best_retraction = best_retraction
+        cls._best_transport_follow = best_transport_follow
+        return cls
+
+
+class MethodDict(defaultdict):
+    def __missing__(self, key):
+        return not_implemented
+
+
+def not_implemented(*args, **kwargs):
+    """
+    A placeholder for not implemented methods in the Manifold
+    """
+    raise NotImplementedError
+
+
+class Manifold(metaclass=ManifoldMeta):
     r"""
     Base class for Manifolds
 
@@ -44,6 +148,7 @@ class Manifold(metaclass=abc.ABCMeta):
     name = None
     ndim = None
     reversible = None
+    _default_order = 1
 
     def broadcast_scalar(self, t):
         """
@@ -281,7 +386,65 @@ class Manifold(metaclass=abc.ABCMeta):
             transported point
         """
         t = self.broadcast_scalar(t)
-        return self._retr(x, u, t)
+        return self._retr_funcs[order](self, x, u, t)
+
+    def expmap(self, x, u, t=1.0):
+        """
+        Perform an exponential map from point :math:`x` with
+        given direction :math:`u` and time :math:`t`
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point x
+        t : scalar
+            time to go with direction u
+
+        Returns
+        -------
+        tensor
+            transported point
+
+        Notes
+        -----
+        By default, no error is raised if exponential map is not implemented. If so,
+        the best approximation to exponential map is applied instead.
+        """
+        t = self.broadcast_scalar(t)
+        return self._retr_funcs[-1](self, x=x, u=u, t=t)
+
+    def expmap_transp(self, x, v, *more, u, t=1.0):
+        """
+        Perform an exponential map from point :math:`x` with
+        given direction :math:`u` and time :math:`t`
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        v : tensor
+            tangent vector at point x to be transported
+        more : tensors
+            other tangent vectors at point x to be transported
+        u : tensor
+            tangent vector at point x
+        t : scalar
+            time to go with direction u
+
+        Returns
+        -------
+        tensor
+            transported point
+
+        Notes
+        -----
+        By default, no error is raised if exponential map is not implemented. If so,
+        the best approximation to exponential map is applied instead.
+        """
+        t = self.broadcast_scalar(t)
+        return self._retr_transport_funcs[-1](self, x, v, *more, u=u, t=t)
 
     def transp(self, x, v, *more, u=None, t=1.0, y=None, order=None):
         """
@@ -317,10 +480,14 @@ class Manifold(metaclass=abc.ABCMeta):
             transported tensor(s)
         """
         t = self.broadcast_scalar(t)
-        if more:
-            return self._transp_many(x, u, t, v, *more)
+        if y is not None and u is not None:
+            raise TypeError("transp() accepts either y or u only, not both")
+        if y is not None:
+            return self._transp2y(x, v, *more, y=y)
+        elif u is not None:
+            return self._transport_follow_funcs[order](self, x, v, *more, u=u, t=t)
         else:
-            return self._transp_one(x, u, t, v)
+            raise TypeError("transp() requires either y or u")
 
     def inner(self, x, u, v=None):
         """
@@ -428,7 +595,7 @@ class Manifold(metaclass=abc.ABCMeta):
         -----
         Sometimes this is a far more optimal way to preform retraction + vector transport
         """
-        return self._retr_transp(x, u, t, v, *more)
+        return self._retr_transport_funcs[order](self, x, v, *more, u=u, t=t)
 
     # private implementation, public documentation design
 
@@ -512,18 +679,7 @@ class Manifold(metaclass=abc.ABCMeta):
         # return True, None
         raise NotImplementedError
 
-    def _transp_many(self, x, u, t, *vs):
-        """
-        Developer Guide
-
-        Naive implementation for transporting many vectors at once.
-        """
-        new_vs = []
-        for v in vs:
-            new_vs.append(self._transp_one(x, u, t, v))
-        return tuple(new_vs)
-
-    def _retr_transp(self, x, u, t, v, *more):
+    def _retr_transp(self, x, v, *more, u, t):
         """
         Developer Guide
 
@@ -531,12 +687,20 @@ class Manifold(metaclass=abc.ABCMeta):
         transporting many vectors at once.
         """
 
-        out = (self.retr(x, u, t),)
-        if more:
-            out = out + self._transp_many(x, u, t, v, *more)
+        y = self._retr(x, u, t)
+        if self._retr_transp_default_preference == "follow":
+            if more:
+                out = (y, ) + self._transp_follow(x, v, *more, u=u, t=t)
+            else:
+                out = (y, self._transp_follow(x, v, *more, u=u, t=t),)
         else:
-            out = out + (self._transp_one(x, u, t, v),)
+            if more:
+                out = (y, ) + self._transp2y(x, v, *more, y=y)
+            else:
+                out = (y, self._transp2y(x, v, *more, y=y),)
         return out
+
+    _retr_transp_default_preference = "follow"
 
     @abc.abstractmethod
     def _retr(self, x, u, t):
@@ -547,14 +711,21 @@ class Manifold(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def _transp_one(self, x, u, t, v):
-        """
-        Developer Guide
+    # def _transp_follow(self, x, v, *more, u, t):
+    """
+    Developer Guide
 
-        Private implementation for vector transport. Should allow broadcasting.
-        """
-        raise NotImplementedError
+    Private implementation for vector transport using :math:`u` and :math:`t`. Should allow broadcasting.
+    """
+    _transp_follow = not_implemented
+
+    # def _transp2y(self, x, v, *more, y):
+    """
+    Developer Guide
+
+    Private implementation for vector transport using :math:`y`. Should allow broadcasting.
+    """
+    _transp2y = not_implemented
 
     @abc.abstractmethod
     def _inner(self, x, u, v):
@@ -592,8 +763,15 @@ class Manifold(metaclass=abc.ABCMeta):
         """
         return self._proju(x, u)
 
+    def extra_repr(self):
+        return ""
+
     def __repr__(self):
-        return self.name + " manifold"
+        extra = self.extra_repr()
+        if extra:
+            return self.name + "({}) manifold".format(extra)
+        else:
+            return self.name + " manifold"
 
     def __eq__(self, other):
         return type(self) is type(other)
