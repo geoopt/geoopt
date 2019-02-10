@@ -7,6 +7,48 @@ __all__ = ["Manifold"]
 
 
 class ManifoldMeta(abc.ABCMeta):
+    """
+    We use a metaclass that tracks and registers retractions.
+    Right after a class creation, it filters `dir(cls)` and looks for
+    special declared methods. If a method is not implemented, then it should be
+    `geoopt.base.not_implemented`. `geoopt.base.not_implemented` is just a
+    placeholder for a function that raises not implemented error.
+
+    Special private functions contain the following:
+
+    * ``r"^_retr(\d+)?$"`` for retraction of a given order (if int postfix provided)
+    * ``r"^_retr(\d+)?_transp$"`` for retraction and transport
+    * ``r"^_expmap$"`` for exponential map (retraction with order ``-1``)
+    * ``r"^_expmap_transp$"`` for exponential map + vector transport (retraction with order ``-1``)
+    * ``r"^_transp_follow(\d+)?$"`` vector transport that uses direction + retraction rather that the final point
+    * ``r"^_transp_follow_expmap$"`` vector transport that uses direction + exponential map rather that the final
+        point (retraction+transport with order `-1`)
+
+    After this all is registered in `MethodDict` (default dict with `not_implemented` as missing value)
+    .. code-block::
+
+        retractoins = MethodDict()
+        retractoins_transport = MethodDict()
+        transports_follow = MethodDict()
+
+    With this dict it comes possible to define generic dispatch methods for different orders of approximations like this:
+    .. code-block::
+
+        def retr(self, x, u, t=1.0, order=None):
+            t = self.broadcast_scalar(t)
+            return self._retr_funcs[order](self, x, u, t)
+
+    As you see, we avoid weird code that makes use of ``if`` or ``getattr`` with handling exceptions.
+
+    Exponential map is dispatched in the same way
+    .. code-block::
+
+        def expmap(self, x, u, t=1.0):
+            t = self.broadcast_scalar(t)
+            return self._retr_funcs[-1](self, x, u, t)
+
+    """
+
     def __new__(mcs, name, bases, namespace):
         cls = super().__new__(mcs, name, bases, namespace)
         # get the default order for the class
@@ -89,10 +131,6 @@ class ManifoldMeta(abc.ABCMeta):
         cls._transport_follow_funcs = transports_follow
         cls._retr_transport_funcs = retractoins_transport
         cls._retr_funcs = retractoins
-        # set best options for methods in terms of approximation
-        cls._best_retraction_transport = best_retraction_transport
-        cls._best_retraction = best_retraction
-        cls._best_transport_follow = best_transport_follow
         return cls
 
 
@@ -126,29 +164,54 @@ class Manifold(metaclass=ManifoldMeta):
         Projects :math:`x` on manifold
     * ``_proju(x, u)`` required
         Projects :math:`u` on tangent space at point :math:`x`, usually the same as ``_egrad2rgrad``
+    * ``_egrad2rgrad(u)`` if differs from ``_proju(x, u)``
+        Transforms euclidean grad to Riemannian gradient.
     * ``_inner(x, u, v)`` required
         Computes inner product :math:`\langle u, v\rangle_x`
     * ``_retr(x, u, t)`` required
         Performs retraction map for :math:`x` with direction :math:`u` and time :math:`t`
-    * ``_transp_one(x, u, t, v)`` required
-        Performs vector transport for :math:`v` with direction :math:`u` and time :math:`t`
-    * ``_transp_many(x, u, t, *vs)`` desired
-        Same as ``_transp_one(x, u, t, v)`` with multiple inputs
+    * ``_transp_follow(x, v, *more, u, t)`` required
+        Performs vector transport for :math:`v` from :math:`x` with direction :math:`u` and time :math:`t`
+    * ``_transp2y(x, v, *more, u, t)`` desired
+        Performs vector transport for :math:`v` with from :math:`x` to :math:`y`
     * ``_retr_transp(x, u, t, *vs)`` desired
         Combines ``_transp_many(x, u, t, *vs)`` and ``_retr(x, u, t)``
     * ``__eq__(other)`` if needed
         Checks if manifolds are the same
-    * ``_egrad2rgrad(u)`` if differs
-        Transforms euclidean grad to Riemannian gradient.
 
     Notes
     -----
-    Public documentation, private implementation design is used
+    Public documentation, private implementation design is used.
+    Some more about design info is in :class:`ManifoldMeta`.
     """
     name = None
     ndim = None
     reversible = None
     _default_order = 1
+
+    # noinspection PyAttributeOutsideInit
+    def set_default_order(self, order):
+        if (
+            order is None
+            or order not in self._retr_transport_funcs
+            or order not in self._retr_funcs
+            or order not in self._transport_follow_funcs
+        ):
+            possible_orders = (
+                set(self._retr_transport_funcs)
+                & set(self._retr_funcs)
+                & set(self._transport_follow_funcs)
+            ) - {None}
+            raise ValueError(
+                "new default order should be one of {}".format(possible_orders)
+            )
+        self._retr_transport_funcs = self._retr_transport_funcs.copy()
+        self._retr_transport_funcs[None] = self._retr_transport_funcs[order]
+        self._retr_funcs = self._retr_funcs.copy()
+        self._retr_funcs[None] = self._retr_funcs[order]
+        self._transport_follow_funcs = self._transport_follow_funcs.copy()
+        self._retr_funcs[None] = self._retr_funcs[order]
+        return self
 
     def broadcast_scalar(self, t):
         """
@@ -700,6 +763,12 @@ class Manifold(metaclass=ManifoldMeta):
                 out = (y, self._transp2y(x, v, *more, y=y))
         return out
 
+    """
+    To make ``retr_transp`` work in case of ``_transp2y`` is much more efficient than 
+    ``_transp_follow`` there is a class attribute ``_retr_transp_default_preference`` to indicate this. 
+    The attribute should be present in the class definition if differs from default provided in `Manifold`.
+    Its values should be in {'follow', '2y'}, default is 'follow'
+    """
     _retr_transp_default_preference = "follow"
 
     @abc.abstractmethod

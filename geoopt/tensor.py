@@ -32,8 +32,11 @@ class ManifoldTensor(torch.Tensor):
             self.set_(self.manifold.projx(self.data))
         return self
 
-    def retr(self, u, t=1.0):
-        return self.manifold.retr(self, u=u, t=t)
+    def retr(self, u, t=1.0, order=None):
+        return self.manifold.retr(self, u=u, t=t, order=order)
+
+    def expmap(self, u, t=1.0):
+        return self.manifold.expmap(self, u=u, t=t)
 
     def inner(self, u, v=None):
         return self.manifold.inner(self, u=u, v=v)
@@ -41,11 +44,14 @@ class ManifoldTensor(torch.Tensor):
     def proju(self, u):
         return self.manifold.proju(self, u)
 
-    def transp(self, v, *more, u=None, t=1.0, y=None):
-        return self.manifold.transp(self, v, *more, u=u, t=t, y=y)
+    def transp(self, v, *more, u=None, t=1.0, y=None, order=None):
+        return self.manifold.transp(self, v, *more, u=u, t=t, y=y, order=order)
 
-    def retr_transp(self, v, *more, u, t=1.0):
-        return self.manifold.retr_transp(self, u, *more, u=v, t=t)
+    def retr_transp(self, v, *more, u, t=1.0, order=None):
+        return self.manifold.retr_transp(self, u, *more, u=v, t=t, order=order)
+
+    def expmap_transp(self, v, *more, u, t=1.0):
+        return self.manifold.expmap_transp(self, u, *more, u=v, t=t)
 
     def __repr__(self):
         return "Tensor on {} containing:\n".format(
