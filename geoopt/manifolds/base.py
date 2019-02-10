@@ -215,7 +215,7 @@ class Manifold(metaclass=ManifoldMeta):
                 set(self._retr_transport_funcs)
                 & set(self._retr_funcs)
                 & set(self._transport_follow_funcs)
-            ) - {None}
+            )
             raise ValueError(
                 "new default order should be one of {}".format(possible_orders)
             )
