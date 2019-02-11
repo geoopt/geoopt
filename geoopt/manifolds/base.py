@@ -9,30 +9,31 @@ __all__ = ["Manifold"]
 class ManifoldMeta(abc.ABCMeta):
     """
     We use a metaclass that tracks and registers retractions.
-    Right after a class creation, it filters `dir(cls)` and looks for
+    Right after a class creation, it filters ``dir(cls)`` and looks for
     special declared methods. If a method is not implemented, then it should be
-    `geoopt.base.not_implemented`. `geoopt.base.not_implemented` is just a
+    ``geoopt.base.not_implemented``. ``geoopt.base.not_implemented`` is just a
     placeholder for a function that raises not implemented error.
 
     Special private functions contain the following:
 
     * ``r"^_retr(\d+)?$"`` for retraction of a given order (if int postfix provided)
     * ``r"^_retr(\d+)?_transp$"`` for retraction and transport
+    * ``r"^_transp_follow(\d+)?$"`` vector transport that uses direction + retraction rather that the final point
     * ``r"^_expmap$"`` for exponential map (retraction with order ``-1``)
     * ``r"^_expmap_transp$"`` for exponential map + vector transport (retraction with order ``-1``)
-    * ``r"^_transp_follow(\d+)?$"`` vector transport that uses direction + retraction rather that the final point
-    * ``r"^_transp_follow_expmap$"`` vector transport that uses direction + exponential map rather that the final
-        point (retraction+transport with order `-1`)
+    * ``r"^_transp_follow_expmap$"`` vector transport that uses direction + exponential map rather that the final point (retraction+transport with order `-1`)
 
-    After this all is registered in `MethodDict` (default dict with `not_implemented` as missing value)
-    .. code-block::
+    After this all is registered in ``MethodDict`` (default dict with ``geoopt.base.not_implemented`` as a missing value)
+
+    .. code-block:: python
 
         retractoins = MethodDict()
         retractoins_transport = MethodDict()
         transports_follow = MethodDict()
 
     With this dict it comes possible to define generic dispatch methods for different orders of approximations like this:
-    .. code-block::
+
+    .. code-block:: python
 
         def retr(self, x, u, t=1.0, order=None):
             t = self.broadcast_scalar(t)
@@ -41,7 +42,8 @@ class ManifoldMeta(abc.ABCMeta):
     As you see, we avoid weird code that makes use of ``if`` or ``getattr`` with handling exceptions.
 
     Exponential map is dispatched in the same way
-    .. code-block::
+
+    .. code-block:: python
 
         def expmap(self, x, u, t=1.0):
             t = self.broadcast_scalar(t)
@@ -182,7 +184,7 @@ class Manifold(metaclass=ManifoldMeta):
     Notes
     -----
     Public documentation, private implementation design is used.
-    Some more about design info is in :class:`ManifoldMeta`.
+    Some more about design info is in :class:`geoopt.manifolds.base.ManifoldMeta`.
     """
     name = None
     ndim = None
@@ -569,7 +571,7 @@ class Manifold(metaclass=ManifoldMeta):
             the target point for vector transport  (required if :math:`u` is not provided)
         order : int
             order of retraction approximation, by default uses the simplest that is usually a first order approximation.
-            Possible choices depend on a concrete manifold and -1 stays for exponential map
+            Possible choices depend on a concrete manifold and -1 stays for exponential map.
             This argument is used only if :math:`u` is provided
 
         Returns
