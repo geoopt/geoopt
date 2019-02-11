@@ -6,12 +6,13 @@ Base Manifold
 
 The common base class for all manifolds is :class:`geoopt.manifolds.base.Manifold`.
 
-.. automodule:: geoopt.manifolds
-   :members: Manifold
+.. autoclass:: geoopt.manifolds.base.Manifold
+    :private-members:
+    :members:
 
 
 Metaclass
 ---------
 
-.. automodule:: geoopt.manifolds.base
-   :members: ManifoldMeta
+.. autoclass:: geoopt.manifolds.base.ManifoldMeta
+
