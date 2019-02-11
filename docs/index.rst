@@ -17,6 +17,7 @@ API
    optimizers
    tensors
    samplers
+   devguide
 
 Indices and tables
 ==================
