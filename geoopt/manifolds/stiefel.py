@@ -75,7 +75,7 @@ class Stiefel(Manifold):
 
     def _projx(self, x):
         U, d, V = linalg.batch_linalg.svd(x)
-        return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
+        return torch.einsum("...ik,...k,...jk->...ij", U, torch.ones_like(d), V)
 
 
 class CanonicalStiefel(Stiefel):
@@ -122,7 +122,7 @@ class CanonicalStiefel(Stiefel):
         n = len(vs)
         vs = torch.cat(vs, -1)
         qvs = self._transp_follow_one(x, vs, u=u, t=t).view(
-            *x.shape[:-1], -1, x.shape[-1]
+            x.shape[:-1] + (-1, x.shape[-1])
         )
         return tuple(qvs[..., i, :] for i in range(n))
 
@@ -139,7 +139,7 @@ class CanonicalStiefel(Stiefel):
         n = 2 + len(more)
         xvs = torch.cat((x, v) + more, -1)
         qxvs = self._transp_follow_one(x, xvs, u=u, t=t).view(
-            *x.shape[:-1], -1, x.shape[-1]
+            x.shape[:-1] + (-1, x.shape[-1])
         )
         return tuple(qxvs[..., i, :] for i in range(n))
 
@@ -187,6 +187,6 @@ class EuclideanStiefel(Stiefel):
 
     def _retr(self, x, u, t):
         q, r = linalg.batch_linalg.qr(x + u * t)
-        unflip = torch.sign(torch.sign(linalg.batch_linalg.extract_diag(r)) + 0.5)
+        unflip = linalg.batch_linalg.extract_diag(r).sign().add(.5).sign()
         q *= unflip[..., None, :]
         return q
