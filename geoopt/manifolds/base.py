@@ -176,8 +176,8 @@ class Manifold(metaclass=ManifoldMeta):
         Performs vector transport for :math:`v` from :math:`x` with direction :math:`u` and time :math:`t`
     * ``_transp2y(x, v, *more, u, t)`` desired
         Performs vector transport for :math:`v` with from :math:`x` to :math:`y`
-    * ``_retr_transp(x, u, t, *vs)`` desired
-        Combines ``_transp_many(x, u, t, *vs)`` and ``_retr(x, u, t)``
+    * ``_retr_transp(x, v, *more, u, t)`` desired
+        Combines retraction and vector transport
     * ``__eq__(other)`` if needed
         Checks if manifolds are the same
 
