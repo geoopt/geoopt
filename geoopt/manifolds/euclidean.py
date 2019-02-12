@@ -33,5 +33,16 @@ class Euclidean(Manifold):
     def _projx(self, x):
         return x
 
-    def _transp_one(self, x, u, t, v):
-        return v
+    def _transp_follow(self, x, v, *more, u, t):
+        if not more:
+            return v
+        else:
+            return (v,) + more
+
+    _retr_transp_default_preference = "2y"
+
+    def _transp2y(self, x, v, *more, y):
+        if not more:
+            return v
+        else:
+            return (v,) + more

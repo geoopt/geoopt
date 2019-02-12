@@ -3,12 +3,14 @@ Manifolds
 
 .. currentmodule:: geoopt.manifolds
 
-.. automodule:: geoopt.manifolds
-   :members: Euclidean, Stiefel, Sphere, SphereSubspaceComplementIntersection, SphereSubspaceIntersection
 
-Extending ``geoopt``
---------------------
-The common base class for all manifolds is :class:`geoopt.manifolds.base.Manifold`.
+All manifolds share same API. In order not to duplicate the same information, the complete public API is provided only for :class:`geoopt.manifolds.Euclidean` in the end of this file.
 
 .. automodule:: geoopt.manifolds
-   :members: Manifold
+    :members: Stiefel, Sphere, SphereSubspaceComplementIntersection, SphereSubspaceIntersection
+
+
+.. autoclass:: geoopt.manifolds.Euclidean
+    :members:
+    :inherited-members:
+

@@ -75,7 +75,7 @@ class Stiefel(Manifold):
 
     def _projx(self, x):
         U, d, V = linalg.batch_linalg.svd(x)
-        return torch.einsum("...ik,...k,...jk->...ij", [U, torch.ones_like(d), V])
+        return torch.einsum("...ik,...k,...jk->...ij", U, torch.ones_like(d), V)
 
 
 class CanonicalStiefel(Stiefel):
@@ -107,7 +107,7 @@ class CanonicalStiefel(Stiefel):
     # we do faster on inner without autofill
     _inner_autofill = False
 
-    def _transp_one(self, x, u, t, v):
+    def _transp_follow_one(self, x, v, *, u, t):
         a = self._amat(x, u)
         rhs = v + t / 2 * a @ v
         lhs = -t / 2 * a
@@ -115,29 +115,39 @@ class CanonicalStiefel(Stiefel):
         qv, _ = torch.gesv(rhs, lhs)
         return qv
 
-    def _transp_many(self, x, u, t, *vs):
+    def _transp_follow_many(self, x, *vs, u, t):
         """
         An optimized transp_many for Stiefel Manifold
         """
         n = len(vs)
         vs = torch.cat(vs, -1)
-        qvs = self._transp_one(x, u, t, vs).view(*x.shape[:-1], -1, x.shape[-1])
+        qvs = self._transp_follow_one(x, vs, u=u, t=t).view(
+            x.shape[:-1] + (-1, x.shape[-1])
+        )
         return tuple(qvs[..., i, :] for i in range(n))
 
-    def _retr_transp(self, x, u, t, v, *more):
+    def _transp_follow(self, x, v, *more, u, t):
+        if more:
+            return self._transp_follow_many(x, v, *more, u=u, t=t)
+        else:
+            return self._transp_follow_one(x, v, u=u, t=t)
+
+    def _retr_transp(self, x, v, *more, u, t):
         """
         An optimized retr_transp for Stiefel Manifold
         """
         n = 2 + len(more)
         xvs = torch.cat((x, v) + more, -1)
-        qxvs = self._transp_one(x, u, t, xvs).view(*x.shape[:-1], -1, x.shape[-1])
+        qxvs = self._transp_follow_one(x, xvs, u=u, t=t).view(
+            x.shape[:-1] + (-1, x.shape[-1])
+        )
         return tuple(qxvs[..., i, :] for i in range(n))
 
     def _proju(self, x, u):
         return u - x @ u.transpose(-1, -2) @ x
 
     def _retr(self, x, u, t):
-        return self._transp_one(x, u, t, x)
+        return self._transp_follow_one(x, x, u=u, t=t)
 
 
 class EuclideanStiefel(Stiefel):
@@ -154,26 +164,29 @@ class EuclideanStiefel(Stiefel):
     def _proju(self, x, u):
         return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
-    def _transp_one(self, x, u, t, v, y=None):
-        if y is None:
-            y = self._retr(x, u, t)
-        return self._proju(y, v)
-
-    def _transp_many(self, x, u, t, *vs, y=None):
-        if y is None:
-            y = self._retr(x, u, t)
-        return tuple(self._proju(y, v) for v in vs)
-
-    def _retr_transp(self, x, u, t, v, *more):
+    def _transp_follow(self, x, v, *more, u, t):
         y = self._retr(x, u, t)
-        vs = self._transp_many(x, u, t, v, *more, y=y)
-        return (y,) + vs
+        return self._transp2y(x, v, *more, y=y)
+
+    def _transp2y(self, x, v, *more, y):
+        if not more:
+            return self._proju(y, v)
+        else:
+            return tuple(self._proju(y, v_) for v_ in (v,) + more)
+
+    def _retr_transp(self, x, v, *more, u, t):
+        y = self._retr(x, u, t)
+        vs = self._transp2y(x, v, *more, y=y)
+        if more:
+            return (y,) + vs
+        else:
+            return y, vs
 
     def _inner(self, x, u, v):
         return (u * v).sum([-1, -2])
 
     def _retr(self, x, u, t):
         q, r = linalg.batch_linalg.qr(x + u * t)
-        unflip = torch.sign(torch.sign(linalg.batch_linalg.extract_diag(r)) + 0.5)
+        unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q

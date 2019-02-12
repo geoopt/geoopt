@@ -3,6 +3,10 @@ This file tracks important changes in PRs
 geoopt v0.1.0 (unreleased)
 ==========================
 
+Breaking Changes
+----------------
+* better public api, refactored developer api a lot (#40). See the corresponding PR for more details
+
 New Features
 ------------
 * Added ``Sphere`` manifold (#25)
@@ -11,7 +15,7 @@ New Features
 Maintenance
 -----------
 * Add gitter chat (#31)
-* Maintain torch>=1.0.0 only
+* Maintain torch>=1.0.0 only (#39)
 
 Deprecations
 ------------
