@@ -7,7 +7,7 @@ import torch
 
 
 @torch.jit.script
-def torch_pade13(A):
+def torch_pade13(A):  # pragma: no cover
     # avoid torch select operation and unpack coefs
     (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13) = (
         64764752532480000.0,
@@ -49,14 +49,14 @@ def torch_pade13(A):
 
 
 @torch.jit.script
-def matrix_2_power(x, p):
+def matrix_2_power(x, p):  # pragma: no cover
     for _ in range(int(p)):
         x = x @ x
     return x
 
 
 @torch.jit.script
-def expm_one(A):
+def expm_one(A):  # pragma: no cover
     # no checks, this is private implementation
     # but A should be a matrix
     A_fro = torch.norm(A)

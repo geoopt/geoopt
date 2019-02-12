@@ -5,7 +5,7 @@ __all__ = ["svd", "qr", "sym", "extract_diag", "matrix_rank", "expm"]
 
 
 @torch.jit.script
-def svd(x):
+def svd(x):  # pragma: no cover
     # inspired by
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
@@ -32,7 +32,7 @@ def svd(x):
 
 
 @torch.jit.script
-def qr(x):
+def qr(x):  # pragma: no cover
     # inspired by
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
@@ -56,12 +56,12 @@ def qr(x):
 
 
 @torch.jit.script
-def sym(x):
+def sym(x):  # pragma: no cover
     return 0.5 * (x.transpose(-1, -2) + x)
 
 
 @torch.jit.script
-def extract_diag(x):
+def extract_diag(x):  # pragma: no cover
     n, m = x.shape[-2:]
     batch = x.shape[:-2]
     k = n if n < m else m
@@ -72,7 +72,7 @@ def extract_diag(x):
 
 
 @torch.jit.script
-def matrix_rank(x):
+def matrix_rank(x):  # pragma: no cover
     # inspired by
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
@@ -97,7 +97,7 @@ def matrix_rank(x):
 
 
 @torch.jit.script
-def expm(x):
+def expm(x):  # pragma: no cover
     # inspired by
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:

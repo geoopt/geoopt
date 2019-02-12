@@ -22,6 +22,7 @@ class Sphere(Manifold):
     ndim = 1
     name = "Sphere"
     reversible = False
+    _retr_transp_default_preference = "2y"
 
     def _check_shape(self, x, name):
         dim_is_ok = x.dim() >= 1
@@ -60,20 +61,15 @@ class Sphere(Manifold):
         cond = norm_ut < 1e-3
         return torch.where(cond, exp, retr)
 
-    def _transp_one(self, x, u, t, v, y=None):
-        if y is None:
-            y = self._retr(x, u, t)
-        return self._proju(y, v)
-
-    def _transp_many(self, x, u, t, *vs, y=None):
-        if y is None:
-            y = self._retr(x, u, t)
-        return tuple(self._proju(y, v) for v in vs)
-
-    def _retr_transp(self, x, u, t, v, *more):
+    def _transp_follow(self, x, v, *more, u, t):
         y = self._retr(x, u, t)
-        vs = self._transp_many(x, u, t, v, *more, y=y)
-        return (y,) + vs
+        return self._transp2y(x, v, *more, y=y)
+
+    def _transp2y(self, x, v, *more, y):
+        if more:
+            return tuple(self._proju(y, _v) for _v in (v,) + more)
+        else:
+            return self._proju(y, v)
 
 
 class SphereSubspaceIntersection(Sphere):

@@ -16,14 +16,14 @@ There are two ways to install geoopt:
 
 1. GitHub (preferred so far) due to active development
 
-.. code-block::
+.. code-block:: bash
 
     pip install git+https://github.com/ferrine/geoopt.git
 
 
 2. pypi (this might be significantly behind master branch)
 
-.. code-block::
+.. code-block:: bash
 
     pip install geoopt
 
@@ -54,11 +54,11 @@ points on a certain manifold
 -  ``.inner(u, v=None)`` – inner product at this point for two
    **tangent** vectors at this point. The passed vectors are not
    projected, they are assumed to be already projected.
--  ``.retr(u, t)`` – retraction map following vector ``u`` for time
+-  ``.retr(u, t=1.)`` – retraction map following vector ``u`` for time
    ``t``
--  ``.transp(u, t, v, *more)`` – transport vector ``v`` (and possibly
+-  ``.transp(v, *more, u, t=1.)`` – transport vector ``v`` (and possibly
    more vectors) with direction ``u`` for time ``t``
--  ``.retr_transp(u, t, v, *more)`` – transport ``self``, vector ``v``
+-  ``.retr_transp(v, *more, u, t=1.)`` – transport ``self``, vector ``v``
    (and possibly more vectors) with direction ``u`` for time ``t``
    (returns are plain tensors)
 
