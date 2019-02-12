@@ -187,6 +187,6 @@ class EuclideanStiefel(Stiefel):
 
     def _retr(self, x, u, t):
         q, r = linalg.batch_linalg.qr(x + u * t)
-        unflip = linalg.batch_linalg.extract_diag(r).sign().add(.5).sign()
+        unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
