@@ -190,3 +190,27 @@ class EuclideanStiefel(Stiefel):
         unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
+
+    def _expmap(self, x, u, t):
+        u = u * t
+        xtu = x.transpose(-1, -2) @ u
+        utu = u.transpose(-1, -2) @ u
+        eye = torch.zeros_like(utu)
+        eye[..., torch.arange(utu.shape[-2]), torch.arange(utu.shape[-2])] += 1
+        logw = linalg.block_matrix([[xtu, -utu], [eye, xtu]])
+        w = linalg.expm(logw)
+        z = torch.cat((linalg.expm(-xtu), torch.zeros_like(utu)), dim=-2)
+        y = torch.cat((x, u), dim=-1) @ w @ z
+        return y
+
+    def _expmap_transp(self, x, v, *more, u, t):
+        y = self._expmap(x, u, t)
+        vs = self._transp2y(x, v, *more, y=y)
+        if more:
+            return (y,) + vs
+        else:
+            return y, vs
+
+    def _transp_follow_expmap(self, x, v, *more, u, t):
+        y = self._expmap(x, u, t)
+        return self._transp2y(x, v, *more, y=y)

@@ -7,8 +7,13 @@ import functools
 import pymanopt.manifolds
 
 
+@pytest.fixture("module", params=[1, -1])
+def retraction_order(request):
+    return request.param
+
+
 @pytest.fixture(
-    "session",
+    "function",
     params=[
         # match implementation of pymanopt for stiefel
         functools.partial(geoopt.manifolds.Stiefel, canonical=False),
@@ -25,8 +30,8 @@ import pymanopt.manifolds
         ),
     ],
 )
-def manifold(request):
-    return request.param()
+def manifold(request, retraction_order):
+    return request.param().set_default_order(retraction_order)
 
 
 mannopt = {
@@ -106,16 +111,19 @@ def test_vector_projection_via_assert(unary_case):
     unary_case.manifold.assert_check_vector_on_tangent(x, pv)
 
 
-def test_retraction(unary_case):
+def test_retraction(unary_case, retraction_order):
     if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")
     x = unary_case.x
     v = unary_case.v
 
     y = x.retr(v, 1.0)
-    y_star = unary_case.manopt_manifold.retr(x.numpy(), v.numpy())
-
-    np.testing.assert_allclose(y, y_star)
+    if retraction_order == 1:
+        y_star = unary_case.manopt_manifold.retr(x.numpy(), v.numpy())
+        np.testing.assert_allclose(y, y_star)
+    elif retraction_order == -1:
+        y_star = unary_case.manopt_manifold.exp(x.numpy(), v.numpy())
+        np.testing.assert_allclose(y, y_star)
 
 
 def test_transport(unary_case):
