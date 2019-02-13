@@ -7,7 +7,7 @@ __all__ = ["Manifold"]
 
 
 class ManifoldMeta(abc.ABCMeta):
-    """
+    r"""
     We use a metaclass that tracks and registers retractions.
     Right after a class creation, it filters ``dir(cls)`` and looks for
     special declared methods. If a method is not implemented, then it should be
@@ -226,6 +226,7 @@ class Manifold(metaclass=ManifoldMeta):
         self._retr_funcs = self._retr_funcs.copy()
         self._retr_funcs[None] = self._retr_funcs[order]
         self._transport_follow_funcs = self._transport_follow_funcs.copy()
+        self._transport_follow_funcs[None] = self._transport_follow_funcs[order]
         self._retr_funcs[None] = self._retr_funcs[order]
         self._default_order = order
         return self
