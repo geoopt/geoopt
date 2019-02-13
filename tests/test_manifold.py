@@ -13,7 +13,7 @@ def retraction_order(request):
 
 
 @pytest.fixture(
-    "function",
+    "module",
     params=[
         # match implementation of pymanopt for stiefel
         functools.partial(geoopt.manifolds.Stiefel, canonical=False),
@@ -31,7 +31,11 @@ def retraction_order(request):
     ],
 )
 def manifold(request, retraction_order):
-    return request.param().set_default_order(retraction_order)
+    man = request.param()
+    try:
+        return man.set_default_order(retraction_order)
+    except ValueError:
+        pytest.skip("not supported retraction order for {}".format(man))
 
 
 mannopt = {
