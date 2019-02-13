@@ -56,6 +56,8 @@ points on a certain manifold
    projected, they are assumed to be already projected.
 -  ``.retr(u, t=1.)`` – retraction map following vector ``u`` for time
    ``t``
+-  ``.expmap(u, t=1.)`` – exponential map following vector ``u`` for time
+   ``t`` (if expmap is not available in closed form, best approximation is used)
 -  ``.transp(v, *more, u, t=1.)`` – transport vector ``v`` (and possibly
    more vectors) with direction ``u`` for time ``t``
 -  ``.retr_transp(v, *more, u, t=1.)`` – transport ``self``, vector ``v``
@@ -70,6 +72,9 @@ Manifolds
 -  ``geoopt.Stiefel`` – Stiefel manifold on matrices
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
+
+All manifolds implement methods necessary to manipulate tensors on manifolds and
+tangent vectors to be used in general purpose. See more in `documentation`_.
 
 Optimizers
 ~~~~~~~~~~
@@ -88,6 +93,8 @@ Samplers
    Hamiltonian Monte-Carlo
 
 .. _“Riemannian Adaptive Optimization Methods”: https://openreview.net/forum?id=r1eiqi09K7
+.. _documentation: https://geoopt.readthedocs.io/en/latest/manifolds.html
+
 
 .. |Python Package Index| image:: https://img.shields.io/pypi/v/geoopt.svg
    :target: https://pypi.python.org/pypi/geoopt
