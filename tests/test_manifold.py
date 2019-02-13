@@ -13,7 +13,9 @@ def retraction_order(request):
 
 
 # [1] + list(np.random.randn(5))
-@pytest.fixture("module", params=[1, -0.27745849,  0.36177604,  0.99467354, -0.34688093,  0.10370687])
+@pytest.fixture(
+    "module", params=[1, -0.27745849, 0.36177604, 0.99467354, -0.34688093, 0.10370687]
+)
 def t(request):
     return request.param
 
