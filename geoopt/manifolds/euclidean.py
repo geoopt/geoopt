@@ -46,3 +46,9 @@ class Euclidean(Manifold):
             return v
         else:
             return (v,) + more
+
+    def _logmap(self, x, y):
+        return y - x
+
+    def _dist(self, x, y):
+        return (x - y).abs()
