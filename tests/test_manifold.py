@@ -274,3 +274,47 @@ def test_reversibility(unary_case, t):
     else:
         assert not np.allclose(X1, X, atol=1e-5)
         assert not np.allclose(U1, U, atol=1e-5)
+
+
+def test_dist(unary_case):
+    if type(unary_case.manifold)._dist is geoopt.manifolds.base.not_implemented:
+        pytest.skip("logmap is not implemented for {}".format(unary_case.manifold))
+    torch.manual_seed(43)
+    x = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
+    y = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
+    x = unary_case.manifold.projx(x)
+    y = unary_case.manifold.projx(y)
+    dhat = unary_case.manopt_manifold.dist(x.numpy(), y.numpy())
+    d = unary_case.manifold.dist(x, y)
+    np.testing.assert_allclose(d, dhat)
+
+
+def test_logmap(unary_case, t):
+    if type(unary_case.manifold)._logmap is geoopt.manifolds.base.not_implemented:
+        pytest.skip("logmap is not implemented for {}".format(unary_case.manifold))
+
+    x = unary_case.x
+    v = unary_case.v
+    y = unary_case.manopt_manifold.exp(x.numpy(), v.numpy() * t)
+    vman = unary_case.manopt_manifold.log(x.numpy(), y)
+    vhat = unary_case.manifold.logmap(x, torch.as_tensor(y))
+    np.testing.assert_allclose(vhat, vman)
+    ey = unary_case.manifold.expmap(x, vhat)
+    np.testing.assert_allclose(y, ey)
+
+
+def test_logmap_many(unary_case, t):
+    if type(unary_case.manifold)._logmap is geoopt.manifolds.base.not_implemented:
+        pytest.skip("logmap is not implemented for {}".format(unary_case.manifold))
+
+    torch.manual_seed(43)
+    X = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    X = unary_case.manifold.projx(X)
+    U = unary_case.manifold.proju(X, U)
+
+    Y = unary_case.manifold.expmap(X, U, t=t)
+    Uh = unary_case.manifold.logmap(X, Y)
+    Yh = unary_case.manifold.expmap(X, Uh)
+
+    np.testing.assert_allclose(Yh, Y)

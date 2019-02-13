@@ -409,7 +409,7 @@ class Manifold(metaclass=ManifoldMeta):
         x : tensor
             point on the manifold
         u : tensor
-            vector on the tangent space to ``x``
+            vector on the tangent space to :math:`x`
         atol: float
             absolute tolerance as in :func:`numpy.allclose`
         rtol: float
@@ -443,7 +443,7 @@ class Manifold(metaclass=ManifoldMeta):
         x : tensor
             point on the manifold
         u : tensor
-            vector on the tangent space to ``x``
+            vector on the tangent space to :math:`x`
         atol: float
             absolute tolerance as in :func:`numpy.allclose`
         rtol: float
@@ -464,6 +464,24 @@ class Manifold(metaclass=ManifoldMeta):
                 )
             )
 
+    def dist(self, x, y):
+        """
+        Compute distance between 2 points on the manifold that is the shortest path along geodesics
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        y : tensor
+            point on the manifold
+
+        Returns
+        -------
+        scalar
+            distance between two points
+        """
+        return self._dist(x, y)
+
     def retr(self, x, u, t=1.0, order=None):
         """
         Perform a retraction from point :math:`x` with
@@ -474,9 +492,9 @@ class Manifold(metaclass=ManifoldMeta):
         x : tensor
             point on the manifold
         u : tensor
-            tangent vector at point x
+            tangent vector at point :math:`x`
         t : scalar
-            time to go with direction u
+            time to go with direction :math:`u`
         order : int
             order of retraction approximation, by default uses the simplest that is usually a first order approximation.
             Possible choices depend on a concrete manifold and -1 stays for exponential map
@@ -499,9 +517,9 @@ class Manifold(metaclass=ManifoldMeta):
         x : tensor
             point on the manifold
         u : tensor
-            tangent vector at point x
+            tangent vector at point :math:`x`
         t : scalar
-            time to go with direction u
+            time to go with direction :math:`u`
 
         Returns
         -------
@@ -516,6 +534,29 @@ class Manifold(metaclass=ManifoldMeta):
         t = self.broadcast_scalar(t)
         return self._retr_funcs[-1](self, x=x, u=u, t=t)
 
+    def logmap(self, x, y):
+        """
+        Perform an logarithmic map for a pair of points :math:`x` and :math:`y`.
+        The result lies in :math:`u \in T_x\mathcal{M}` is such that:
+
+        .. math::
+
+            y = \operatorname{Exp}_x(\operatorname{Log}_{x}(y))
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        y : tensor
+            point on the manifold
+
+        Returns
+        -------
+        tensor
+            tangent vector
+        """
+        return self._logmap(x, y)
+
     def expmap_transp(self, x, v, *more, u, t=1.0):
         """
         Perform an exponential map from point :math:`x` with
@@ -526,13 +567,13 @@ class Manifold(metaclass=ManifoldMeta):
         x : tensor
             point on the manifold
         v : tensor
-            tangent vector at point x to be transported
+            tangent vector at point :math:`x` to be transported
         more : tensors
-            other tangent vectors at point x to be transported
+            other tangent vectors at point :math:`x` to be transported
         u : tensor
-            tangent vector at point x
+            tangent vector at point :math:`x`
         t : scalar
-            time to go with direction u
+            time to go with direction :math:`u`
 
         Returns
         -------
@@ -561,13 +602,13 @@ class Manifold(metaclass=ManifoldMeta):
         x : tensor
             point on the manifold
         v : tensor
-            tangent vector at point x to be transported
+            tangent vector at point :math:`x` to be transported
         more : tensors
-            other tangent vectors at point x to be transported
+            other tangent vectors at point :math:`x` to be transported
         u : tensor
-            tangent vector at point x (required if :math:`y` is not provided)
+            tangent vector at point :math:`x` (required if :math:`y` is not provided)
         t : scalar
-            time to go with direction u
+            time to go with direction :math:`u`
         y : tensor
             the target point for vector transport  (required if :math:`u` is not provided)
         order : int
@@ -599,9 +640,9 @@ class Manifold(metaclass=ManifoldMeta):
         x : tensor
             point on the manifold
         u : tensor
-            tangent vector at point x
+            tangent vector at point :math:`x`
         v : tensor (optional)
-            tangent vector at point x
+            tangent vector at point :math:`x`
 
         Returns
         -------
@@ -675,14 +716,14 @@ class Manifold(metaclass=ManifoldMeta):
         ----------
         x : tensor
             point on the manifold
-            tangent vector at point x
-        t : scalar
-            time to go with direction u
         v : tensor
-            tangent vector at point x to be transported (required keyword only argument)
+            tangent vector at point :math:`x` to be transported
         more : tensors
-            other tangent vector at point x to be transported
+            other tangent vector at point :math:`x` to be transported
         u : tensor
+            tangent vector at point :math:`x` (required keyword only argument)
+        t : scalar
+            time to go with direction :math:`u`
         order : int
             order of retraction approximation, by default uses the simplest.
             Possible choices depend on a concrete manifold and -1 stays for exponential map
@@ -833,6 +874,30 @@ class Manifold(metaclass=ManifoldMeta):
     Private implementation for vector transport using :math:`y`. Should allow broadcasting.
     """
     _transp2y = not_implemented
+
+    # def _logmap(self, x, y):
+    """
+    Developer Guide
+
+    Private implementation for logarithmic map for :math:`x` and :math:`y`. Should allow broadcasting.
+    """
+    _logmap = not_implemented
+
+    # def _expmap(self, x, y):
+    """
+    Developer Guide
+
+    Private implementation for exponential map for :math:`x` and :math:`y`. Should allow broadcasting.
+    """
+    _expmap = not_implemented
+
+    # def _dist(self, x, y):
+    """
+    Developer Guide
+
+    Private implementation for computing distance between :math:`x` and :math:`y`. Should allow broadcasting.
+    """
+    _dist = not_implemented
 
     @abc.abstractmethod
     def _inner(self, x, u, v):

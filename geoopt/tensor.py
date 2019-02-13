@@ -1,5 +1,6 @@
 import torch.nn
 from .manifolds import Euclidean
+from .docutils import insert_docs
 
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
@@ -28,30 +29,71 @@ class ManifoldTensor(torch.Tensor):
         return instance
 
     def proj_(self):
+        """
+        Inplace projection to the manifold
+
+        Returns
+        -------
+        tensor
+            same instance
+        """
         with torch.no_grad():
             self.set_(self.manifold.projx(self.data))
         return self
 
+    @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
     def retr(self, u, t=1.0, order=None):
         return self.manifold.retr(self, u=u, t=t, order=order)
 
+    @insert_docs(Euclidean.expmap.__doc__, r"\s+x : .+\n.+", "")
     def expmap(self, u, t=1.0):
         return self.manifold.expmap(self, u=u, t=t)
 
+    @insert_docs(Euclidean.inner.__doc__, r"\s+x : .+\n.+", "")
     def inner(self, u, v=None):
         return self.manifold.inner(self, u=u, v=v)
 
+    @insert_docs(Euclidean.proju.__doc__, r"\s+x : .+\n.+", "")
     def proju(self, u):
         return self.manifold.proju(self, u)
 
+    @insert_docs(Euclidean.transp.__doc__, r"\s+x : .+\n.+", "")
     def transp(self, v, *more, u=None, t=1.0, y=None, order=None):
         return self.manifold.transp(self, v, *more, u=u, t=t, y=y, order=order)
 
+    @insert_docs(Euclidean.retr_transp.__doc__, r"\s+x : .+\n.+", "")
     def retr_transp(self, v, *more, u, t=1.0, order=None):
         return self.manifold.retr_transp(self, u, *more, u=v, t=t, order=order)
 
+    @insert_docs(Euclidean.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
     def expmap_transp(self, v, *more, u, t=1.0):
         return self.manifold.expmap_transp(self, u, *more, u=v, t=t)
+
+    def dist(self, other, p=2):
+        """
+        Return euclidean  or geodesic distance between points on the manifold. Allows broadcasting
+
+        Parameters
+        ----------
+        other : tensor
+        p : str|int
+            The norm to use. The default behaviour is not changed and is just euclidean distance.
+            To compute geodesic distance, :attr:`p` should be set to ``"g"``
+
+        Returns
+        -------
+        scalar
+
+
+        """
+        if p == "g":
+            return self.manifold.dist(self, other)
+        else:
+            return super().dist(other)
+
+    @insert_docs(Euclidean.logmap.__doc__, r"\s+x : .+\n.+", "")
+    def logmap(self, y):
+        return self.manifold.logmap(self, y)
 
     def __repr__(self):
         return "Tensor on {} containing:\n".format(
