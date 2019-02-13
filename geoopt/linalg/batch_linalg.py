@@ -1,7 +1,7 @@
 import torch
 from . import _expm
 
-__all__ = ["svd", "qr", "sym", "extract_diag", "matrix_rank", "expm"]
+__all__ = ["svd", "qr", "sym", "extract_diag", "matrix_rank", "expm", "block_matrix"]
 
 
 @torch.jit.script
@@ -114,3 +114,11 @@ def expm(x):  # pragma: no cover
             exp += [e]
         result = torch.stack(exp).view(x.shape)
     return result
+
+
+def block_matrix(blocks):
+    # [[A, B], [C, D]] ->
+    # [AB]
+    # [CD]
+    blocks = tuple(torch.cat(mats, dim=-1) for mats in blocks)
+    return torch.cat(blocks, dim=-2)
