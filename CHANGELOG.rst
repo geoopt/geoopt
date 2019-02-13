@@ -12,6 +12,7 @@ New Features
 * Added ``Sphere`` manifold (#25)
 * Added ``SphereSubspaceIntersection``, ``SphereSubspaceComplementIntersection`` manifolds (#29)
 * Added expmap implementation (#43)
+* Added dist, logmap implementation (#44)
 
 Maintenance
 -----------
