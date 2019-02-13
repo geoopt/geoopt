@@ -7,7 +7,7 @@ __all__ = ["Manifold"]
 
 
 class ManifoldMeta(abc.ABCMeta):
-    """
+    r"""
     We use a metaclass that tracks and registers retractions.
     Right after a class creation, it filters ``dir(cls)`` and looks for
     special declared methods. If a method is not implemented, then it should be
