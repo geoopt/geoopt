@@ -32,7 +32,11 @@ def project(x, *, c):
 
 def lambda_x(x, *, c):
     r"""
-    Compute the conformal factor for a point on the ball
+    Compute the conformal factor :math:`\lambda_x` for a point on the ball
+
+    ..math::
+
+        \lambda_x = \frac{1}{1 - c \|x\|_2^2}
 
     Parameters
     ----------
@@ -44,6 +48,7 @@ def lambda_x(x, *, c):
     Returns
     -------
     scalar
+        conformal factor
     """
     return 2 / (1 - c * x.pow(2).sum(-1))
 
@@ -51,6 +56,10 @@ def lambda_x(x, *, c):
 def inner(x, u, v, *, c):
     r"""
     Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball
+
+    ..math::
+
+        \langle u, v\rangle_x = \lambda_x^2 \langle u, v \rangle
 
     Parameters
     ----------
