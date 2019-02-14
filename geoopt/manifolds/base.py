@@ -844,7 +844,7 @@ class Manifold(metaclass=ManifoldMeta):
 
     def rand_(self, x):
         """
-        Naive implemetation for normal distribution
+        In-place implemetation for normal distribution
         on manifold
 
         Parameters
@@ -857,7 +857,7 @@ class Manifold(metaclass=ManifoldMeta):
             tensor of normally distributed points
             on manifold
         """
-        return self._rand(x)
+        return self._rand_(x)
 
 
     """
@@ -954,7 +954,7 @@ class Manifold(metaclass=ManifoldMeta):
         return self._proju(x, u)
 
     @abc.abstractmethod
-    def rand_(self, x):
+    def _rand_(self, x):
         """
         Developer Guide
 

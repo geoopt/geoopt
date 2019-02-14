@@ -149,7 +149,8 @@ class CanonicalStiefel(Stiefel):
     def _retr(self, x, u, t):
         return self._transp_follow_one(x, x, u=u, t=t)
 
-    def rand_(self, x):
+    def _rand_(self, x):
+        x.normal_()
         x.set_(linalg.qr(x)[0])
         return x
 
