@@ -1,4 +1,4 @@
-import torch
+import torch.jit
 from . import _expm
 
 __all__ = ["svd", "qr", "sym", "extract_diag", "matrix_rank", "expm", "block_matrix"]
