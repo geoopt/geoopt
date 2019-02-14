@@ -1,5 +1,5 @@
-Extending ``geoopt``
-====================
+Developer Guide
+===============
 
 Base Manifold
 -------------
