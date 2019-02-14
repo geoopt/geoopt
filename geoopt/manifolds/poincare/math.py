@@ -1,4 +1,17 @@
 import torch
+import torch.jit
+
+
+@torch.jit.script
+def tanh(x):
+    return x.clamp(-15, 15).tanh()
+
+
+# noinspection PyTypeChecker,PyUnresolvedReferences
+@torch.jit.script
+def artanh(x):
+    res = (0.5 * (torch.log(1 + x) - torch.log(1 - x))).clamp(-1 + 1e-5, 1 - 1e-5)
+    return res
 
 
 def project(x, *, c):
@@ -22,9 +35,16 @@ def project(x, *, c):
     .. [1] Hyperbolic Neural Networks, NIPS2018
         https://arxiv.org/abs/1805.09112
     """
-    norm = x.norm(-1, keepdim=True)
-    maxnorm = (1 - 1e-5) / (c ** 0.5 + 1e-15)
-    cond = norm > maxnorm
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _project(x, c)
+
+
+@torch.jit.script
+def _project(x, c):
+    norm = x.norm(dim=-1, keepdim=True, p=2)
+    maxnorm = (1 - 1e-5) / (c ** 0.5)
+    cond = (norm > maxnorm) & (c > 1e-10)
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
 
@@ -33,7 +53,7 @@ def lambda_x(x, *, c):
     r"""
     Compute the conformal factor :math:`\lambda_x` for a point on the ball
 
-    ..math::
+    .. math::
 
         \lambda_x = \frac{1}{1 - c \|x\|_2^2}
 
@@ -49,6 +69,13 @@ def lambda_x(x, *, c):
     scalar
         conformal factor
     """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _lambda_x(x, c)
+
+
+@torch.jit.script
+def _lambda_x(x, c):
     return 2 / (1 - c * x.pow(2).sum(-1))
 
 
@@ -56,7 +83,7 @@ def inner(x, u, v, *, c):
     r"""
     Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball
 
-    ..math::
+    .. math::
 
         \langle u, v\rangle_x = \lambda_x^2 \langle u, v \rangle
 
@@ -76,7 +103,14 @@ def inner(x, u, v, *, c):
     scalar
         inner product
     """
-    return lambda_x(x, c=c) ** 2 * (u * v).sum(-1)
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _inner(x, u, v, c)
+
+
+@torch.jit.script
+def _inner(x, u, v, c):
+    return _lambda_x(x, c) ** 2 * (u * v).sum(-1)
 
 
 def mobius_add(x, y, *, c):
@@ -99,7 +133,7 @@ def mobius_add(x, y, *, c):
 
     But in some cases this property holds:
 
-    * zero vector vase
+    * zero vector case
 
     .. math::
 
@@ -131,10 +165,17 @@ def mobius_add(x, y, *, c):
     tensor
         the result of mobius addition
     """
-    y = y + 1e-15  # add small epsilon for stability
-    x2 = x.pow(2).sum(-1, keepdim=True)
-    y2 = y.pow(2).sum(-1, keepdim=True)
-    xy = (x * y).sum(-1, keepdim=True)
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _mobius_add(x, y, c)
+
+
+@torch.jit.script
+def _mobius_add(x, y, c):
+    y = y + 1e-15
+    x2 = x.pow(2).sum(dim=-1, keepdim=True)
+    y2 = y.pow(2).sum(dim=-1, keepdim=True)
+    xy = (x * y).sum(dim=-1, keepdim=True)
     num = (1 + 2 * c * xy + c * y2) * x + (1 - c * x2) * y
     denom = 1 + 2 * c * xy + c ** 2 * x2 * y2
     return num / denom
@@ -162,4 +203,78 @@ def mobius_sub(x, y, *, c):
     tensor
         the result of mobius substraction
     """
-    return mobius_add(x, -y, c=c)
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _mobius_sub(x, y, c)
+
+
+@torch.jit.script
+def _mobius_sub(x, y, c):
+    return _mobius_add(x, -y, c)
+
+
+def mobius_scalar_mul(r, x, *, c):
+    r"""
+    Left scalar multiplication on the Poincare ball
+
+    .. math::
+
+        r \otimes_c x = (1/\sqrt{c}) \tanh(r\tanh^{-1}(\sqrt{c}\|x\|_2))\frac{x}{\|x\|_2}
+
+    This operation has properties similar to euclidean
+
+    * `n-addition` property
+
+    .. math::
+
+         r \otimes_c x = x \oplus_c \dots \oplus_c x
+
+    * Distributive property
+
+    .. math::
+
+         (r_1 + r_2) \otimes_c x = r_1 \otimes_c x \oplus r_2 \otimes_c x
+
+    * Scalar associativity
+
+    .. math::
+
+         (r_1 r_2) \otimes_c x = r_1 \otimes_c (r_2 \otimes_c x)
+
+    * Scaling property
+
+    .. math::
+
+        |r| \otimes_c x / \|r \otimes_c x\|_2 = x/\|x\|_2
+
+    Parameters
+    ----------
+    r : float|tensor
+        scalar for multiplication
+    x : tensor
+        point on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        the result of mobius scalar multiplication
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    if not isinstance(r, torch.Tensor):
+        r = torch.as_tensor(r).type_as(x)
+    return _mobius_scalar_mul(r, x, c)
+
+
+@torch.jit.script
+def _mobius_scalar_mul(r, x, c):
+    x = x + 1e-15
+    x_norm = x.norm(dim=-1, keepdim=True, p=2)
+    cond = c < 1e-10
+    sqrt_c = c ** 0.5
+    res_0 = x * r
+    res_c = tanh(r * artanh(sqrt_c * x_norm)) * x / (x_norm * sqrt_c)
+    res = torch.where(cond, res_0, res_c)
+    return _project(res, c)
