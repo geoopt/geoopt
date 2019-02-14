@@ -3,13 +3,13 @@ import torch.jit
 
 
 @torch.jit.script
-def tanh(x):
+def tanh(x):  # pragma: no cover
     return x.clamp(-15, 15).tanh()
 
 
 # noinspection PyTypeChecker,PyUnresolvedReferences
 @torch.jit.script
-def artanh(x):
+def artanh(x):  # pragma: no cover
     res = (0.5 * (torch.log(1 + x) - torch.log(1 - x))).clamp(-1 + 1e-5, 1 - 1e-5)
     return res
 
@@ -41,7 +41,7 @@ def project(x, *, c):
 
 
 @torch.jit.script
-def _project(x, c):
+def _project(x, c):  # pragma: no cover
     norm = x.norm(dim=-1, keepdim=True, p=2)
     maxnorm = (1 - 1e-5) / (c ** 0.5)
     cond = (norm > maxnorm)
@@ -75,7 +75,7 @@ def lambda_x(x, *, c):
 
 
 @torch.jit.script
-def _lambda_x(x, c):
+def _lambda_x(x, c):  # pragma: no cover
     return 2 / (1 - c * x.pow(2).sum(-1))
 
 
@@ -109,7 +109,7 @@ def inner(x, u, v, *, c):
 
 
 @torch.jit.script
-def _inner(x, u, v, c):
+def _inner(x, u, v, c):  # pragma: no cover
     return _lambda_x(x, c) ** 2 * (u * v).sum(-1)
 
 
@@ -171,7 +171,7 @@ def mobius_add(x, y, *, c):
 
 
 @torch.jit.script
-def _mobius_add(x, y, c):
+def _mobius_add(x, y, c):  # pragma: no cover
     y = y + 1e-15
     x2 = x.pow(2).sum(dim=-1, keepdim=True)
     y2 = y.pow(2).sum(dim=-1, keepdim=True)
@@ -209,7 +209,7 @@ def mobius_sub(x, y, *, c):
 
 
 @torch.jit.script
-def _mobius_sub(x, y, c):
+def _mobius_sub(x, y, c):  # pragma: no cover
     return _mobius_add(x, -y, c)
 
 
