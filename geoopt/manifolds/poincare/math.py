@@ -1,5 +1,4 @@
 import torch
-import torch.jit
 
 
 def project(x, *, c):
