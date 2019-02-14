@@ -44,7 +44,7 @@ def project(x, *, c):
 def _project(x, c):
     norm = x.norm(dim=-1, keepdim=True, p=2)
     maxnorm = (1 - 1e-5) / (c ** 0.5)
-    cond = (norm > maxnorm) & (c > 1e-10)
+    cond = (norm > maxnorm)
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
 
