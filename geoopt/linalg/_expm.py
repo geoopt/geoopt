@@ -3,7 +3,7 @@ author: nsde
 maintainer: ferrine
 """
 
-import torch
+import torch.jit
 
 
 @torch.jit.script
