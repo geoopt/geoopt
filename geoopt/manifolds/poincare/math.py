@@ -15,7 +15,11 @@ def project(x, *, c):
 
     Returns
     -------
+    tensor
+        projected vector on the manifold
 
+    References
+    ----------
     .. [1] Hyperbolic Neural Networks, NIPS2018
         https://arxiv.org/abs/1805.09112
     """
@@ -62,6 +66,7 @@ def inner(x, u, v, *, c):
     Returns
     -------
     scalar
+        inner product
     """
     return lambda_x(x, c=c) ** 2 * (u * v).sum(-1)
 
