@@ -100,6 +100,13 @@ class ManifoldTensor(torch.Tensor):
             self.manifold
         ) + torch.Tensor.__repr__(self)
 
+    def rand_(self):
+        with torch.no_grad():
+            self.normal_()
+            self.set_(self.manifold.rand_(self.data))
+        return self
+
+
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
     """Same as :class:`torch.nn.Parameter` that has information about its manifold.
