@@ -149,6 +149,10 @@ class CanonicalStiefel(Stiefel):
     def _retr(self, x, u, t):
         return self._transp_follow_one(x, x, u=u, t=t)
 
+    def rand_(self, x):
+        x.set_(linalg.qr(x)[0])
+        return x
+
 
 class EuclideanStiefel(Stiefel):
     __doc__ = r"""Stiefel Manifold with Euclidean inner product

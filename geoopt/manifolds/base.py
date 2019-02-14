@@ -842,9 +842,27 @@ class Manifold(metaclass=ManifoldMeta):
                 out = (y, self._transp2y(x, v, *more, y=y))
         return out
 
+    def rand_(self, x):
+        """
+        Naive implemetation for normal distribution
+        on manifold
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        Returns
+        -------
+        tensor
+            tensor of normally distributed points
+            on manifold
+        """
+        return self._rand(x)
+
+
     """
-    To make ``retr_transp`` work in case of ``_transp2y`` is much more efficient than 
-    ``_transp_follow`` there is a class attribute ``_retr_transp_default_preference`` to indicate this. 
+    To make ``retr_transp`` work in case of ``_transp2y`` is much more efficient than
+    ``_transp_follow`` there is a class attribute ``_retr_transp_default_preference`` to indicate this.
     The attribute should be present in the class definition if differs from default provided in `Manifold`.
     Its values should be in {'follow', '2y'}, default is 'follow'
     """
@@ -934,6 +952,15 @@ class Manifold(metaclass=ManifoldMeta):
         Should allow broadcasting.
         """
         return self._proju(x, u)
+
+    @abc.abstractmethod
+    def rand_(self, x):
+        """
+        Developer Guide
+
+        Private implementation for random sampling. Should allow broadcasting.
+        """
+        raise NotImplementedError
 
     def extra_repr(self):
         return ""
