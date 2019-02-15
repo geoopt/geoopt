@@ -49,7 +49,7 @@ def _project(x, c):  # pragma: no cover
     return torch.where(cond, projected, x)
 
 
-def lambda_x(x, *, c):
+def lambda_x(x, *, c, keepdim=False):
     r"""
     Compute the conformal factor :math:`\lambda_x` for a point on the ball
 
@@ -63,23 +63,25 @@ def lambda_x(x, *, c):
         point on the Poincare ball
     c : float|tensor
         ball negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
 
     Returns
     -------
-    scalar
+    tensor
         conformal factor
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
-    return _lambda_x(x, c)
+    return _lambda_x(x, c, keepdim=keepdim)
 
 
 @torch.jit.script
-def _lambda_x(x, c):  # pragma: no cover
-    return 2 / (1 - c * x.pow(2).sum(-1))
+def _lambda_x(x, c, keepdim: bool = False):  # pragma: no cover
+    return 2 / (1 - c * x.pow(2).sum(-1, keepdim=keepdim))
 
 
-def inner(x, u, v, *, c):
+def inner(x, u, v, *, c, keepdim=False):
     r"""
     Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball
 
@@ -97,20 +99,22 @@ def inner(x, u, v, *, c):
         tangent vector to :math:`x` on poincare ball
     c : float|tensor
         ball negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
 
     Returns
     -------
-    scalar
+    tensor
         inner product
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
-    return _inner(x, u, v, c)
+    return _inner(x, u, v, c, keepdim=keepdim)
 
 
 @torch.jit.script
-def _inner(x, u, v, c):  # pragma: no cover
-    return _lambda_x(x, c) ** 2 * (u * v).sum(-1)
+def _inner(x, u, v, c, keepdim: bool = False):  # pragma: no cover
+    return _lambda_x(x, c) ** 2 * (u * v).sum(-1, keepdim=keepdim)
 
 
 def mobius_add(x, y, *, c):
@@ -277,7 +281,7 @@ def _mobius_scalar_mul(r, x, c):
     return _project(res_c, c)
 
 
-def dist(x, y, *, c):
+def dist(x, y, *, c, keepdim=False):
     r"""
     Distance on the Poincare ball
 
@@ -293,19 +297,88 @@ def dist(x, y, *, c):
         point on poincare ball
     c : float|tensor
         ball negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
 
     Returns
     -------
-    scalar
+    tensor
         geodesic distance between :math:`x` and :math:`y`
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
-    return _dist(x, y, c)
+    return _dist(x, y, c, keepdim=keepdim)
 
 
 @torch.jit.script
-def _dist(x, y, c):
+def _dist(x, y, c, keepdim: bool = False):
     sqrt_c = c ** 0.5
-    dist_c = 2 / sqrt_c * artanh(sqrt_c * _mobius_add(-x, y, c).norm(dim=-1, p=2))
-    return dist_c
+    dist_c = artanh(sqrt_c * _mobius_add(-x, y, c).norm(dim=-1, p=2, keepdim=keepdim))
+    return dist_c * 2 / sqrt_c
+
+
+def geodesic(t, x, y, *, c):
+    r"""
+    Geodesic (the shortest) path connecting :math:`x` and :math:`y`.
+    The path can be treated as and extension of a line segment between
+    points but in a Riemannian manifold. In Poincare ball model, the path
+    is expressed using Mobius addition and scalar multiplication:
+
+    .. math::
+
+        \gamma_{x\to y}(t) = x \oplus_c r \otimes_c ((-x) \oplus_c y)
+
+    The required properties of this path are the following:
+
+    .. math::
+
+        \gamma_{x\to y}(0) = x\\
+        \gamma_{x\to y}(1) = y\\
+        \dot\gamma_{x\to y}(t) = v
+
+    Moreover, as geodesic path is not only the shortest path connecting points and Poincare ball.
+    This definition also requires local distance minimization and thus another property appears:
+
+    .. math::
+
+         d_c(\gamma_{x\to y}(t_1), \gamma_{x\to y}(t_2)) = v|t_1-t_2|
+
+    "Natural parametrization" of the curve ensures unit speed geodesics which yields the above formula with :math:`v=1`.
+    However, for Poincare ball we can always compute the constant speed :math:`v` from the points
+    that particular path connects:
+
+    .. math::
+
+        v = d_c(\gamma_{x\to y}(0), \gamma_{x\to y}(1)) = d_c(x, y)
+
+
+    Parameters
+    ----------
+    t : float|tensor
+        travelling time
+    x : tensor
+        starting point on poincare ball
+    y : tensor
+        target point on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        point on the Poincare ball
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    if not isinstance(t, torch.Tensor):
+        t = torch.as_tensor(t).type_as(x)
+    return _geodesic(t, x, y, c)
+
+
+@torch.jit.script
+def _geodesic(t, x, y, c):
+    # this is not very numerically unstable
+    v = _mobius_add(-x, y, c)
+    tv = _mobius_scalar_mul(t, v, c)
+    gamma_t = _mobius_add(x, tv, c)
+    return gamma_t
