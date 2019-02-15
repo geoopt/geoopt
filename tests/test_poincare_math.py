@@ -27,7 +27,7 @@ def c(seed):
         c = torch.rand(100, 1, dtype=torch.float64)
     else:
         c = random.random()
-    return c
+    return c + 1e-10
 
 
 @pytest.fixture
