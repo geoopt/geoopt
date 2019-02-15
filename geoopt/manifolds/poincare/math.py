@@ -283,7 +283,7 @@ def dist(x, y, *, c):
 
     .. math::
 
-        d_c(x, y) = \frac{2}{\sqrt{c}}\tanh^{-1}\|(\sqrt{c}(-c)\oplus_c y\|_2)
+        d_c(x, y) = \frac{2}{\sqrt{c}}\tanh^{-1}(\sqrt{c}\|(-x)\oplus_c y\|_2)
 
     Parameters
     ----------
