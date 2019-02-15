@@ -44,7 +44,7 @@ def project(x, *, c):
 def _project(x, c):  # pragma: no cover
     norm = x.norm(dim=-1, keepdim=True, p=2)
     maxnorm = (1 - 1e-5) / (c ** 0.5)
-    cond = (norm > maxnorm)
+    cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
 
@@ -272,9 +272,40 @@ def mobius_scalar_mul(r, x, *, c):
 def _mobius_scalar_mul(r, x, c):
     x = x + 1e-15
     x_norm = x.norm(dim=-1, keepdim=True, p=2)
-    cond = c < 1e-10
     sqrt_c = c ** 0.5
-    res_0 = x * r
     res_c = tanh(r * artanh(sqrt_c * x_norm)) * x / (x_norm * sqrt_c)
-    res = torch.where(cond, res_0, res_c)
-    return _project(res, c)
+    return _project(res_c, c)
+
+
+def dist(x, y, *, c):
+    r"""
+    Distance on the Poincare ball
+
+    .. math::
+
+        d_c(x, y) = \frac{2}{\sqrt{c}}\tanh^{-1}\|(\sqrt{c}(-c)\oplus_c y\|_2)
+
+    Parameters
+    ----------
+    x : tensor
+        point on poincare ball
+    y : tensor
+        point on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    scalar
+        geodesic distance between :math:`x` and :math:`y`
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _dist(x, y, c)
+
+
+@torch.jit.script
+def _dist(x, y, c):
+    sqrt_c = c ** 0.5
+    dist_c = 2 / sqrt_c * artanh(sqrt_c * _mobius_add(-x, y, c).norm(dim=-1, p=2))
+    return dist_c
