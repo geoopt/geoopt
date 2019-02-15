@@ -101,7 +101,7 @@ def test_n_additions_via_scalar_multiplication(n, a, c):
     for _ in range(n):
         y = poincare.math.mobius_add(a, y, c=c)
     ny = poincare.math.mobius_scalar_mul(n, a, c=c)
-    np.testing.assert_allclose(y, ny, atol=1e-7, rtol=1e-10)
+    np.testing.assert_allclose(y, ny, atol=1e-10)
 
 
 @pytest.fixture
@@ -154,4 +154,33 @@ def test_scaling_property(a, c, r1):
     x2 = poincare.math.mobius_scalar_mul(abs(r1), a, c=c) / ra.norm(
         dim=-1, keepdim=True
     )
-    np.testing.assert_allclose(x1, x2, atol=1e-7, rtol=1e-10)
+    np.testing.assert_allclose(x1, x2, atol=1e-10)
+
+
+def test_geodesic_borders(a, b, c):
+    # this test appears to be numerical unstable once a and b may appear on the opposite sides
+    a = abs(a)
+    b = abs(b)
+    geo0 = poincare.math.geodesic(0.0, a, b, c=c)
+    geo1 = poincare.math.geodesic(1.0, a, b, c=c)
+    np.testing.assert_allclose(geo0, a, atol=1e-10)
+    np.testing.assert_allclose(geo1, b, atol=1e-10)
+
+
+def test_geodesic_segment_length_property(a, b, c):
+    extra_dims = len(a.shape)
+    segments = 12
+    t = torch.linspace(0, 1, segments + 1, dtype=torch.float64).view(
+        (segments + 1,) + (1,) * extra_dims
+    )
+    gamma_ab_t = poincare.math.geodesic(t, a, b, c=c)
+    gamma_ab_t0 = gamma_ab_t[:-1]
+    gamma_ab_t1 = gamma_ab_t[1:]
+    dist_ab_t0mt1 = poincare.math.dist(gamma_ab_t0, gamma_ab_t1, c=c, keepdim=True)
+    speed = (
+        poincare.math.dist(a, b, c=c, keepdim=True)
+        .unsqueeze(0)
+        .expand_as(dist_ab_t0mt1)
+    )
+    # we have exactly 12 line segments
+    np.testing.assert_allclose(dist_ab_t0mt1, speed / segments, atol=1e-10)
