@@ -184,3 +184,26 @@ def test_geodesic_segment_length_property(a, b, c):
     )
     # we have exactly 12 line segments
     np.testing.assert_allclose(dist_ab_t0mt1, speed / segments, atol=1e-10)
+
+
+def test_geodesic_segement_unit_property(a, b, c):
+    extra_dims = len(a.shape)
+    segments = 12
+    t = torch.linspace(0, 1, segments + 1, dtype=torch.float64).view(
+        (segments + 1,) + (1,) * extra_dims
+    )
+    gamma_ab_t = poincare.math.geodesic_unit(t, a, b, c=c)
+    gamma_ab_t0 = gamma_ab_t[:1]
+    gamma_ab_t1 = gamma_ab_t
+    dist_ab_t0mt1 = poincare.math.dist(gamma_ab_t0, gamma_ab_t1, c=c, keepdim=True)
+    true_distance_travelled = t.expand_as(dist_ab_t0mt1)
+    # we have exactly 12 line segments
+    np.testing.assert_allclose(dist_ab_t0mt1, true_distance_travelled, atol=1e-10)
+
+
+def test_expmap_logmap(a, b, c):
+    # this test appears to be numerical unstable once a and b may appear on the opposite sides
+    a = abs(a)
+    b = abs(b)
+    bh = poincare.math.expmap(x=a, u=poincare.math.logmap(a, b, c=c), c=c)
+    np.testing.assert_allclose(bh, b)
