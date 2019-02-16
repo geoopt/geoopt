@@ -14,7 +14,7 @@ def artanh(x):  # pragma: no cover
     return res
 
 
-def project(x, *, c):
+def project(x, *, c=1.0):
     r"""
     Safe projection on the manifold for numerical stability. This was mentioned in [1]_
 
@@ -49,13 +49,13 @@ def _project(x, c):  # pragma: no cover
     return torch.where(cond, projected, x)
 
 
-def lambda_x(x, *, c, keepdim=False):
+def lambda_x(x, *, c=1.0, keepdim=False):
     r"""
-    Compute the conformal factor :math:`\lambda_x` for a point on the ball
+    Compute the conformal factor :math:`\lambda^c_x` for a point on the ball
 
     .. math::
 
-        \lambda_x = \frac{1}{1 - c \|x\|_2^2}
+        \lambda^c_x = \frac{1}{1 - c \|x\|_2^2}
 
     Parameters
     ----------
@@ -81,13 +81,13 @@ def _lambda_x(x, c, keepdim: bool = False):  # pragma: no cover
     return 2 / (1 - c * x.pow(2).sum(-1, keepdim=keepdim))
 
 
-def inner(x, u, v, *, c, keepdim=False):
+def inner(x, u, v, *, c=1.0, keepdim=False):
     r"""
     Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball
 
     .. math::
 
-        \langle u, v\rangle_x = \lambda_x^2 \langle u, v \rangle
+        \langle u, v\rangle_x = (\lambda^c_x)^2 \langle u, v \rangle
 
     Parameters
     ----------
@@ -117,7 +117,41 @@ def _inner(x, u, v, c, keepdim: bool = False):  # pragma: no cover
     return _lambda_x(x, c) ** 2 * (u * v).sum(-1, keepdim=keepdim)
 
 
-def mobius_add(x, y, *, c):
+def norm(x, u, *, c=1.0, keepdim=False):
+    r"""
+    Compute vector norm on the tangent space w.r.t Riemannian metric on the Poincare ball
+
+    .. math::
+
+        \|u\|_x = \lambda^c_x \|u\|_2
+
+    Parameters
+    ----------
+    x : tensor
+        point on the Poincare ball
+    u : tensor
+        tangent vector to :math:`x` on poincare ball
+    c : float|tensor
+        ball negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+
+    Returns
+    -------
+    tensor
+        norm of vector
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _norm(x, u, c, keepdim=keepdim)
+
+
+@torch.jit.script
+def _norm(x, u, c, keepdim: bool = False):  # pragma: no cover
+    return _lambda_x(x, c) * u.norm(dim=-1, keepdim=keepdim, p=2)
+
+
+def mobius_add(x, y, *, c=1.0):
     r"""
     Mobius addition is a special operation in a hyperbolic space.
 
@@ -185,7 +219,7 @@ def _mobius_add(x, y, c):  # pragma: no cover
     return num / denom
 
 
-def mobius_sub(x, y, *, c):
+def mobius_sub(x, y, *, c=1.0):
     r"""
     Mobius substraction that can be represented via Mobius addition as follows:
 
@@ -217,7 +251,7 @@ def _mobius_sub(x, y, c):  # pragma: no cover
     return _mobius_add(x, -y, c)
 
 
-def mobius_scalar_mul(r, x, *, c):
+def mobius_scalar_mul(r, x, *, c=1.0):
     r"""
     Left scalar multiplication on the Poincare ball
 
@@ -273,7 +307,7 @@ def mobius_scalar_mul(r, x, *, c):
 
 
 @torch.jit.script
-def _mobius_scalar_mul(r, x, c):
+def _mobius_scalar_mul(r, x, c):  # pragma: no cover
     x = x + 1e-15
     x_norm = x.norm(dim=-1, keepdim=True, p=2)
     sqrt_c = c ** 0.5
@@ -281,7 +315,7 @@ def _mobius_scalar_mul(r, x, c):
     return _project(res_c, c)
 
 
-def dist(x, y, *, c, keepdim=False):
+def dist(x, y, *, c=1.0, keepdim=False):
     r"""
     Distance on the Poincare ball
 
@@ -311,13 +345,13 @@ def dist(x, y, *, c, keepdim=False):
 
 
 @torch.jit.script
-def _dist(x, y, c, keepdim: bool = False):
+def _dist(x, y, c, keepdim: bool = False):  # pragma: no cover
     sqrt_c = c ** 0.5
     dist_c = artanh(sqrt_c * _mobius_add(-x, y, c).norm(dim=-1, p=2, keepdim=keepdim))
     return dist_c * 2 / sqrt_c
 
 
-def geodesic(t, x, y, *, c):
+def geodesic(t, x, y, *, c=1.0):
     r"""
     Geodesic (the shortest) path connecting :math:`x` and :math:`y`.
     The path can be treated as and extension of a line segment between
@@ -376,9 +410,137 @@ def geodesic(t, x, y, *, c):
 
 
 @torch.jit.script
-def _geodesic(t, x, y, c):
+def _geodesic(t, x, y, c):  # pragma: no cover
     # this is not very numerically unstable
     v = _mobius_add(-x, y, c)
     tv = _mobius_scalar_mul(t, v, c)
     gamma_t = _mobius_add(x, tv, c)
     return gamma_t
+
+
+def expmap(x, u, *, c=1.0):
+    r"""
+    Exponential map for Poincare ball model. This is tightly related with :func:`geodesic`.
+    Intuitively Exponential map is a smooth constant travelling from starting point :math:`x` with speed :math:`u`.
+
+    A bit more formally this is travelling along curve :math:`\gamma_u(t)` such that
+
+    .. math::
+
+        \dot\gamma_u(0) = u\\
+        \|\dot\gamma_u(t)\| = \|u\|_{\gamma_u(t)}
+
+    The existence of this curve relies on uniqueness of differential equation solution, that is local.
+    For the Poincare ball model the solution is well defined globally and we have.
+
+    .. math::
+
+        \operatorname{Exp}_x(u) = \gamma_u(1) = \\
+        x\oplus_c \tanh(\sqrt{c}/2 \|u\|_x) \frac{u}{\sqrt{c}\|u\|}
+
+    Parameters
+    ----------
+    x : tensor
+        starting point on poincare ball
+    u : tensor
+        speed vector on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        :math:`\gamma_u(1)` end point
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _expmap(x, u, c)
+
+
+@torch.jit.script
+def _expmap(x, u, c):  # pragma: no cover
+    sqrt_c = c ** 0.5
+    u_norm = u.norm(dim=-1, p=2, keepdim=True)
+    second_term = (
+        tanh(sqrt_c / 2 * _lambda_x(x, c, keepdim=True) * u_norm)
+        * u
+        / (sqrt_c * u_norm)
+    )
+    gamma_1 = _mobius_add(x, second_term, c)
+    return gamma_1
+
+
+def geodesic_unit(t, x, u, *, c=1.0):
+    r"""
+    Unit speed geodesic starting from :math:`x` with direction :math:`u/\|u\|_x`
+
+    .. math::
+
+        \gamma_{x,u}(t) = x\oplus_c \tanh(t\sqrt{c}/2) \frac{u}{\sqrt{c}\|u\|}
+
+    Parameters
+    ----------
+    t : tensor
+        travelling time
+    x : tensor
+        initial point
+    u : tensor
+        direction
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        the point on geodesic line
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _geodesic_unit(t, x, u, c)
+
+
+@torch.jit.script
+def _geodesic_unit(t, x, u, c):  # pragma: no cover
+    sqrt_c = c ** 0.5
+    u_norm = u.norm(dim=-1, p=2, keepdim=True)
+    second_term = tanh(sqrt_c / 2 * t) * u / (sqrt_c * u_norm)
+    gamma_1 = _mobius_add(x, second_term, c)
+    return gamma_1
+
+
+def logmap(x, y, *, c=1.0):
+    """
+    Logarithmic map for two points :math:`x` and :math:`y` on the manifold. The result of Logarithmic map
+    is a vector such that
+
+    .. math::
+
+        y = \operatorname{Exp}_x(\operatorname{Log}_x(y))
+
+
+    Parameters
+    ----------
+    x : tensor
+        starting point on poincare ball
+    y : tensor
+        target point on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        tangent vector that transports :math:`x` to :math:`y`
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _logmap(x, y, c)
+
+
+@torch.jit.script
+def _logmap(x, y, c):
+    sub = _mobius_add(-x, y, c)
+    sub_norm = sub.norm(dim=-1, p=2, keepdim=True)
+    lam = _lambda_x(x, c, keepdim=True)
+    sqrt_c = c ** 0.5
+    return 2 / sqrt_c / lam * artanh(sqrt_c * sub_norm) * sub / sub_norm
