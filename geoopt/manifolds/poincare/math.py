@@ -438,7 +438,7 @@ def expmap(x, u, *, c=1.0):
     .. math::
 
         \operatorname{Exp}_x(u) = \gamma_{x, u}(1) = \\
-        x\oplus_c \tanh(\sqrt{c}/2 \|u\|_x) \frac{u}{\sqrt{c}\|u\|}
+        x\oplus_c \tanh(\sqrt{c}/2 \|u\|_x) \frac{u}{\sqrt{c}\|u\|_2}
 
     Parameters
     ----------
@@ -478,7 +478,7 @@ def expmap0(u, *, c=1.0):
 
     .. math::
 
-        \operatorname{Exp}_0(u) = \tanh(\sqrt{c}/2 \|u\|_2) \frac{u}{\sqrt{c}\|u\|}
+        \operatorname{Exp}_0(u) = \tanh(\sqrt{c}/2 \|u\|_2) \frac{u}{\sqrt{c}\|u\|_2}
 
     Parameters
     ----------
@@ -512,7 +512,7 @@ def geodesic_unit(t, x, u, *, c=1.0):
 
     .. math::
 
-        \gamma_{x,u}(t) = x\oplus_c \tanh(t\sqrt{c}/2) \frac{u}{\sqrt{c}\|u\|}
+        \gamma_{x,u}(t) = x\oplus_c \tanh(t\sqrt{c}/2) \frac{u}{\sqrt{c}\|u\|_2}
 
     Parameters
     ----------
@@ -635,7 +635,9 @@ def mobius_matvec(m, x, *, c=1.0):
 
     .. math::
 
-        M \otimes_c x = (1/\sqrt{c}) \tanh\left(\frac{\|Mx\|_2}{\|x\|_2}\tanh^{-1}(\sqrt{c}\|x\|_2)\right)\frac{Mx}{\|Mx\|_2}
+        M \otimes_c x = (1/\sqrt{c}) \tanh\left(
+            \frac{\|Mx\|_2}{\|x\|_2}\tanh^{-1}(\sqrt{c}\|x\|_2)
+        \right)\frac{Mx}{\|Mx\|_2}
 
 
     Parameters
