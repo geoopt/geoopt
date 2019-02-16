@@ -1,3 +1,4 @@
+import functools
 import torch
 import torch.jit
 
@@ -428,7 +429,7 @@ def expmap(x, u, *, c=1.0):
     .. math::
 
         \dot\gamma_u(0) = u\\
-        \|\dot\gamma_u(t)\| = \|u\|_{\gamma_u(t)}
+        \|\dot\gamma_u(t)\|_{\gamma_u(t)} = \|u\|_x
 
     The existence of this curve relies on uniqueness of differential equation solution, that is local.
     For the Poincare ball model the solution is well defined globally and we have.
@@ -467,6 +468,40 @@ def _expmap(x, u, c):  # pragma: no cover
         / (sqrt_c * u_norm)
     )
     gamma_1 = _mobius_add(x, second_term, c)
+    return gamma_1
+
+
+def expmap0(u, *, c=1.0):
+    r"""
+    Exponential map for Poincare ball model from :math:`0`.
+
+    .. math::
+
+        \operatorname{Exp}_0(u) = \tanh(\sqrt{c}/2 \|u\|_2) \frac{u}{\sqrt{c}\|u\|}
+
+    Parameters
+    ----------
+    u : tensor
+        speed vector on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        :math:`\gamma_u(1)` end point
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(u)
+    return _expmap0(u, c)
+
+
+@torch.jit.script
+def _expmap0(u, c):  # pragma: no cover
+    u = u + 1e-15
+    sqrt_c = c ** 0.5
+    u_norm = u.norm(dim=-1, p=2, keepdim=True)
+    gamma_1 = tanh(sqrt_c * u_norm) * u / (sqrt_c * u_norm)
     return gamma_1
 
 
@@ -509,9 +544,16 @@ def _geodesic_unit(t, x, u, c):  # pragma: no cover
 
 
 def logmap(x, y, *, c=1.0):
-    """
-    Logarithmic map for two points :math:`x` and :math:`y` on the manifold. The result of Logarithmic map
-    is a vector such that
+    r"""
+    Logarithmic map for two points :math:`x` and :math:`y` on the manifold.
+
+    .. math::
+
+        \operatorname{Log}_x(y) = \frac{2}{\sqrt{c}\lambda_x^c} \tanh^{-1}(
+            \sqrt{c} \|(-x)\oplus_c y\|_2
+        ) * \frac{(-x)\oplus_c y}{\|(-x)\oplus_c y\|_2}
+
+    The result of Logarithmic map is a vector such that
 
     .. math::
 
@@ -538,9 +580,208 @@ def logmap(x, y, *, c=1.0):
 
 
 @torch.jit.script
-def _logmap(x, y, c):
+def _logmap(x, y, c):  # pragma: no cover
     sub = _mobius_add(-x, y, c)
     sub_norm = sub.norm(dim=-1, p=2, keepdim=True)
     lam = _lambda_x(x, c, keepdim=True)
     sqrt_c = c ** 0.5
     return 2 / sqrt_c / lam * artanh(sqrt_c * sub_norm) * sub / sub_norm
+
+
+def logmap0(y, *, c=1.0):
+    r"""
+    Logarithmic map for :math:`y` from :math:`0` on the manifold.
+
+
+    .. math::
+
+        \operatorname{Log}_0(y) = \tanh^{-1}(\sqrt{c}\|y\|_2) \frac{y}{\|y\|_2}
+
+    The result is such that
+
+    .. math::
+
+        y = \operatorname{Exp}_0(\operatorname{Log}_0(y))
+
+    Parameters
+    ----------
+    y : tensor
+        target point on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        tangent vector that transports :math:`0` to :math:`y`
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(y)
+    return _logmap0(y, c)
+
+
+@torch.jit.script
+def _logmap0(y, c):  # pragma: no cover
+    sqrt_c = c ** 0.5
+    y = y + 1e-15
+    y_norm = y.norm(dim=-1, p=2, keepdim=True)
+    return y / y_norm / sqrt_c * artanh(sqrt_c * y_norm)
+
+
+def mobius_matvec(m, x, *, c=1.0):
+    r"""
+    Generalization for matrix-vector multiplication to hyperbolic space defined as
+
+    .. math::
+
+        M \otimes_c x = (1/\sqrt{c}) \tanh\left(\frac{\|Mx\|_2}{\|x\|_2}\tanh^{-1}(\sqrt{c}\|x\|_2)\right)\frac{Mx}{\|Mx\|_2}
+
+
+    Parameters
+    ----------
+    m : tensor
+        matrix for multiplication
+    x : tensor
+        point on poincare ball
+    c : float|tensor
+        negative ball curvature
+
+    Returns
+    -------
+    tensor
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _mobius_matvec(m, x, c)
+
+
+@torch.jit.script
+def _mobius_matvec(m, x, c):  # pragma: no cover
+    x = x + 1e-15
+    x_norm = x.norm(dim=-1, keepdim=True, p=2)
+    sqrt_c = c ** 0.5
+    mx = x @ m.transpose(-1, -2)
+    mx_norm = mx.norm(dim=-1, keepdim=True, p=2)
+    res_c = tanh(mx_norm / x_norm * artanh(sqrt_c * x_norm)) * mx / (mx_norm * sqrt_c)
+    cond = (mx == 0).prod(-1, keepdim=True, dtype=torch.uint8)
+    res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
+    res = torch.where(cond, res_0, res_c)
+    return _project(res, c)
+
+
+def mobius_pointwise_mul(w, x, *, c=1.0):
+    r"""
+    Generalization for pointwise multiplication to hyperbolic space defined as
+
+    .. math::
+
+        \operatorname{diag}(w) \otimes_c x = (1/\sqrt{c}) \tanh\left(
+            \frac{\|\operatorname{diag}(w)x\|_2}{x}\tanh^{-1}(\sqrt{c}\|x\|_2)
+        \right)\frac{\|\operatorname{diag}(w)x\|_2}{\|x\|_2}
+
+
+    Parameters
+    ----------
+    w : tensor
+        weights for multiplication
+    x : tensor
+        point on poincare ball
+    c : float|tensor
+        negative ball curvature
+
+    Returns
+    -------
+    tensor
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _mobius_pointwise_mul(w, x, c)
+
+
+@torch.jit.script
+def _mobius_pointwise_mul(w, x, c):  # pragma: no cover
+    x = x + 1e-15
+    x_norm = x.norm(dim=-1, keepdim=True, p=2)
+    sqrt_c = c ** 0.5
+    wx = x * w
+    wx_norm = wx.norm(dim=-1, keepdim=True, p=2)
+    res_c = tanh(wx_norm / x_norm * artanh(sqrt_c * x_norm)) * wx / (wx_norm * sqrt_c)
+    cond = (wx == 0).prod(-1, keepdim=True, dtype=torch.uint8)
+    res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
+    res = torch.where(cond, res_0, res_c)
+    return _project(res, c)
+
+
+def mobius_fn_apply(x, *fns, c=1.0):
+    r"""
+    Generalization for functions in hyperbolic space.
+    First, hyperbolic vector is mapped to a Euclidean space via
+    :math:`\operatorname{Log}_0` and nonlinear function is applied in this tangent space.
+    The resulting vector is then mapped back with :math:`\operatorname{Exp}_0`
+
+    .. math::
+
+        f^{\otimes_c}(x) = \operatorname{Exp}_0(f(\operatorname{Log}_0(y)))
+
+    The definition of mobius function application allows chaining as
+
+    .. math::
+
+        y = \operatorname{Exp}_0(\operatorname{Log}_0(y))
+
+    Resulting in
+
+    .. math::
+
+        (f \circ g)^{\otimes_c}(x) = \operatorname{Exp}_0((f \circ g) (\operatorname{Log}_0(y)))
+
+    Parameters
+    ----------
+    x : tensor
+        point on poincare ball
+    fns : callable[]
+        functions to apply
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+    """
+    if not fns:
+        return x
+    else:
+        if not isinstance(c, torch.Tensor):
+            c = torch.as_tensor(c).type_as(x)
+        ex = _logmap0(x, c)
+        for fn in fns:
+            ex = fn(ex)
+        y = _expmap0(ex, c)
+        return y
+
+
+def mobiusify(fn):
+    """
+    Wraps a function so that is works in hyperbolic space. New function will accept additional argument ``c``
+
+    Parameters
+    ----------
+    fn : callable
+        function in Euclidean space, only its first argument is treated as hyperbolic
+
+    Returns
+    -------
+    callable
+        function working in hyperbolic space
+    """
+
+    @functools.wraps(fn)
+    def mobius_fn(x, *args, c=1.0, **kwargs):
+        if not isinstance(c, torch.Tensor):
+            c = torch.as_tensor(c).type_as(x)
+        ex = _logmap0(x, c)
+        ex = fn(ex, *args, **kwargs)
+        y = _expmap0(ex, c)
+        return y
+
+    return mobius_fn
