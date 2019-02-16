@@ -223,7 +223,7 @@ def test_matvec_zeros(a, c):
 
 def test_matvec_via_equiv_fn_apply(a, c):
     mat = a.new(3, a.shape[-1]).normal_()
-    y = poincare.math.mobius_fn_apply(a, lambda x: x @ mat.transpose(-1, -2), c=c)
+    y = poincare.math.mobius_fn_apply(lambda x: x @ mat.transpose(-1, -2), a, c=c)
     y1 = poincare.math.mobius_matvec(mat, a, c=c)
     np.testing.assert_allclose(y, y1)
 
@@ -238,3 +238,16 @@ def test_mobiusify(a, c):
     y = matvec(a, c=c)
     y1 = poincare.math.mobius_matvec(mat, a, c=c)
     np.testing.assert_allclose(y, y1)
+
+
+def test_matvec_chain_via_equiv_fn_apply(a, c):
+    mat1 = a.new(a.shape[-1], a.shape[-1]).normal_()
+    mat2 = a.new(a.shape[-1], a.shape[-1]).normal_()
+    y = poincare.math.mobius_fn_apply_chain(
+        a,
+        lambda x: x @ mat1.transpose(-1, -2),
+        lambda x: x @ mat2.transpose(-1, -2),
+        c=c
+    )
+    y1 = poincare.math.mobius_matvec(mat2 @ mat1, a, c=c)
+    np.testing.assert_allclose(y, y1, atol=1e-5)
