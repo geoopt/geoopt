@@ -712,7 +712,7 @@ def _mobius_pointwise_mul(w, x, c):  # pragma: no cover
     return _project(res, c)
 
 
-def mobius_fn_apply(x, *fns, c=1.0):
+def mobius_fn_apply_chain(x, *fns, c=1.0):
     r"""
     Generalization for functions in hyperbolic space.
     First, hyperbolic vector is mapped to a Euclidean space via
@@ -758,6 +758,38 @@ def mobius_fn_apply(x, *fns, c=1.0):
             ex = fn(ex)
         y = _expmap0(ex, c)
         return y
+
+
+def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
+    r"""
+    Generalization for functions in hyperbolic space.
+    First, hyperbolic vector is mapped to a Euclidean space via
+    :math:`\operatorname{Log}_0` and nonlinear function is applied in this tangent space.
+    The resulting vector is then mapped back with :math:`\operatorname{Exp}_0`
+
+    .. math::
+
+        f^{\otimes_c}(x) = \operatorname{Exp}_0(f(\operatorname{Log}_0(y)))
+
+    Parameters
+    ----------
+    x : tensor
+        point on poincare ball
+    fn : callable
+        function to apply
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    ex = _logmap0(x, c)
+    ex = fn(ex, *args, **kwargs)
+    y = _expmap0(ex, c)
+    return y
 
 
 def mobiusify(fn):
