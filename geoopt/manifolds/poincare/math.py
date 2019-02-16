@@ -424,19 +424,20 @@ def expmap(x, u, *, c=1.0):
     Exponential map for Poincare ball model. This is tightly related with :func:`geodesic`.
     Intuitively Exponential map is a smooth constant travelling from starting point :math:`x` with speed :math:`u`.
 
-    A bit more formally this is travelling along curve :math:`\gamma_u(t)` such that
+    A bit more formally this is travelling along curve :math:`\gamma_{x, u}(t)` such that
 
     .. math::
 
-        \dot\gamma_u(0) = u\\
-        \|\dot\gamma_u(t)\|_{\gamma_u(t)} = \|u\|_x
+        \gamma_{x, u}(0) = x\\
+        \dot\gamma_{x, u}(0) = u\\
+        \|\dot\gamma_{x, u}(t)\|_{\gamma_{x, u}(t)} = \|u\|_x
 
     The existence of this curve relies on uniqueness of differential equation solution, that is local.
     For the Poincare ball model the solution is well defined globally and we have.
 
     .. math::
 
-        \operatorname{Exp}_x(u) = \gamma_u(1) = \\
+        \operatorname{Exp}_x(u) = \gamma_{x, u}(1) = \\
         x\oplus_c \tanh(\sqrt{c}/2 \|u\|_x) \frac{u}{\sqrt{c}\|u\|}
 
     Parameters
@@ -451,7 +452,7 @@ def expmap(x, u, *, c=1.0):
     Returns
     -------
     tensor
-        :math:`\gamma_u(1)` end point
+        :math:`\gamma_{x, u}(1)` end point
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
@@ -489,7 +490,7 @@ def expmap0(u, *, c=1.0):
     Returns
     -------
     tensor
-        :math:`\gamma_u(1)` end point
+        :math:`\gamma_{0, u}(1)` end point
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(u)
@@ -793,7 +794,7 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
 
 
 def mobiusify(fn):
-    """
+    r"""
     Wraps a function so that is works in hyperbolic space. New function will accept additional argument ``c``
 
     Parameters
