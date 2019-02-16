@@ -247,7 +247,7 @@ def test_matvec_chain_via_equiv_fn_apply(a, c):
         a,
         lambda x: x @ mat1.transpose(-1, -2),
         lambda x: x @ mat2.transpose(-1, -2),
-        c=c
+        c=c,
     )
     y1 = poincare.math.mobius_matvec(mat2 @ mat1, a, c=c)
     np.testing.assert_allclose(y, y1, atol=1e-5)
