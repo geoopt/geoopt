@@ -207,3 +207,34 @@ def test_expmap_logmap(a, b, c):
     b = abs(b)
     bh = poincare.math.expmap(x=a, u=poincare.math.logmap(a, b, c=c), c=c)
     np.testing.assert_allclose(bh, b)
+
+
+def test_expmap0_logmap0(a, c):
+    # this test appears to be numerical unstable once a and b may appear on the opposite sides
+    bh = poincare.math.expmap0(poincare.math.logmap0(a, c=c), c=c)
+    np.testing.assert_allclose(bh, a)
+
+
+def test_matvec_zeros(a, c):
+    mat = a.new_zeros(3, a.shape[-1])
+    z = poincare.math.mobius_matvec(mat, a, c=c)
+    np.testing.assert_allclose(z, 0.0)
+
+
+def test_matvec_via_equiv_fn_apply(a, c):
+    mat = a.new(3, a.shape[-1]).normal_()
+    y = poincare.math.mobius_fn_apply(a, lambda x: x @ mat.transpose(-1, -2), c=c)
+    y1 = poincare.math.mobius_matvec(mat, a, c=c)
+    np.testing.assert_allclose(y, y1)
+
+
+def test_mobiusify(a, c):
+    mat = a.new(3, a.shape[-1]).normal_()
+
+    @poincare.math.mobiusify
+    def matvec(x):
+        return x @ mat.transpose(-1, -2)
+
+    y = matvec(a, c=c)
+    y1 = poincare.math.mobius_matvec(mat, a, c=c)
+    np.testing.assert_allclose(y, y1)
