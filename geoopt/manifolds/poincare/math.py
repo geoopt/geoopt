@@ -1,3 +1,12 @@
+"""
+Functions for math on Poincare ball model. Most of this is taken from
+a well written paper by Octavian-Eugen Ganea (2018) [1]_
+
+
+.. [1] Hyperbolic Neural Networks, NIPS2018
+        https://arxiv.org/abs/1805.09112
+"""
+
 import functools
 import torch
 import torch.jit
@@ -1101,8 +1110,13 @@ def _parallel_transport0(y, v, c):  # pragma: no cover
 
 
 def egrad2rgrad(x, grad, *, c=1.0):
-    """
+    r"""
     Translate Euclidean gradient to Riemannian gradient on tangent space of :math:`x`
+
+    .. math::
+
+        \nabla_x = \nabla^E_x / (\lambda_x^c)^2
+
     Parameters
     ----------
     x : tensor
