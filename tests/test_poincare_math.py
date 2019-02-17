@@ -158,9 +158,6 @@ def test_scaling_property(a, c, r1):
 
 
 def test_geodesic_borders(a, b, c):
-    # this test appears to be numerical unstable once a and b may appear on the opposite sides
-    a = abs(a)
-    b = abs(b)
     geo0 = poincare.math.geodesic(0.0, a, b, c=c)
     geo1 = poincare.math.geodesic(1.0, a, b, c=c)
     np.testing.assert_allclose(geo0, a, atol=1e-10)
@@ -203,8 +200,6 @@ def test_geodesic_segement_unit_property(a, b, c):
 
 def test_expmap_logmap(a, b, c):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
-    a = abs(a)
-    b = abs(b)
     bh = poincare.math.expmap(x=a, u=poincare.math.logmap(a, b, c=c), c=c)
     np.testing.assert_allclose(bh, b)
 
@@ -249,16 +244,15 @@ def test_matvec_chain_via_equiv_fn_apply(a, c):
         lambda x: x @ mat2.transpose(-1, -2),
         c=c,
     )
-    y1 = poincare.math.mobius_matvec(mat2 @ mat1, a, c=c)
+    y1 = poincare.math.mobius_matvec(mat1, a, c=c)
+    y1 = poincare.math.mobius_matvec(mat2, y1, c=c)
     np.testing.assert_allclose(y, y1, atol=1e-5)
 
 
 def test_parallel_transport0_preserves_inner_products(a, c, seed):
     # pointing to the center
-    if seed > 35:
-        pytest.skip("unstable on random curvature, skip")
-    v_0 = torch.rand_like(a)
-    u_0 = torch.rand_like(a)
+    v_0 = torch.rand_like(a) + 1e-5
+    u_0 = torch.rand_like(a) + 1e-5
     zero = torch.zeros_like(a)
     v_a = poincare.math.parallel_transport0(a, v_0, c=c)
     u_a = poincare.math.parallel_transport0(a, u_0, c=c)
@@ -268,7 +262,7 @@ def test_parallel_transport0_preserves_inner_products(a, c, seed):
     np.testing.assert_allclose(vu_a, vu_0, atol=1e-6, rtol=1e-6)
 
 
-def test_parallel_transport_is_just_not_nan(a, b, c, seed):
+def test_parallel_transport_a_b(a, b, c, seed):
     # pointing to the center
     v_0 = torch.rand_like(a)
     u_0 = torch.rand_like(a)
@@ -276,7 +270,5 @@ def test_parallel_transport_is_just_not_nan(a, b, c, seed):
     u_1 = poincare.math.parallel_transport(a, b, u_0, c=c)
     # compute norms
     vu_1 = poincare.math.inner(b, v_1, u_1, c=c, keepdim=True)
-    # numerically unstable
-    # vu_0 = poincare.math.inner(a, v_0, u_0, c=c, keepdim=True)
-    # np.testing.assert_allclose(vu_0, vu_1, atol=1e-6, rtol=1e-6)
-    assert torch.isfinite(vu_1).all()
+    vu_0 = poincare.math.inner(a, v_0, u_0, c=c, keepdim=True)
+    np.testing.assert_allclose(vu_0, vu_1, atol=1e-6, rtol=1e-6)
