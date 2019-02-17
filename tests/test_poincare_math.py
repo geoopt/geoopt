@@ -251,3 +251,32 @@ def test_matvec_chain_via_equiv_fn_apply(a, c):
     )
     y1 = poincare.math.mobius_matvec(mat2 @ mat1, a, c=c)
     np.testing.assert_allclose(y, y1, atol=1e-5)
+
+
+def test_parallel_transport0_preserves_inner_products(a, c, seed):
+    # pointing to the center
+    if seed > 35:
+        pytest.skip("unstable on random curvature, skip")
+    v_0 = torch.rand_like(a)
+    u_0 = torch.rand_like(a)
+    zero = torch.zeros_like(a)
+    v_a = poincare.math.parallel_transport0(a, v_0, c=c)
+    u_a = poincare.math.parallel_transport0(a, u_0, c=c)
+    # compute norms
+    vu_0 = poincare.math.inner(zero, v_0, u_0, c=c, keepdim=True)
+    vu_a = poincare.math.inner(a, v_a, u_a, c=c, keepdim=True)
+    np.testing.assert_allclose(vu_a, vu_0, atol=1e-6, rtol=1e-6)
+
+
+def test_parallel_transport_is_just_not_nan(a, b, c, seed):
+    # pointing to the center
+    v_0 = torch.rand_like(a)
+    u_0 = torch.rand_like(a)
+    v_1 = poincare.math.parallel_transport(a, b, v_0, c=c)
+    u_1 = poincare.math.parallel_transport(a, b, u_0, c=c)
+    # compute norms
+    vu_1 = poincare.math.inner(b, v_1, u_1, c=c, keepdim=True)
+    # numerically unstable
+    # vu_0 = poincare.math.inner(a, v_0, u_0, c=c, keepdim=True)
+    # np.testing.assert_allclose(vu_0, vu_1, atol=1e-6, rtol=1e-6)
+    assert torch.isfinite(vu_1).all()
