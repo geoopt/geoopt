@@ -11,13 +11,20 @@ def tanh(x):  # pragma: no cover
 # noinspection PyTypeChecker,PyUnresolvedReferences
 @torch.jit.script
 def artanh(x):  # pragma: no cover
-    res = (0.5 * (torch.log(1 + x) - torch.log(1 - x))).clamp(-1 + 1e-5, 1 - 1e-5)
+    x = x.clamp(-1 + 1e-15, 1 - 1e-15)
+    res = 0.5 * (torch.log(1 + x) - torch.log(1 - x))
     return res
 
 
 @torch.jit.script
 def arsinh(x):
     return torch.log(x + torch.sqrt(1 + x ** 2))
+
+
+@torch.jit.script
+def arcosh(x):
+    x = x.clamp(-1 + 1e-15, 1 - 1e-15)
+    return torch.log(x + torch.sqrt(1 + x) * torch.sqrt(x - 1))
 
 
 def project(x, *, c=1.0):
@@ -120,7 +127,7 @@ def inner(x, u, v, *, c=1.0, keepdim=False):
 
 @torch.jit.script
 def _inner(x, u, v, c, keepdim: bool = False):  # pragma: no cover
-    return _lambda_x(x, c) ** 2 * (u * v).sum(-1, keepdim=keepdim)
+    return _lambda_x(x, c, keepdim=True) ** 2 * (u * v).sum(-1, keepdim=keepdim)
 
 
 def norm(x, u, *, c=1.0, keepdim=False):
@@ -997,17 +1004,30 @@ def parallel_transport(x, y, v, *, c=1.0):
     Parallel transport is essential for adaptive algorithms in Riemannian manifolds.
     For Hyperbolic spaces parallel transport is expressed via gyration.
 
-    Consider points :math:`x,\:y \in \mathbb{D}_c^n` and a tangent vector :math:`u\in T_x\mathbb{D}_c^n`, then
+    To recover parallel transport we first need to study isomorphism between gyrovectors and vectors.
+    The reason is that originally, parallel transport is well defined for gyrovectors as
 
     .. math::
 
-        P_{x\to y}(v) = \operatorname{gyr}[y, -x]v
+        P_{x\to y}(z) = \operatorname{gyr}[y, -x]z,
 
-    where
+    where :math:`x,\:y,\:z \in \mathbb{D}_c^n` and
+    :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))`
+
+    But we want to obtain parallel transport for vectors, not for gyrovectors.
+    The blessing is isomorphism mentioned above. This mapping is given by
 
     .. math::
 
-        \operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))
+        U^c_p \: : \: T_p\mathbb{D}_c^n \to \mathbb{G} = v \mapsto \lambda^c_p v
+
+
+    Finally, having points :math:`x,\:y \in \mathbb{D}_c^n` and a tangent vector :math:`u\in T_x\mathbb{D}_c^n` we obtain
+
+    .. math::
+
+        P^c_{x\to y}(v) = (U^c_y)^{-1}\left(\operatorname{gyr}[y, -x] U^c_x(v)\right)\\
+        = \operatorname{gyr}[y, -x] v \lambda^c_x / \lambda^c_y
 
 
     Parameters
@@ -1037,7 +1057,11 @@ def parallel_transport(x, y, v, *, c=1.0):
 
 @torch.jit.script
 def _parallel_transport(x, y, u, c):
-    return _gyration(y, -x, u, c)
+    return (
+        _gyration(y, -x, u, c)
+        * _lambda_x(x, c, keepdim=True)
+        / _lambda_x(y, c, keepdim=True)
+    )
 
 
 def parallel_transport0(y, v, *, c=1.0):
