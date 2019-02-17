@@ -15,6 +15,11 @@ def artanh(x):  # pragma: no cover
     return res
 
 
+@torch.jit.script
+def arsinh(x):
+    return torch.log(x + torch.sqrt(1 + x ** 2))
+
+
 def project(x, *, c=1.0):
     r"""
     Safe projection on the manifold for numerical stability. This was mentioned in [1]_
@@ -437,7 +442,7 @@ def expmap(x, u, *, c=1.0):
 
     .. math::
 
-        \operatorname{Exp}_x(u) = \gamma_{x, u}(1) = \\
+        \operatorname{Exp}^c_x(u) = \gamma_{x, u}(1) = \\
         x\oplus_c \tanh(\sqrt{c}/2 \|u\|_x) \frac{u}{\sqrt{c}\|u\|_2}
 
     Parameters
@@ -461,6 +466,7 @@ def expmap(x, u, *, c=1.0):
 
 @torch.jit.script
 def _expmap(x, u, c):  # pragma: no cover
+    u += 1e-15
     sqrt_c = c ** 0.5
     u_norm = u.norm(dim=-1, p=2, keepdim=True)
     second_term = (
@@ -478,7 +484,7 @@ def expmap0(u, *, c=1.0):
 
     .. math::
 
-        \operatorname{Exp}_0(u) = \tanh(\sqrt{c}/2 \|u\|_2) \frac{u}{\sqrt{c}\|u\|_2}
+        \operatorname{Exp}^c_0(u) = \tanh(\sqrt{c}/2 \|u\|_2) \frac{u}{\sqrt{c}\|u\|_2}
 
     Parameters
     ----------
@@ -550,7 +556,7 @@ def logmap(x, y, *, c=1.0):
 
     .. math::
 
-        \operatorname{Log}_x(y) = \frac{2}{\sqrt{c}\lambda_x^c} \tanh^{-1}(
+        \operatorname{Log}^c_x(y) = \frac{2}{\sqrt{c}\lambda_x^c} \tanh^{-1}(
             \sqrt{c} \|(-x)\oplus_c y\|_2
         ) * \frac{(-x)\oplus_c y}{\|(-x)\oplus_c y\|_2}
 
@@ -558,7 +564,7 @@ def logmap(x, y, *, c=1.0):
 
     .. math::
 
-        y = \operatorname{Exp}_x(\operatorname{Log}_x(y))
+        y = \operatorname{Exp}^c_x(\operatorname{Log}^c_x(y))
 
 
     Parameters
@@ -596,13 +602,13 @@ def logmap0(y, *, c=1.0):
 
     .. math::
 
-        \operatorname{Log}_0(y) = \tanh^{-1}(\sqrt{c}\|y\|_2) \frac{y}{\|y\|_2}
+        \operatorname{Log}^c_0(y) = \tanh^{-1}(\sqrt{c}\|y\|_2) \frac{y}{\|y\|_2}
 
     The result is such that
 
     .. math::
 
-        y = \operatorname{Exp}_0(\operatorname{Log}_0(y))
+        y = \operatorname{Exp}^c_0(\operatorname{Log}^c_0(y))
 
     Parameters
     ----------
@@ -719,24 +725,24 @@ def mobius_fn_apply_chain(x, *fns, c=1.0):
     r"""
     Generalization for functions in hyperbolic space.
     First, hyperbolic vector is mapped to a Euclidean space via
-    :math:`\operatorname{Log}_0` and nonlinear function is applied in this tangent space.
-    The resulting vector is then mapped back with :math:`\operatorname{Exp}_0`
+    :math:`\operatorname{Log}^c_0` and nonlinear function is applied in this tangent space.
+    The resulting vector is then mapped back with :math:`\operatorname{Exp}^c_0`
 
     .. math::
 
-        f^{\otimes_c}(x) = \operatorname{Exp}_0(f(\operatorname{Log}_0(y)))
+        f^{\otimes_c}(x) = \operatorname{Exp}^c_0(f(\operatorname{Log}^c_0(y)))
 
     The definition of mobius function application allows chaining as
 
     .. math::
 
-        y = \operatorname{Exp}_0(\operatorname{Log}_0(y))
+        y = \operatorname{Exp}^c_0(\operatorname{Log}^c_0(y))
 
     Resulting in
 
     .. math::
 
-        (f \circ g)^{\otimes_c}(x) = \operatorname{Exp}_0((f \circ g) (\operatorname{Log}_0(y)))
+        (f \circ g)^{\otimes_c}(x) = \operatorname{Exp}^c_0((f \circ g) (\operatorname{Log}^c_0(y)))
 
     Parameters
     ----------
@@ -767,12 +773,12 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
     r"""
     Generalization for functions in hyperbolic space.
     First, hyperbolic vector is mapped to a Euclidean space via
-    :math:`\operatorname{Log}_0` and nonlinear function is applied in this tangent space.
-    The resulting vector is then mapped back with :math:`\operatorname{Exp}_0`
+    :math:`\operatorname{Log}^c_0` and nonlinear function is applied in this tangent space.
+    The resulting vector is then mapped back with :math:`\operatorname{Exp}^c_0`
 
     .. math::
 
-        f^{\otimes_c}(x) = \operatorname{Exp}_0(f(\operatorname{Log}_0(y)))
+        f^{\otimes_c}(x) = \operatorname{Exp}^c_0(f(\operatorname{Log}^c_0(y)))
 
     Parameters
     ----------
@@ -820,3 +826,243 @@ def mobiusify(fn):
         return y
 
     return mobius_fn
+
+
+def dist2plane(x, a, p, *, c=1.0, keepdim=False):
+    r"""
+    Distance from :math:`x` to a hyperbolic hyperplane in Poincare ball
+    that is orthogonal to :math:`a` and contains :math:`p`.
+
+    To form an intuition what is a hyperbolic hyperplane, let's first consider Euclidean hyperplane
+
+    .. math::
+
+        H_{a, b} = \left\{
+            x \in \mathbb{R}^n\;:\;\langle x, a\rangle - b = 0
+        \right\},
+
+    where :math:`a\in \mathbb{R}^n\backslash \{\mathbf{0}\}` and :math:`b\in \mathbb{R}^n`.
+
+    This formulation of a hyperplane is hard to generalize,
+    therefore we can rewrite :math:`\langle x, a\rangle - b`
+    utilizing orthogonal completion.
+    Setting any :math:`p` s.t. :math:`b=\langle a, p\rangle` we have
+
+    .. math::
+
+        H_{a, b} = \left\{
+            x \in \mathbb{R}^n\;:\;\langle x, a\rangle - b = 0
+        \right\}\\
+        =H_{a, \langle a, p\rangle} = \tilde{H}_{a, p}\\
+        = \left\{
+            x \in \mathbb{R}^n\;:\;\langle x, a\rangle - \langle a, p\rangle = 0
+        \right\}\\
+        =\left\{
+            x \in \mathbb{R}^n\;:\;\langle -p + x, a\rangle = 0
+        \right\}\\
+        = p + \{a\}^\perp
+
+    Naturally we have a set :math:`\{a\}^\perp` with applied :math:`+` operator to each element.
+    Generalizing a notion of summation to the hyperbolic space we replace :math:`+` with :math:`\oplus_c`.
+
+    Next, we should figure out what is :math:`\{a\}^\perp` in the Poincare ball.
+
+    First thing that we should acknowledge is that notion of orthogonality is defined for vectors in tangent spaces.
+    Let's consider now :math:`p\in \mathbb{D}_c^n` and :math:`a\in T_p\mathbb{D}_c^n\backslash \{\mathbf{0}\}`.
+
+    Slightly deviating from traditional notation let's write :math:`\{a\}_p^\perp`
+    highlighting the tight relationship of :math:`a\in T_p\mathbb{D}_c^n\backslash \{\mathbf{0}\}`
+    with :math:`p \in \mathbb{D}_c^n`. We then define
+
+    .. math::
+        \{a\}_p^\perp := \left\{
+            z\in T_p\mathbb{D}_c^n \;:\; \langle z, a\rangle_p = 0
+        \right\}
+
+    Recalling that a tangent vector :math:`z` for point :math:`p` yields :math:`x = \operatorname{Exp}^c_p(z)`
+    we rewrite the above equation as
+
+    .. math::
+        \{a\}_p^\perp := \left\{
+            x\in \mathbb{D}_c^n \;:\; \langle \operatorname{Log}_p^c(x), a\rangle_p = 0
+        \right\}
+
+    This formulation is something more pleasant to work with.
+    Putting all together
+
+    .. math::
+
+        \tilde{H}_{a, p}^c = p + \{a\}^\perp_p\\
+        = \left\{
+            x \in \mathbb{D}_c^n\;:\;\langle\operatorname{Log}^c_p(x), a\rangle_p = 0
+        \right\} \\
+        = \left\{
+            x \in \mathbb{D}_c^n\;:\;\langle -p \oplus_c x, a\rangle = 0
+        \right\}
+
+    To compute the distance :math:`d_c(x, \tilde{H}_{a, p}^c)` we find
+
+    .. math::
+
+        d_c(x, \tilde{H}_{a, p}^c) = \inf_{w\in \tilde{H}_{a, p}^c} d_c(x, w)\\
+        = \frac{1}{\sqrt{c}} \sinh^{-1}\left\{
+            \frac{
+                2\sqrt{c} |\langle(-p)\oplus_c x, a\rangle|
+                }{
+                (1-c\|(-p)\oplus_c x\|^2_2)\|a\|_2
+            }
+        \right\}
+
+    Parameters
+    ----------
+    x : tensor
+        point on poincare ball
+    a : tensor
+        point on poincare ball, that is orthogonal to hyperplane
+    p : tensor
+        point on poincare ball lying on the hyperplane
+    c : float|tensor
+        ball negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+
+    Returns
+    -------
+    tensor
+        distance to the hyperplane
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _dist2plane(x, a, p, c, keepdim=keepdim)
+
+
+@torch.jit.script
+def _dist2plane(x, a, p, c, keepdim: bool = False):
+    sqrt_c = c ** 0.5
+    diff = _mobius_add(-p, x, c)
+    diff_norm2 = diff.pow(2).sum(dim=-1, keepdim=keepdim)
+    sc_diff_a = (diff * a).sum(dim=-1, keepdim=keepdim)
+    a_norm = a.norm(dim=-1, keepdim=keepdim, p=2)
+    num = 2 * sqrt_c * sc_diff_a.abs()
+    denom = (1 - c * diff_norm2) * a_norm
+    return arsinh(num / denom) / sqrt_c
+
+
+def gyration(a, b, u, *, c=1.0):
+    r"""
+    Gyration is a special operation in notion in hyperbolic geometry.
+    Addition operation :math:`\oplus` is not associative, by gyroassociative which means
+
+    .. math::
+
+        a \oplus (b \oplus c) = (a\oplus b) \oplus \operatorname{gyr}[a, b]c,
+
+    where
+
+    .. math::
+
+        \operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))
+
+    Parameters
+    ----------
+    a : tensor
+        first point on poincare ball
+    b : tensor
+        second point on poincare ball
+    u : tensor
+        vector field for operation
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        the result of automorphism
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(a)
+    return _gyration(a, b, u, c)
+
+
+@torch.jit.script
+def _gyration(a, b, u, c):
+    mapb = -_mobius_add(a, b, c)
+    bpu = _mobius_add(b, u, c)
+    apbpu = _mobius_add(a, bpu, c)
+    return _mobius_add(mapb, apbpu, c)
+
+
+def parallel_transport(x, y, v, *, c=1.0):
+    r"""
+    Parallel transport is essential for adaptive algorithms in Riemannian manifolds.
+    For Hyperbolic spaces parallel transport is expressed via gyration.
+
+    Consider points :math:`x,\:y \in \mathbb{D}_c^n` and a tangent vector :math:`u\in T_x\mathbb{D}_c^n`, then
+
+    .. math::
+
+        P_{x\to y}(v) = \operatorname{gyr}[y, -x]v
+
+    where
+
+    .. math::
+
+        \operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))
+
+
+    Parameters
+    ----------
+    x : tensor
+        starting point
+    y : tensor
+        end point
+    v : tensor
+        tangent vector to be transported
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        transported vector
+
+    Notes
+    -----
+    This function is observed to be numerically unstable, but visual analysis was ok in 2D plane
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _parallel_transport(x, y, v, c)
+
+
+@torch.jit.script
+def _parallel_transport(x, y, u, c):
+    return _gyration(y, -x, u, c)
+
+
+def parallel_transport0(y, v, *, c=1.0):
+    r"""
+    Special case parallel transport with starting point at zero that
+    can be computed more efficiently and numerically stable
+
+    Parameters
+    ----------
+    y : tensor
+        target point
+    v : tensor
+        vector to be transported
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(y)
+    return _parallel_transport0(y, v, c)
+
+
+@torch.jit.script
+def _parallel_transport0(y, v, c):
+    return v * (1 - c * y.pow(2).sum(-1, keepdim=True))
