@@ -161,7 +161,7 @@ def norm(x, u, *, c=1.0, keepdim=False):
 
 @torch.jit.script
 def _norm(x, u, c, keepdim: bool = False):  # pragma: no cover
-    return _lambda_x(x, c) * u.norm(dim=-1, keepdim=keepdim, p=2)
+    return _lambda_x(x, c, keepdim=keepdim) * u.norm(dim=-1, keepdim=keepdim, p=2)
 
 
 def mobius_add(x, y, *, c=1.0):
