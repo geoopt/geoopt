@@ -336,6 +336,8 @@ def dist(x, y, *, c=1.0, keepdim=False):
 
         d_c(x, y) = \frac{2}{\sqrt{c}}\tanh^{-1}(\sqrt{c}\|(-x)\oplus_c y\|_2)
 
+    .. plot:: plots/extended/poincare/distance.py
+
     Parameters
     ----------
     x : tensor
@@ -840,6 +842,8 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False):
     Distance from :math:`x` to a hyperbolic hyperplane in Poincare ball
     that is orthogonal to :math:`a` and contains :math:`p`.
 
+    .. plot:: plots/extended/poincare/distance2plane.py
+
     To form an intuition what is a hyperbolic hyperplane, let's first consider Euclidean hyperplane
 
     .. math::
@@ -1004,6 +1008,8 @@ def parallel_transport(x, y, v, *, c=1.0):
     Parallel transport is essential for adaptive algorithms in Riemannian manifolds.
     For Hyperbolic spaces parallel transport is expressed via gyration.
 
+    .. plot:: plots/extended/poincare/gyrovector_parallel_transport.py
+
     To recover parallel transport we first need to study isomorphism between gyrovectors and vectors.
     The reason is that originally, parallel transport is well defined for gyrovectors as
 
@@ -1028,6 +1034,8 @@ def parallel_transport(x, y, v, *, c=1.0):
 
         P^c_{x\to y}(v) = (U^c_y)^{-1}\left(\operatorname{gyr}[y, -x] U^c_x(v)\right)\\
         = \operatorname{gyr}[y, -x] v \lambda^c_x / \lambda^c_y
+
+    .. plot:: plots/extended/poincare/parallel_transport.py
 
 
     Parameters
