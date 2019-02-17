@@ -249,7 +249,7 @@ def test_matvec_chain_via_equiv_fn_apply(a, c):
     np.testing.assert_allclose(y, y1, atol=1e-5)
 
 
-def test_parallel_transport0_preserves_inner_products(a, c, seed):
+def test_parallel_transport0_preserves_inner_products(a, c):
     # pointing to the center
     v_0 = torch.rand_like(a) + 1e-5
     u_0 = torch.rand_like(a) + 1e-5
@@ -262,7 +262,7 @@ def test_parallel_transport0_preserves_inner_products(a, c, seed):
     np.testing.assert_allclose(vu_a, vu_0, atol=1e-6, rtol=1e-6)
 
 
-def test_parallel_transport_a_b(a, b, c, seed):
+def test_parallel_transport_a_b(a, b, c):
     # pointing to the center
     v_0 = torch.rand_like(a)
     u_0 = torch.rand_like(a)
