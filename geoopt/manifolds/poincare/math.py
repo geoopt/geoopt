@@ -17,12 +17,12 @@ def artanh(x):  # pragma: no cover
 
 
 @torch.jit.script
-def arsinh(x):
+def arsinh(x):  # pragma: no cover
     return torch.log(x + torch.sqrt(1 + x ** 2))
 
 
 @torch.jit.script
-def arcosh(x):
+def arcosh(x):  # pragma: no cover
     x = x.clamp(-1 + 1e-15, 1 - 1e-15)
     return torch.log(x + torch.sqrt(1 + x) * torch.sqrt(x - 1))
 
@@ -948,7 +948,7 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False):
 
 
 @torch.jit.script
-def _dist2plane(x, a, p, c, keepdim: bool = False):
+def _dist2plane(x, a, p, c, keepdim: bool = False):  # pragma: no cover
     sqrt_c = c ** 0.5
     diff = _mobius_add(-p, x, c)
     diff_norm2 = diff.pow(2).sum(dim=-1, keepdim=keepdim)
@@ -996,7 +996,7 @@ def gyration(a, b, u, *, c=1.0):
 
 
 @torch.jit.script
-def _gyration(a, b, u, c):
+def _gyration(a, b, u, c):  # pragma: no cover
     mapb = -_mobius_add(a, b, c)
     bpu = _mobius_add(b, u, c)
     apbpu = _mobius_add(a, bpu, c)
@@ -1064,7 +1064,7 @@ def parallel_transport(x, y, v, *, c=1.0):
 
 
 @torch.jit.script
-def _parallel_transport(x, y, u, c):
+def _parallel_transport(x, y, u, c):  # pragma: no cover
     return (
         _gyration(y, -x, u, c)
         * _lambda_x(x, c, keepdim=True)
@@ -1096,5 +1096,31 @@ def parallel_transport0(y, v, *, c=1.0):
 
 
 @torch.jit.script
-def _parallel_transport0(y, v, c):
+def _parallel_transport0(y, v, c):  # pragma: no cover
     return v * (1 - c * y.pow(2).sum(-1, keepdim=True))
+
+
+def egrad2rgrad(x, grad, *, c=1.0):
+    """
+    Translate Euclidean gradient to Riemannian gradient on tangent space of :math:`x`
+    Parameters
+    ----------
+    x : tensor
+        point on the poincare ball
+    grad : tensor
+        euclidean gradient for :math:`x`
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _egrad2rgrad(x, grad, c)
+
+
+@torch.jit.script
+def _egrad2rgrad(x, grad, c):  # pragma: no cover
+    return grad / _lambda_x(x, c, keepdim=True) ** 2
