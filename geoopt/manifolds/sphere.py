@@ -38,14 +38,14 @@ class Sphere(Manifold):
         return True, None
 
     def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
-        inner = self._inner(None, x, u)
+        inner = self._inner(None, x, u, keepdim=True)
         ok = torch.allclose(inner, inner.new((1,)).fill_(0), atol=atol, rtol=rtol)
         if not ok:
             return False, "`<x, u> != 0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def _inner(self, x, u, v):
-        return (u * v).sum(-1)
+    def _inner(self, x, u, v, keepdim):
+        return (u * v).sum(-1, keepdim=keepdim)
 
     def _projx(self, x):
         return x / x.norm(dim=-1, keepdim=True)
@@ -93,8 +93,8 @@ class Sphere(Manifold):
         cond = dist.gt(1e-6)
         return torch.where(cond, u * dist / u.norm(dim=-1, keepdim=True), u)
 
-    def _dist(self, x, y):
-        inner = self._inner(None, x, y).clamp(-1, 1)
+    def _dist(self, x, y, keepdim):
+        inner = self._inner(None, x, y, keepdim=keepdim).clamp(-1, 1)
         return torch.acos(inner)
 
 
