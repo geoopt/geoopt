@@ -26,6 +26,7 @@ def t(request):
         # match implementation of pymanopt for stiefel
         functools.partial(geoopt.manifolds.Stiefel, canonical=False),
         functools.partial(geoopt.manifolds.Stiefel, canonical=True),
+        geoopt.manifolds.PoincareBall,
         geoopt.manifolds.Euclidean,
         geoopt.manifolds.Sphere,
         functools.partial(
@@ -39,6 +40,8 @@ def t(request):
     ],
 )
 def manifold(request, retraction_order):
+    if not issubclass(request.param, geoopt.manifolds.PoincareBall):
+        pytest.skip(".")
     man = request.param()
     try:
         return man.set_default_order(retraction_order)
@@ -63,6 +66,7 @@ mannopt = {
 
 # shapes to verify unary element implementation
 shapes = {
+    geoopt.manifolds.PoincareBall: (3,),
     geoopt.manifolds.EuclideanStiefel: (10, 5),
     geoopt.manifolds.CanonicalStiefel: (10, 5),
     geoopt.manifolds.Euclidean: (1,),
@@ -79,11 +83,17 @@ UnaryCase = collections.namedtuple(
 @pytest.fixture()
 def unary_case(manifold):
     shape = shapes[type(manifold)]
-    manopt_manifold = mannopt[type(manifold)](*shape)
     np.random.seed(42)
-    rand = manopt_manifold.rand().astype("float64")
-    x = geoopt.ManifoldTensor(torch.from_numpy(rand), manifold=manifold)
     torch.manual_seed(43)
+    if type(manifold) in mannopt:
+        manopt_manifold = mannopt[type(manifold)](*shape)
+        rand = manopt_manifold.rand().astype("float64")
+        x = geoopt.ManifoldTensor(torch.from_numpy(rand), manifold=manifold)
+    else:
+        manopt_manifold = None
+        x = geoopt.ManifoldTensor(
+            torch.randn(shape, dtype=torch.float64) * 0.1, manifold=manifold
+        )
     ex = geoopt.ManifoldTensor(torch.randn_like(x), manifold=manifold)
     v = x.proju(torch.randn_like(x))
     ev = torch.randn_like(x)
@@ -105,6 +115,8 @@ def test_projection_via_assert(unary_case):
 def test_vector_projection(unary_case):
     if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")
+    elif unary_case.manopt_manifold is None:
+        pytest.skip("pymanopt does not have {}".format(unary_case.manifold))
     x = unary_case.x
     ev = unary_case.ev
 
@@ -124,6 +136,8 @@ def test_vector_projection_via_assert(unary_case):
 
 
 def test_retraction(unary_case, retraction_order, t):
+    if unary_case.manopt_manifold is None:
+        pytest.skip("pymanopt does not have {}".format(unary_case.manifold))
     if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")
     x = unary_case.x
@@ -139,6 +153,8 @@ def test_retraction(unary_case, retraction_order, t):
 
 
 def test_transport(unary_case, t):
+    if unary_case.manopt_manifold is None:
+        pytest.skip("pymanopt does not have {}".format(unary_case.manifold))
     if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")
     x = unary_case.x
@@ -261,24 +277,28 @@ def test_broadcast_retr_transp_many(unary_case, t):
 
 
 def test_reversibility(unary_case, t):
-    torch.manual_seed(43)
-    X = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
-    U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
-    X = unary_case.manifold.projx(X)
-    U = unary_case.manifold.proju(X, U)
-    Z, Q = unary_case.manifold.retr_transp(X, U, u=U, t=t)
-    X1, U1 = unary_case.manifold.retr_transp(Z, Q, u=Q, t=-t)
     if unary_case.manifold.reversible:
+        torch.manual_seed(43)
+        X = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
+        U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
+        X = unary_case.manifold.projx(X)
+        U = unary_case.manifold.proju(X, U)
+        Z, Q = unary_case.manifold.retr_transp(X, U, u=U, t=t)
+        X1, U1 = unary_case.manifold.retr_transp(Z, Q, u=Q, t=-t)
+
         np.testing.assert_allclose(X1, X, atol=1e-5)
         np.testing.assert_allclose(U1, U, atol=1e-5)
     else:
-        assert not np.allclose(X1, X, atol=1e-5)
-        assert not np.allclose(U1, U, atol=1e-5)
+        pytest.skip("The manifold {} is not supposed to be checked")
 
 
 def test_dist(unary_case):
     if type(unary_case.manifold)._dist is geoopt.manifolds.base.not_implemented:
-        pytest.skip("logmap is not implemented for {}".format(unary_case.manifold))
+        pytest.skip("dist is not implemented for {}".format(unary_case.manifold))
+    if unary_case.manopt_manifold is None:
+        pytest.skip(
+            "dist is not implemented for pymanopt {}".format(unary_case.manifold)
+        )
     torch.manual_seed(43)
     x = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
     y = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
@@ -295,12 +315,16 @@ def test_logmap(unary_case, t):
 
     x = unary_case.x
     v = unary_case.v
-    y = unary_case.manopt_manifold.exp(x.numpy(), v.numpy() * t)
-    vman = unary_case.manopt_manifold.log(x.numpy(), y)
-    vhat = unary_case.manifold.logmap(x, torch.as_tensor(y))
-    np.testing.assert_allclose(vhat, vman)
+    if unary_case.manopt_manifold is not None:
+        y = unary_case.manopt_manifold.exp(x.numpy(), v.numpy() * t)
+        vman = unary_case.manopt_manifold.log(x.numpy(), y)
+        vhat = unary_case.manifold.logmap(x, torch.as_tensor(y))
+        np.testing.assert_allclose(vhat, vman, atol=1e-7)
+    else:
+        y = unary_case.manifold.expmap(x, v)
+        vhat = unary_case.manifold.logmap(x, torch.as_tensor(y))
     ey = unary_case.manifold.expmap(x, vhat)
-    np.testing.assert_allclose(y, ey)
+    np.testing.assert_allclose(y, ey, atol=1e-7)
 
 
 def test_logmap_many(unary_case, t):
@@ -317,4 +341,4 @@ def test_logmap_many(unary_case, t):
     Uh = unary_case.manifold.logmap(X, Y)
     Yh = unary_case.manifold.expmap(X, Uh)
 
-    np.testing.assert_allclose(Yh, Y)
+    np.testing.assert_allclose(Yh, Y, atol=1e-7)

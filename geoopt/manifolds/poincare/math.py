@@ -65,10 +65,27 @@ def project(x, *, c=1.0):
 @torch.jit.script
 def _project(x, c):  # pragma: no cover
     norm = x.norm(dim=-1, keepdim=True, p=2)
-    maxnorm = (1 - 1e-5) / (c ** 0.5)
+    if x.dtype == torch.float64:
+        maxnorm = (1 - 1e-5) / (c ** 0.5)
+    else:
+        maxnorm = (1 - 1e-3) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
+
+
+@torch.jit.script
+def _project_for_mobius_add(x, c):  # pragma: no cover
+    if x.dtype == torch.float32:
+        # keep this as numerically stable as possible
+        maxnorm = (1 - 1e-5) / (c ** 0.5)
+        norm = x.norm(dim=-1, keepdim=True, p=2)
+        cond = norm > maxnorm
+        projected = x / norm * maxnorm
+        res = torch.where(cond, projected, x)
+    else:
+        res = x
+    return res
 
 
 def lambda_x(x, *, c=1.0, keepdim=False):
@@ -238,7 +255,7 @@ def _mobius_add(x, y, c):  # pragma: no cover
     xy = (x * y).sum(dim=-1, keepdim=True)
     num = (1 + 2 * c * xy + c * y2) * x + (1 - c * x2) * y
     denom = 1 + 2 * c * xy + c ** 2 * x2 * y2
-    return num / denom
+    return _project_for_mobius_add(num / denom, c)
 
 
 def mobius_sub(x, y, *, c=1.0):
