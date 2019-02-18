@@ -92,8 +92,8 @@ The `connection` :math:`\Gamma_{\mu\nu}^\alpha` is of form
 
 .. math::
 
-    :math:`\Gamma_{\mu\nu}^\alpha` = \frac{1}{2}g^{\alpha\beta}\left(
-        \partial_\mu\g_{\beta\nu} + \partial_\nu\g_{\beta\mu} - \partial_\beta\g_{\mu\nu}
+    \Gamma_{\mu\nu}^\alpha = \frac{1}{2}g^{\alpha\beta}\left(
+        \partial_\mu g_{\beta\nu} + \partial_\nu g_{\beta\mu} - \partial_\beta g_{\mu\nu}
     \right)
 
 Thus, a parametrization :math:`\phi` not only uniquely defines :math:`g_x`, but also a :math:`\Gamma_{\mu\nu}^\alpha`.
@@ -109,7 +109,7 @@ Playing with differential equations we may get a solution :math:`\gamma(t)` with
 Parallel Transport
     Parallel transport for a vector :math:`\mathbf{a}` along curve :math:`\gamma(t)` is such
     that the basis is locally not disturbed. This can be expressed via a differential
-    equation :math:`\nabla_{\dot\gamma(t)}\mathbf{a}(t)` so we ensure local consistency.
+    equation :math:`\nabla_{\dot\gamma(t)}\mathbf{a}(t)=0` so we ensure local consistency.
 
 Straight line
     Straight line in Riemannian geometry is a curve :math:`\gamma(t)` such that its
