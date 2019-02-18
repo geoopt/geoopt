@@ -35,7 +35,7 @@ class PoincareBall(Manifold):
             reason = None
         return ok, reason
 
-    def _check_point_on_manifold(self, x, explain=False, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
         px = math.project(x, c=self.c)
         ok = torch.allclose(x, px, atol=atol, rtol=rtol)
         if not ok:
