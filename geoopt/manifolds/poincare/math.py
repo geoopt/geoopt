@@ -970,8 +970,9 @@ def _dist2plane(x, a, p, c, keepdim: bool = False):  # pragma: no cover
 
 def gyration(a, b, u, *, c=1.0):
     r"""
-    Gyration is a special operation in notion in hyperbolic geometry.
-    Addition operation :math:`\oplus` is not associative, by gyroassociative which means
+    Gyration is a special operation in hyperbolic geometry.
+    Addition operation :math:`\oplus` is not associative (as mentioned in :func:`mobius_add`),
+    but gyroassociative which means
 
     .. math::
 
