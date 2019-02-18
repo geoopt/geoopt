@@ -24,7 +24,7 @@ class Euclidean(Manifold):
     def _retr(self, x, u, t):
         return x + t * u
 
-    def _inner(self, x, u, v):
+    def _inner(self, x, u, v, keepdim):
         return u * v
 
     def _proju(self, x, u):
