@@ -106,3 +106,12 @@ Now we are ready to proceed with studying distances, georesics, exponential maps
 .. autofunction:: geoopt.manifolds.poincare.math.expmap0
 .. autofunction:: geoopt.manifolds.poincare.math.logmap
 .. autofunction:: geoopt.manifolds.poincare.math.logmap0
+
+
+Stability
+---------
+Numerical stability is a pain in this model. It is strongly recommended to work in ``float64``,
+so expect adventures in ``float32`` (but this is not certain).
+
+.. autofunction:: geoopt.manifolds.poincare.math.project
+.. autofunction:: geoopt.manifolds.poincare.math.project_tangent
