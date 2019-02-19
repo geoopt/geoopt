@@ -14,7 +14,7 @@ typos or just want to improve it, do not hesitate to `open a PR <https://github.
    extended/poincare
 
 
-`The introduction was prepared using materials from different sources` ([1]_, [2]_).
+`The introduction was prepared using materials from different sources` ([1]_, [2]_, [3]_).
 
 
 Introduction
@@ -152,3 +152,4 @@ Logarithmic Map
 
 .. [1] P.-A. Absil, Optimization Algorithms on Matrix Manifolds, 2007
 .. [2] <https://ermongroup.github.io/blog/geo/>
+.. [3] Lee John, Introduction to Riemannian Manifolds, 1991
