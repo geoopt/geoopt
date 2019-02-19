@@ -65,7 +65,7 @@ It is done via `conformal factor` :math:`\lambda^c_x`.
 
 Math
 ----
-The good thing about Poincare ball is that it forms a Gyrogroup. Minimal definition of a gyrogroup
+The good thing about Poincare ball is that it forms a Gyrogroup. Minimal definition of a Gyrogroup
 assumes a binary operation :math:`*` defined that satisfies a set of properties.
 
 Left identity
@@ -95,7 +95,7 @@ Using this math, it is possible to define another useful operations
 
 Manifold
 --------
-Now we are ready to proceed with studying distances, georesics, exponential maps and more
+Now we are ready to proceed with studying distances, geodesics, exponential maps and more
 
 .. autofunction:: geoopt.manifolds.poincare.math.dist
 .. autofunction:: geoopt.manifolds.poincare.math.dist2plane
