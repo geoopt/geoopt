@@ -383,10 +383,14 @@ def project_tangent(x, u, *, c):
     Project tangent vector to reasonable values that do not exceed
     maximum allowed (vector norm allowing to travel to the opposite pole)
 
+    .. math::
+
+        \operatorname{maxnorm}_x = d_{c}(\operatorname{proj}(-\infty), \operatorname{proj}(\infty)) / \lambda_x^c
+
     Parameters
     ----------
     x : tensor
-        point op poincare ball
+        point on poincare ball
     u : tensor
         tangent vector
     c : float|tensor
@@ -1116,10 +1120,6 @@ def parallel_transport(x, y, v, *, c=1.0):
     -------
     tensor
         transported vector
-
-    Notes
-    -----
-    This function is observed to be numerically unstable, but visual analysis was ok in 2D plane
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
