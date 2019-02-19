@@ -272,3 +272,18 @@ def test_parallel_transport_a_b(a, b, c):
     vu_1 = poincare.math.inner(b, v_1, u_1, c=c, keepdim=True)
     vu_0 = poincare.math.inner(a, v_0, u_0, c=c, keepdim=True)
     np.testing.assert_allclose(vu_0, vu_1, atol=1e-6, rtol=1e-6)
+
+
+def test_add_infinity_and_beyond(a, b, c):
+    infty = b * 10000000
+    infty = poincare.math.project_tangent(a, infty, c=c)
+    for i in range(100):
+        z = poincare.math.expmap(a, infty, c=c)
+        z = poincare.math.project(z, c=c)
+        infty = poincare.math.parallel_transport(a, z, infty, c=c)
+        assert np.isfinite(z).all()
+        assert np.isfinite(infty).all()
+        a = z
+    z = poincare.math.expmap(a, -infty, c=c)
+    # they just need to be very far, exact answer is not supposed
+    np.testing.assert_allclose(z, -a, rtol=1e-1, atol=10)
