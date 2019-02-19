@@ -280,7 +280,7 @@ def test_add_infinity_and_beyond(a, b, c):
     for i in range(100):
         z = poincare.math.expmap(a, infty, c=c)
         z = poincare.math.project(z, c=c)
-        z = poincare.math.mobius_scalar_mul(1000., z, c=c)
+        z = poincare.math.mobius_scalar_mul(1000.0, z, c=c)
         infty = poincare.math.parallel_transport(a, z, infty, c=c)
         assert np.isfinite(z).all()
         assert np.isfinite(infty).all()
