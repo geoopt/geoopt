@@ -74,20 +74,6 @@ def _project(x, c):  # pragma: no cover
     return torch.where(cond, projected, x)
 
 
-@torch.jit.script
-def _project_for_mobius_add(x, c):  # pragma: no cover
-    if x.dtype == torch.float32:
-        # keep this as numerically stable as possible
-        maxnorm = (1 - 1e-5) / (c ** 0.5)
-        norm = x.norm(dim=-1, keepdim=True, p=2)
-        cond = norm > maxnorm
-        projected = x / norm * maxnorm
-        res = torch.where(cond, projected, x)
-    else:
-        res = x
-    return res
-
-
 def lambda_x(x, *, c=1.0, keepdim=False):
     r"""
     Compute the conformal factor :math:`\lambda^c_x` for a point on the ball
@@ -255,7 +241,7 @@ def _mobius_add(x, y, c):  # pragma: no cover
     xy = (x * y).sum(dim=-1, keepdim=True)
     num = (1 + 2 * c * xy + c * y2) * x + (1 - c * x2) * y
     denom = 1 + 2 * c * xy + c ** 2 * x2 * y2
-    return _project_for_mobius_add(num / denom, c)
+    return num / denom
 
 
 def mobius_sub(x, y, *, c=1.0):
@@ -390,6 +376,45 @@ def _dist(x, y, c, keepdim: bool = False):  # pragma: no cover
     sqrt_c = c ** 0.5
     dist_c = artanh(sqrt_c * _mobius_add(-x, y, c).norm(dim=-1, p=2, keepdim=keepdim))
     return dist_c * 2 / sqrt_c
+
+
+def project_tangent(x, u, *, c):
+    """
+    Project tangent vector to reasonable values that do not exceed maximum allowed
+
+    Parameters
+    ----------
+    x : tensor
+        point op poincare ball
+    u : tensor
+        tangent vector
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        same tangent vector with reasonable values
+    """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _project_tangent(x, u, c)
+
+
+@torch.jit.script
+def _project_tangent(x, u, c):
+    # get the almost infinite vecotor estimate
+    # this is the norm of travel vector to the opposite pole
+    dim = x.size(-1)
+    p = torch.ones((dim,), dtype=c.dtype, device=c.device)
+    p = p / dim ** .5 / (c ** 0.5)
+    p = _project(p, c)
+    # normalize its length based on x
+    maxnorm = _dist(p, -p, c, keepdim=True) / _lambda_x(x, c, keepdim=True)
+    norm = u.norm(dim=-1, keepdim=True, p=2)
+    cond = norm > maxnorm
+    projected = u / norm * maxnorm
+    return torch.where(cond, projected, u)
 
 
 def geodesic(t, x, y, *, c=1.0):
