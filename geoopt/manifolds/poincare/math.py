@@ -380,7 +380,8 @@ def _dist(x, y, c, keepdim: bool = False):  # pragma: no cover
 
 def project_tangent(x, u, *, c):
     """
-    Project tangent vector to reasonable values that do not exceed maximum allowed
+    Project tangent vector to reasonable values that do not exceed
+    maximum allowed (vector norm allowing to travel to the opposite pole)
 
     Parameters
     ----------
@@ -1178,6 +1179,7 @@ def egrad2rgrad(x, grad, *, c=1.0):
     Returns
     -------
     tensor
+        Riemannian gradient :math:`u\in T_x\mathbb{D}_c^n`
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
