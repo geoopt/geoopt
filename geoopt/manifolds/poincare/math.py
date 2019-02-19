@@ -402,12 +402,12 @@ def project_tangent(x, u, *, c):
 
 
 @torch.jit.script
-def _project_tangent(x, u, c):
+def _project_tangent(x, u, c):  # pragma: no cover
     # get the almost infinite vecotor estimate
     # this is the norm of travel vector to the opposite pole
     dim = x.size(-1)
     p = torch.ones((dim,), dtype=c.dtype, device=c.device)
-    p = p / dim ** .5 / (c ** 0.5)
+    p = p / dim ** 0.5 / (c ** 0.5)
     p = _project(p, c)
     # normalize its length based on x
     maxnorm = _dist(p, -p, c, keepdim=True) / _lambda_x(x, c, keepdim=True)
@@ -888,7 +888,7 @@ def mobiusify(fn):
     return mobius_fn
 
 
-def dist2plane(x, a, p, *, c=1.0, keepdim=False):
+def dist2plane(x, a, p, *, c=1.0, keepdim=False, signed=False):
     r"""
     Distance from :math:`x` to a hyperbolic hyperplane in Poincare ball
     that is orthogonal to :math:`a` and contains :math:`p`.
@@ -987,6 +987,8 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False):
         ball negative curvature
     keepdim : bool
         retain the last dim? (default: false)
+    signed : bool
+        return signed distance
 
     Returns
     -------
@@ -995,17 +997,21 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False):
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
-    return _dist2plane(x, a, p, c, keepdim=keepdim)
+    return _dist2plane(x, a, p, c, keepdim=keepdim, signed=signed)
 
 
 @torch.jit.script
-def _dist2plane(x, a, p, c, keepdim: bool = False):  # pragma: no cover
+def _dist2plane(
+    x, a, p, c, keepdim: bool = False, signed: bool = False
+):  # pragma: no cover
     sqrt_c = c ** 0.5
     diff = _mobius_add(-p, x, c)
     diff_norm2 = diff.pow(2).sum(dim=-1, keepdim=keepdim)
     sc_diff_a = (diff * a).sum(dim=-1, keepdim=keepdim)
+    if not signed:
+        sc_diff_a = sc_diff_a.abs()
     a_norm = a.norm(dim=-1, keepdim=keepdim, p=2)
-    num = 2 * sqrt_c * sc_diff_a.abs()
+    num = 2 * sqrt_c * sc_diff_a
     denom = (1 - c * diff_norm2) * a_norm
     return arsinh(num / denom) / sqrt_c
 
