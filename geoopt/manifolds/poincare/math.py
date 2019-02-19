@@ -719,6 +719,7 @@ def mobius_matvec(m, x, *, c=1.0):
     Returns
     -------
     tensor
+        Mobius matvec result
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
@@ -762,6 +763,7 @@ def mobius_pointwise_mul(w, x, *, c=1.0):
     Returns
     -------
     tensor
+        Mobius pointwise mul result
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
@@ -817,6 +819,7 @@ def mobius_fn_apply_chain(x, *fns, c=1.0):
     Returns
     -------
     tensor
+        Apply chain result
     """
     if not fns:
         return x
@@ -853,6 +856,7 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
     Returns
     -------
     tensor
+        Result of function in hyperbolic space
     """
     if not isinstance(c, torch.Tensor):
         c = torch.as_tensor(c).type_as(x)
