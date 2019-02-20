@@ -206,8 +206,12 @@ def test_expmap_logmap(a, b, c):
 
 def test_expmap0_logmap0(a, c):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
-    bh = poincare.math.expmap0(poincare.math.logmap0(a, c=c), c=c)
+    v = poincare.math.logmap0(a, c=c)
+    norm = poincare.math.norm(torch.zeros_like(v), v, c=c, keepdim=True)
+    dist = poincare.math.dist0(a, c=c, keepdim=True)
+    bh = poincare.math.expmap0(v, c=c)
     np.testing.assert_allclose(bh, a)
+    np.testing.assert_allclose(norm, dist)
 
 
 def test_matvec_zeros(a, c):

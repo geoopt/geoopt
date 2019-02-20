@@ -378,8 +378,38 @@ def _dist(x, y, c, keepdim: bool = False):  # pragma: no cover
     return dist_c * 2 / sqrt_c
 
 
-def project_tangent(x, u, *, c):
+def dist0(x, *, c=1.0, keepdim=False):
+    r"""
+    Distance on the Poincare ball to zero
+
+    Parameters
+    ----------
+    x : tensor
+        point on poincare ball
+    c : float|tensor
+        ball negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+
+    Returns
+    -------
+    tensor
+        geodesic distance between :math:`x` and :math:`0`
     """
+    if not isinstance(c, torch.Tensor):
+        c = torch.as_tensor(c).type_as(x)
+    return _dist0(x, c, keepdim=keepdim)
+
+
+@torch.jit.script
+def _dist0(x, c, keepdim: bool = False):  # pragma: no cover
+    sqrt_c = c ** 0.5
+    dist_c = artanh(sqrt_c * x.norm(dim=-1, p=2, keepdim=keepdim))
+    return dist_c * 2 / sqrt_c
+
+
+def project_tangent(x, u, *, c):
+    r"""
     Project tangent vector to reasonable values that do not exceed
     maximum allowed (vector norm allowing to travel to the opposite pole)
 
