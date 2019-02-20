@@ -104,7 +104,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                             state["traced_step"] = create_traced_update(
                                 self.perform_step,
                                 manifold,
-                                p,
+                                p.data,
                                 weight_decay.type_as(p),
                                 momentum.type_as(p),
                                 state["momentum_buffer"],
@@ -116,7 +116,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                             state["traced_step"] = create_traced_update(
                                 self.perform_step,
                                 manifold,
-                                p,
+                                p.data,
                                 weight_decay.type_as(p),
                                 momentum=None,
                                 momentum_buffer=None,
