@@ -101,7 +101,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                             state["traced_step"] = create_traced_update(
                                 self.perform_step,
                                 manifold,
-                                p,
+                                p.data,
                                 weight_decay.type_as(p),
                                 betas.type_as(p),
                                 eps.type_as(p),
@@ -115,7 +115,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                             state["traced_step"] = create_traced_update(
                                 self.perform_step,
                                 manifold,
-                                p,
+                                p.data,
                                 weight_decay.type_as(p),
                                 betas.type_as(p),
                                 eps.type_as(p),
@@ -127,7 +127,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                             )
                     if amsgrad:
                         state["traced_step"](
-                            p,
+                            p.data,
                             p.grad,
                             learning_rate.type_as(p),
                             weight_decay.type_as(p),
@@ -140,7 +140,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                         )
                     else:
                         state["traced_step"](
-                            p,
+                            p.data,
                             p.grad,
                             learning_rate.type_as(p),
                             weight_decay.type_as(p),
