@@ -57,8 +57,7 @@ def project(x, *, c=1.0):
     .. [1] Hyperbolic Neural Networks, NIPS2018
         https://arxiv.org/abs/1805.09112
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _project(x, c)
 
 
@@ -96,8 +95,7 @@ def lambda_x(x, *, c=1.0, keepdim=False):
     tensor
         conformal factor
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _lambda_x(x, c, keepdim=keepdim)
 
 
@@ -132,8 +130,7 @@ def inner(x, u, v, *, c=1.0, keepdim=False):
     tensor
         inner product
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _inner(x, u, v, c, keepdim=keepdim)
 
 
@@ -166,8 +163,7 @@ def norm(x, u, *, c=1.0, keepdim=False):
     tensor
         norm of vector
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _norm(x, u, c, keepdim=keepdim)
 
 
@@ -228,8 +224,7 @@ def mobius_add(x, y, *, c=1.0):
     tensor
         the result of mobius addition
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _mobius_add(x, y, c)
 
 
@@ -267,14 +262,99 @@ def mobius_sub(x, y, *, c=1.0):
     tensor
         the result of mobius substraction
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _mobius_sub(x, y, c)
 
 
 @torch.jit.script
 def _mobius_sub(x, y, c):  # pragma: no cover
     return _mobius_add(x, -y, c)
+
+
+def mobius_coadd(x, y, *, c=1.0):
+    r"""
+    Mobius coaddition operation
+
+    Addition operation :math:`\oplus_c` is neither associative, nor commutative. Coaddition, or cooperation in
+    Gyrogroup is an associative operation that is defined as follows.
+
+    .. math::
+
+        a \boxplus_c b = b \boxplus_c a = a\operatorname{gyr}[a, -b]b\\
+        = \frac{
+            (1 + c \|y\|^2_2) x + (1 - c \|x\|_2^2) y
+            }{
+            1 + c^2 \|x\|^2_2 \|y\|^2_2
+        },
+
+    where :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))`
+
+    The following right cancelation property holds
+
+    .. math::
+
+        (a \boxplus_c b) \ominus_c b = a\\
+        (a \oplus_c b) \boxminus b = a
+
+    Parameters
+    ----------
+    x : tensor
+        point on poincare ball
+    y : tensor
+        point on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        the result of mobius coaddition
+
+    """
+    c = torch.as_tensor(c).type_as(x)
+    return _mobius_coadd(x, y, c)
+
+
+def _mobius_coadd(x, y, c):
+    y = y + 1e-15
+    x2 = x.pow(2).sum(dim=-1, keepdim=True)
+    y2 = y.pow(2).sum(dim=-1, keepdim=True)
+    num = (1 + c * y2) * x + (1 - c * x2) * y
+    denom = 1 + c ** 2 * x2 * y2
+    # avoid division by zero in this way
+    return num / (denom + 1e-15)
+
+
+def mobius_cosub(x, y, *, c=1.0):
+    """
+    Mobius cosubstraction operation
+
+    .. math::
+
+        a \boxminus_c b = a \boxplus_c -b
+
+    Parameters
+    ----------
+    x : tensor
+        point on poincare ball
+    y : tensor
+        point on poincare ball
+    c : float|tensor
+        ball negative curvature
+
+    Returns
+    -------
+    tensor
+        the result of mobius coaddition
+
+    """
+    c = torch.as_tensor(c).type_as(x)
+    return _mobius_cosub(x, y, c)
+
+
+@torch.jit.script
+def _mobius_cosub(x, y, c):
+    return _mobius_coadd(x, -y, c)
 
 
 def mobius_scalar_mul(r, x, *, c=1.0):
@@ -325,10 +405,8 @@ def mobius_scalar_mul(r, x, *, c=1.0):
     tensor
         the result of mobius scalar multiplication
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
-    if not isinstance(r, torch.Tensor):
-        r = torch.as_tensor(r).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
+    r = torch.as_tensor(r).type_as(x)
     return _mobius_scalar_mul(r, x, c)
 
 
@@ -367,8 +445,7 @@ def dist(x, y, *, c=1.0, keepdim=False):
     tensor
         geodesic distance between :math:`x` and :math:`y`
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _dist(x, y, c, keepdim=keepdim)
 
 
@@ -397,8 +474,7 @@ def dist0(x, *, c=1.0, keepdim=False):
     tensor
         geodesic distance between :math:`x` and :math:`0`
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _dist0(x, c, keepdim=keepdim)
 
 
@@ -432,8 +508,7 @@ def project_tangent(x, u, *, c):
     tensor
         same tangent vector with reasonable values
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _project_tangent(x, u, c)
 
 
@@ -504,10 +579,8 @@ def geodesic(t, x, y, *, c=1.0):
     tensor
         point on the Poincare ball
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
-    if not isinstance(t, torch.Tensor):
-        t = torch.as_tensor(t).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
+    t = torch.as_tensor(t).type_as(x)
     return _geodesic(t, x, y, c)
 
 
@@ -555,8 +628,7 @@ def expmap(x, u, *, c=1.0):
     tensor
         :math:`\gamma_{x, u}(1)` end point
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _expmap(x, u, c)
 
 
@@ -594,8 +666,7 @@ def expmap0(u, *, c=1.0):
     tensor
         :math:`\gamma_{0, u}(1)` end point
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(u)
+    c = torch.as_tensor(c).type_as(u)
     return _expmap0(u, c)
 
 
@@ -632,8 +703,7 @@ def geodesic_unit(t, x, u, *, c=1.0):
     tensor
         the point on geodesic line
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _geodesic_unit(t, x, u, c)
 
 
@@ -677,8 +747,7 @@ def logmap(x, y, *, c=1.0):
     tensor
         tangent vector that transports :math:`x` to :math:`y`
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _logmap(x, y, c)
 
 
@@ -718,8 +787,7 @@ def logmap0(y, *, c=1.0):
     tensor
         tangent vector that transports :math:`0` to :math:`y`
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(y)
+    c = torch.as_tensor(c).type_as(y)
     return _logmap0(y, c)
 
 
@@ -756,8 +824,7 @@ def mobius_matvec(m, x, *, c=1.0):
     tensor
         Mobius matvec result
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _mobius_matvec(m, x, c)
 
 
@@ -800,8 +867,7 @@ def mobius_pointwise_mul(w, x, *, c=1.0):
     tensor
         Mobius pointwise mul result
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _mobius_pointwise_mul(w, x, c)
 
 
@@ -859,8 +925,7 @@ def mobius_fn_apply_chain(x, *fns, c=1.0):
     if not fns:
         return x
     else:
-        if not isinstance(c, torch.Tensor):
-            c = torch.as_tensor(c).type_as(x)
+        c = torch.as_tensor(c).type_as(x)
         ex = _logmap0(x, c)
         for fn in fns:
             ex = fn(ex)
@@ -893,8 +958,7 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
     tensor
         Result of function in hyperbolic space
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     ex = _logmap0(x, c)
     ex = fn(ex, *args, **kwargs)
     y = _expmap0(ex, c)
@@ -918,8 +982,7 @@ def mobiusify(fn):
 
     @functools.wraps(fn)
     def mobius_fn(x, *args, c=1.0, **kwargs):
-        if not isinstance(c, torch.Tensor):
-            c = torch.as_tensor(c).type_as(x)
+        c = torch.as_tensor(c).type_as(x)
         ex = _logmap0(x, c)
         ex = fn(ex, *args, **kwargs)
         y = _expmap0(ex, c)
@@ -977,6 +1040,7 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False, signed=False):
     with :math:`p \in \mathbb{D}_c^n`. We then define
 
     .. math::
+
         \{a\}_p^\perp := \left\{
             z\in T_p\mathbb{D}_c^n \;:\; \langle z, a\rangle_p = 0
         \right\}
@@ -1035,8 +1099,7 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False, signed=False):
     tensor
         distance to the hyperplane
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _dist2plane(x, a, p, c, keepdim=keepdim, signed=signed)
 
 
@@ -1064,13 +1127,24 @@ def gyration(a, b, u, *, c=1.0):
 
     .. math::
 
-        a \oplus (b \oplus c) = (a\oplus b) \oplus \operatorname{gyr}[a, b]c,
+        u \oplus (v \oplus w) = (u\oplus v) \oplus \operatorname{gyr}[u, v]w,
 
     where
 
     .. math::
 
-        \operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))
+        \operatorname{gyr}[u, v]w = \ominus (u \oplus v) \oplus (u \oplus (v \oplus w))
+
+    We can simplify this equation using explicit formula for Mobius addition [1]_. Recall
+
+    .. math::
+
+        A = - c^2 \langle u, w\rangle \langle v, v\rangle + c \langle v, w\rangle +
+            2 c \langle u, v\rangle \langle v, w\rangle\\
+        B = - c^2 \langle v, w\rangle \langle u, u\rangle - c \langle u, w\rangle\\
+        D = 2 c \langle u, v\rangle + c^2 \langle u, u\rangle \langle v, v\rangle\\
+
+        \operatorname{gyr}[u, v]w = w + 2 \frac{A u + B v}{D}
 
     Parameters
     ----------
@@ -1087,18 +1161,33 @@ def gyration(a, b, u, *, c=1.0):
     -------
     tensor
         the result of automorphism
+
+    References
+    ----------
+    .. [1]  A. A. Ungar (2009), A Gyrovector Space Approach to Hyperbolic Geometry
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(a)
+    c = torch.as_tensor(c).type_as(a)
     return _gyration(a, b, u, c)
 
 
 @torch.jit.script
-def _gyration(a, b, u, c):  # pragma: no cover
-    mapb = -_mobius_add(a, b, c)
-    bpu = _mobius_add(b, u, c)
-    apbpu = _mobius_add(a, bpu, c)
-    return _mobius_add(mapb, apbpu, c)
+def _gyration(u, v, w, c):  # pragma: no cover
+    # non-simplified
+    # mupv = -_mobius_add(u, v, c)
+    # vpw = _mobius_add(u, w, c)
+    # upvpw = _mobius_add(u, vpw, c)
+    # return _mobius_add(mupv, upvpw, c)
+    # simplified
+    u2 = u.pow(2).sum(dim=-1, keepdim=True)
+    v2 = v.pow(2).sum(dim=-1, keepdim=True)
+    uv = (u * v).sum(dim=-1, keepdim=True)
+    uw = (u * w).sum(dim=-1, keepdim=True)
+    vw = (v * w).sum(dim=-1, keepdim=True)
+    c2 = c ** 2
+    a = -c2 * uw * v2 + c * vw + 2 * c2 * uv * vw
+    b = -c2 * vw * u2 - c * uw
+    d = 1 + 2 * c * uv + c2 * u2 * v2
+    return w + 2 * (a * u + b * v) / (d + 1e-15)
 
 
 def parallel_transport(x, y, v, *, c=1.0):
@@ -1152,8 +1241,7 @@ def parallel_transport(x, y, v, *, c=1.0):
     tensor
         transported vector
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _parallel_transport(x, y, v, c)
 
 
@@ -1184,8 +1272,7 @@ def parallel_transport0(y, v, *, c=1.0):
     -------
     tensor
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(y)
+    c = torch.as_tensor(c).type_as(y)
     return _parallel_transport0(y, v, c)
 
 
@@ -1216,8 +1303,7 @@ def egrad2rgrad(x, grad, *, c=1.0):
     tensor
         Riemannian gradient :math:`u\in T_x\mathbb{D}_c^n`
     """
-    if not isinstance(c, torch.Tensor):
-        c = torch.as_tensor(c).type_as(x)
+    c = torch.as_tensor(c).type_as(x)
     return _egrad2rgrad(x, grad, c)
 
 
