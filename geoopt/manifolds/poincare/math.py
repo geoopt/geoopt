@@ -241,7 +241,8 @@ def _mobius_add(x, y, c):  # pragma: no cover
     xy = (x * y).sum(dim=-1, keepdim=True)
     num = (1 + 2 * c * xy + c * y2) * x + (1 - c * x2) * y
     denom = 1 + 2 * c * xy + c ** 2 * x2 * y2
-    return num / denom
+    # avoid division by zero in this way
+    return num / (denom + 1e-15)
 
 
 def mobius_sub(x, y, *, c=1.0):
