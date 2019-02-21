@@ -1142,7 +1142,7 @@ def gyration(a, b, u, *, c=1.0):
         A = - c^2 \langle u, w\rangle \langle v, v\rangle + c \langle v, w\rangle +
             2 c \langle u, v\rangle \langle v, w\rangle\\
         B = - c^2 \langle v, w\rangle \langle u, u\rangle - c \langle u, w\rangle\\
-        D = 2 c \langle u, v\rangle + c^2 \langle u, u\rangle \langle v, v\rangle\\
+        D = 1 + 2 c \langle u, v\rangle + c^2 \langle u, u\rangle \langle v, v\rangle\\
 
         \operatorname{gyr}[u, v]w = w + 2 \frac{A u + B v}{D}
 
