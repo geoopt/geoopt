@@ -28,5 +28,4 @@ def create_traced_update(step, manifold, point, *buffers, **kwargs):
     def partial(*args):
         step(manifold, *args, **kwargs)
         return args
-
     return torch.jit.trace(partial, (point, grad, lr) + buffers)

@@ -33,19 +33,21 @@ def test_adam_stiefel(params):
 
 
 def test_adam_poincare():
+    torch.manual_seed(44)
     ideal = torch.tensor([.5, .5])
-    start = torch.randn(1, 1)
+    start = torch.randn(2)/2
     start = geoopt.manifolds.poincare.math.expmap0(start, c=1.0)
     start = geoopt.ManifoldParameter(start, manifold=geoopt.PoincareBall())
 
     def closure():
-        loss = geoopt.manifolds.poincare.math.dist(start, ideal)
+        optim.zero_grad()
+        loss = geoopt.manifolds.poincare.math.dist(start, ideal) ** 2
         loss.backward()
         return loss.item()
 
-    optim = geoopt.optim.RiemannianAdam([start])
+    optim = geoopt.optim.RiemannianAdam([start], lr=1e-2)
 
-    for _ in range(10000):
+    for _ in range(2000):
         optim.step(closure)
 
-    np.testing.assert_allclose(start, ideal, atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(start.data, ideal, atol=1e-5, rtol=1e-5)
