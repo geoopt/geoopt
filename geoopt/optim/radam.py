@@ -167,7 +167,9 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         grad.add_(weight_decay, point)
         grad = manifold.egrad2rgrad(point, grad)
         exp_avg.mul_(betas[0]).add_(1 - betas[0], grad)
-        exp_avg_sq.mul_(betas[1]).add_(1 - betas[1], manifold.inner(point, grad, keepdim=True))
+        exp_avg_sq.mul_(betas[1]).add_(
+            1 - betas[1], manifold.inner(point, grad, keepdim=True)
+        )
         if amsgrad:
             # Maintains the maximum of all 2nd moment running avg. till now
             torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)

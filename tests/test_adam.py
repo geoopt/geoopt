@@ -34,8 +34,8 @@ def test_adam_stiefel(params):
 
 def test_adam_poincare():
     torch.manual_seed(44)
-    ideal = torch.tensor([.5, .5])
-    start = torch.randn(2)/2
+    ideal = torch.tensor([0.5, 0.5])
+    start = torch.randn(2) / 2
     start = geoopt.manifolds.poincare.math.expmap0(start, c=1.0)
     start = geoopt.ManifoldParameter(start, manifold=geoopt.PoincareBall())
 
