@@ -1,8 +1,6 @@
 import torch.nn
 from .manifolds import Euclidean
 from .docutils import insert_docs
-import copyreg
-
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
 
