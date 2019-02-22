@@ -2,7 +2,6 @@ import torch.nn
 from .manifolds import Euclidean
 from .docutils import insert_docs
 
-
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
 
 
@@ -100,6 +99,19 @@ class ManifoldTensor(torch.Tensor):
             self.manifold
         ) + torch.Tensor.__repr__(self)
 
+    # noinspection PyUnresolvedReferences
+    def __reduce_ex__(self, proto):
+        proto = (
+            self.__class__,
+            self.storage(),
+            self.storage_offset(),
+            self.size(),
+            self.stride(),
+            self.requires_grad,
+            dict(),
+        )
+        return _rebuild_manifold_parameter, proto + (self.manifold,)
+
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
     """Same as :class:`torch.nn.Parameter` that has information about its manifold.
@@ -131,5 +143,9 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
             self.manifold
         ) + torch.Tensor.__repr__(self)
 
-    def __reduce_ex__(self, proto):
-        return ManifoldParameter, (super(ManifoldParameter, self), self.requires_grad)
+
+def _rebuild_manifold_parameter(cls, *args):
+    import torch._utils
+
+    tensor = torch._utils._rebuild_tensor_v2(*args[:-1])
+    return cls(tensor, manifold=args[-1], requires_grad=args[-3])

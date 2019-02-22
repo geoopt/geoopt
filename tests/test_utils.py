@@ -2,6 +2,8 @@ import pytest
 import torch
 import numpy as np
 import geoopt
+import tempfile
+import os
 
 
 @pytest.fixture
@@ -43,3 +45,31 @@ def test_expm(A):
     expm_torch = geoopt.linalg.expm(A)
     np.testing.assert_allclose(expm_torch.detach(), expm_scipy, rtol=1e-6)
     expm_torch.sum().backward()  # this should work
+
+
+def test_pickle1():
+    t = torch.ones(10)
+    p = geoopt.ManifoldTensor(t, manifold=geoopt.Sphere())
+    with tempfile.TemporaryDirectory() as path:
+        torch.save(p, os.path.join(path, "tens.t7"))
+        p1 = torch.load(os.path.join(path, "tens.t7"))
+    assert isinstance(p1, geoopt.ManifoldTensor)
+    assert p.stride() == p1.stride()
+    assert p.storage_offset() == p1.storage_offset()
+    assert p.requires_grad == p1.requires_grad
+    np.testing.assert_allclose(p.detach(), p1.detach())
+    assert p.manifold == p1.manifold
+
+
+def test_pickle2():
+    t = torch.ones(10)
+    p = geoopt.ManifoldParameter(t, manifold=geoopt.Sphere())
+    with tempfile.TemporaryDirectory() as path:
+        torch.save(p, os.path.join(path, "tens.t7"))
+        p1 = torch.load(os.path.join(path, "tens.t7"))
+    assert isinstance(p1, geoopt.ManifoldParameter)
+    assert p.stride() == p1.stride()
+    assert p.storage_offset() == p1.storage_offset()
+    assert p.requires_grad == p1.requires_grad
+    np.testing.assert_allclose(p.detach(), p1.detach())
+    assert p.manifold == p1.manifold
