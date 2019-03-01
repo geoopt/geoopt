@@ -3,8 +3,7 @@ Functions for math on Poincare ball model. Most of this is taken from
 a well written paper by Octavian-Eugen Ganea (2018) [1]_
 
 
-.. [1] Hyperbolic Neural Networks, NIPS2018
-        https://arxiv.org/abs/1805.09112
+.. [1] Octavian-Eugen Ganea et al. , Hyperbolic Neural Networks, NIPS 2018
 """
 
 import functools
@@ -38,7 +37,7 @@ def arcosh(x):  # pragma: no cover
 
 def project(x, *, c=1.0):
     r"""
-    Safe projection on the manifold for numerical stability. This was mentioned in [1]_
+    Safe projection on the manifold for numerical stability.
 
     Parameters
     ----------
@@ -51,11 +50,6 @@ def project(x, *, c=1.0):
     -------
     tensor
         projected vector on the manifold
-
-    References
-    ----------
-    .. [1] Hyperbolic Neural Networks, NIPS2018
-        https://arxiv.org/abs/1805.09112
     """
     c = torch.as_tensor(c).type_as(x)
     return _project(x, c)
@@ -1135,7 +1129,7 @@ def gyration(a, b, u, *, c=1.0):
 
         \operatorname{gyr}[u, v]w = \ominus (u \oplus v) \oplus (u \oplus (v \oplus w))
 
-    We can simplify this equation using explicit formula for Mobius addition [1]_. Recall
+    We can simplify this equation using explicit formula for Mobius addition [1]. Recall
 
     .. math::
 
@@ -1164,7 +1158,7 @@ def gyration(a, b, u, *, c=1.0):
 
     References
     ----------
-    .. [1]  A. A. Ungar (2009), A Gyrovector Space Approach to Hyperbolic Geometry
+    [1]  A. A. Ungar (2009), A Gyrovector Space Approach to Hyperbolic Geometry
     """
     c = torch.as_tensor(c).type_as(a)
     return _gyration(a, b, u, c)
