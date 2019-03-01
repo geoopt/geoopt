@@ -1,4 +1,4 @@
-import torch
+import torch.jit
 
 
 def create_traced_update(step, manifold, point, *buffers, **kwargs):
