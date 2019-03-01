@@ -19,25 +19,44 @@ typos or just want to improve it, do not hesitate to `open a PR <https://github.
 
 Introduction
 ------------
-Riemannian geometry is induced by a `metric tensor` :math:`g_x` for every point on the manifold and an `atlas` :math:`\mathcal{A}`.
-An item :math:`\phi` in `atlas` is a one-to-one mapping from intristic coordinates (a subset in :math:`\mathcal{M}`) to extrinsic
-(a subset in :math:`R^n`, called `chart`), namely :math:`\phi \in \mathcal{A} \: \mathcal{M} \to R^n`.
-This mapping should me smooth, and has some other nice properties [1]_. All we need to know to continue is that
-:math:`\phi` allows to work with points on the manifold via its inverse.
-Metric tensor :math:`g_x`, another essential part, is a bilinear symmetric positive definite operator
-:math:`g_x : T_x\mathcal{M}\times T_x\mathcal{M} \to R_+` that
-operates on the tangent space of a point in manifold. :math:`g_x` induces scalar products
-for every point :math:`x\in \mathcal{M}`.
+Riemannian manifold is usually associated with a smooth surface in an embedded space. Common examples are sphere,
+hyperboloid, orthogonal matrices. Less common examples are distributions and are studied by informational geometry [4]_.
+The challenging thing in working with manifolds is parametrization. The first problem you have is to pick up a
+coordinate system for the manifold. But it is not always possible to cover the surface with a single "map" smoothly.
+Moreover, the coordinate system is not unique and each coordinate system should be treated in a special way.
 
+Motivation
+~~~~~~~~~~
+Manifolds appear in many practical and theoretical problems and applications. For example, finding a largest eigenvalue
+may be treated as an optimization on a Sphere manifold. Another useful task, is pose estimation and motion recovery that
+can be treated as an optimization problem in a special orthogonal group (rotations). Some exciting examples include
+deep learning applications ([5]_, [2]_) and embedding problems ([6]_). Recent works also show that accelerated adaptive
+methods can be applied to the Riemannian case ([7]_). Other works show tight connections of Riemannian optimization and
+Mirror descent ([8]_).
+
+Charts and Atlases
+~~~~~~~~~~~~~~~~~~
+As mentioned above, we need some coordinate system to work with a manifold :math:`\mathcal{M}`. :math:`\mathcal{M}` may
+or may not be embedded in :math:`\mathbb{R}`. However, we are assumed to create can create this map locally,
+call it *chart* :math:`\phi \in \mathcal{A} \::\: U \in \mathcal{M} \to R^n` forming coordinates :math:`\theta`. What we want from :math:`\phi` is smoothness and being bijective.
+This map is not unique, we may not even find a one global map for all the :math:`\mathcal{M}`. A set of all possible charts forms an *atlas*
+:math:`\mathcal{A} = \bigl\{\phi\::\: U \in \mathcal{M} \to R^n\bigr\}`. The concrete chart :math:`\phi` provides you not
+only with "local" coordinates :math:`\theta`. It allows you to study curves on the manifold, tangent spaces, derivatives.
+
+.. image:: plots/intro/coordinate_chart_manifold.png
 
 Tangent Spaces
 ~~~~~~~~~~~~~~
 Tangent space :math:`T_x\mathcal{M}` is an important concept. Tangent space is usually associated with a
-set of all curves passing through :math:`x`.
+set of all curves passing through :math:`x` that is more formally
 
 .. math::
 
-    T_x\mathcal{M} = \left\{\dot\gamma\:s.t.\: \gamma : \mathbb{R} \to \mathcal{M}, \gamma(0)=x\right\}
+    T_x\mathcal{M} = \bigl\{\dot\gamma\:s.t.\: \gamma : \mathbb{R} \to \mathcal{M}, \gamma(0)=x\bigr\}
+
+An element in :math:`T_x\mathcal{M}` defines a direction to move on the manifold. As we can only operate
+with local coordinates :math:`\theta`, we need to relate a vector in tangent space with coordinates :math:`\theta`.
+This basis is formed with partial derivative operators :math:`\frac{\partial}{\partial\theta_i}=\partial_i`.
 
 It is easier to think of it as a set of curves with local basis forming initial conditions.
 Moreover this space is tightly related with differential operators. Having a function
@@ -151,5 +170,10 @@ Logarithmic Map
 
 
 .. [1] P.-A. Absil, Optimization Algorithms on Matrix Manifolds, 2007
-.. [2] <https://ermongroup.github.io/blog/geo/>
+.. [2] Yang Song et al., Accelerating Natural Gradient with Higher-Order Invariance, ICML 2018
 .. [3] Lee John, Introduction to Riemannian Manifolds, 1991
+.. [4] Amari, Shun-ichi, Information Geometry and Its Applications, 2016
+.. [5] Octavian-Eugen Ganea et al. , Hyperbolic Neural Networks, NIPS 2018
+.. [6] Maximillian Nickel & Douwe Kiela, Poincaré Embeddings for Learning Hierarchical Representations, NIPS 2017
+.. [7] Gary Becigneul & Octavian-Eugen Ganea, Riemannian Adaptive Optimization Methods, ICLR 2019
+.. [8] Garvesh Raskutti & Sayan Mukherjee, The Information Geometry of Mirror Descent, IEEE Transactions on Information Theory, 2018
