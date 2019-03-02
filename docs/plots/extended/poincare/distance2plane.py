@@ -13,7 +13,7 @@ xx, yy = np.meshgrid(coords, coords)
 dist2 = xx ** 2 + yy ** 2
 mask = dist2 <= radius ** 2
 grid = np.stack([xx, yy], axis=-1)
-dists = pmath.dist2plane(torch.from_numpy(grid).float(), v, x)
+dists = pmath.dist2plane(torch.from_numpy(grid).float(), x, v)
 dists[(~mask).nonzero()] = np.nan
 circle = plt.Circle((0, 0), 1, fill=False, color="b")
 plt.gca().add_artist(circle)
