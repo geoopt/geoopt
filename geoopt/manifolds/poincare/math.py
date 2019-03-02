@@ -23,7 +23,7 @@ def artanh(x):
 
 
 def arsinh(x):
-    return torch.log(x + torch.sqrt(1 + x ** 2))
+    return (x + torch.sqrt(1 + x ** 2)).clamp_min(1e-15).log()
 
 
 def arcosh(x):
