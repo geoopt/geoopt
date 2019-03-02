@@ -14,7 +14,6 @@ def tanh(x):
     return x.clamp(-15, 15).tanh()
 
 
-@torch.jit.script
 def artanh(x):
     dtype = x.dtype
     x = x.double().clamp(-1 + 1e-15, 1 - 1e-15)
@@ -52,10 +51,7 @@ def project(x, *, c=1.0):
 
 def _project(x, c):
     norm = x.norm(dim=-1, keepdim=True, p=2)
-    if x.dtype == torch.float64:
-        maxnorm = (1 - 1e-5) / (c ** 0.5)
-    else:
-        maxnorm = (1 - 1e-3) / (c ** 0.5)
+    maxnorm = (1 - 1e-5) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
