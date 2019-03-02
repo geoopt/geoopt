@@ -116,6 +116,7 @@ class SphereSubspaceIntersection(Sphere):
     name = "SphereSubspace"
 
     def __init__(self, span):
+        super().__init__()
         self._configure_manifold(span)
         if (geoopt.linalg.batch_linalg.matrix_rank(self._projector) == 1).any():
             raise ValueError(
