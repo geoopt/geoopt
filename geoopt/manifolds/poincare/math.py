@@ -3,7 +3,7 @@ Functions for math on Poincare ball model. Most of this is taken from
 a well written paper by Octavian-Eugen Ganea (2018) [1]_
 
 
-.. [1] Octavian-Eugen Ganea et al. , Hyperbolic Neural Networks, NIPS 2018
+.. [1] Octavian-Eugen Ganea et al., Hyperbolic Neural Networks, NIPS 2018
 """
 
 import functools
