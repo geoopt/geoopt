@@ -210,7 +210,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
 
         Returns
         -------
-        self
+        Manifold
             returns same instance
         """
         if order is None:
@@ -245,7 +245,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
 
         Returns
         -------
-        self
+        Manifold
             returns same instance
         """
         return self.set_default_order(None)
