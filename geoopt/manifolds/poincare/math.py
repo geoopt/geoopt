@@ -19,7 +19,7 @@ def artanh(x):
     dtype = x.dtype
     x = x.double().clamp(-1 + 1e-15, 1 - 1e-15)
     res = 0.5 * (torch.log(1 + x) - torch.log(1 - x))
-    return res.type(dtype)
+    return res.to(dtype)
 
 
 def arsinh(x):
