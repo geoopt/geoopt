@@ -9,7 +9,6 @@ All manifolds share same API. In order not to duplicate the same information, th
 .. automodule:: geoopt.manifolds
     :members: Stiefel, Sphere, SphereSubspaceComplementIntersection, SphereSubspaceIntersection
 
-
 .. autoclass:: geoopt.manifolds.Euclidean
     :members:
     :inherited-members:
