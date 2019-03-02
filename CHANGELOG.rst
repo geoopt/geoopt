@@ -18,6 +18,7 @@ Maintenance
 -----------
 * Add gitter chat (#31)
 * Maintain torch>=1.0.0 only (#39)
+* Manifolds are Modules (#49)
 
 Deprecations
 ------------
