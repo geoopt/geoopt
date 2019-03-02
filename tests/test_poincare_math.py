@@ -266,6 +266,16 @@ def test_parallel_transport0_preserves_inner_products(a, c):
     np.testing.assert_allclose(vu_a, vu_0, atol=1e-6, rtol=1e-6)
 
 
+def test_parallel_transport0_is_same_as_usual(a, c):
+    # pointing to the center
+    v_0 = torch.rand_like(a) + 1e-5
+    zero = torch.zeros_like(a)
+    v_a = poincare.math.parallel_transport0(a, v_0, c=c)
+    v_a1 = poincare.math.parallel_transport(zero, a, v_0, c=c)
+    # compute norms
+    np.testing.assert_allclose(v_a, v_a1, atol=1e-6, rtol=1e-6)
+
+
 def test_parallel_transport_a_b(a, b, c):
     # pointing to the center
     v_0 = torch.rand_like(a)
