@@ -292,3 +292,15 @@ def test_add_infinity_and_beyond(a, b, c):
     z = poincare.math.expmap(a, -infty, c=c)
     # they just need to be very far, exact answer is not supposed
     np.testing.assert_allclose(z, -a, rtol=1e-1, atol=1e-3)
+
+
+def test_mobius_coadd(a, b, c):
+    # (a \boxplus_c b) \ominus_c b = a
+    ah = poincare.math.mobius_sub(poincare.math.mobius_coadd(a, b, c=c), b, c=c)
+    np.testing.assert_allclose(ah, a, atol=1e-5)
+
+
+def test_mobius_cosub(a, b, c):
+    # (a \oplus_c b) \boxminus b = a
+    ah = poincare.math.mobius_cosub(poincare.math.mobius_add(a, b, c=c), b, c=c)
+    np.testing.assert_allclose(ah, a, atol=1e-5)

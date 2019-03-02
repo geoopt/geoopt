@@ -294,8 +294,8 @@ def _mobius_coadd(x, y, c):
     y = y + 1e-15
     x2 = x.pow(2).sum(dim=-1, keepdim=True)
     y2 = y.pow(2).sum(dim=-1, keepdim=True)
-    num = (1 + c * y2) * x + (1 - c * x2) * y
-    denom = 1 + c ** 2 * x2 * y2
+    num = (1 - c * y2) * x + (1 - c * x2) * y
+    denom = 1 - c ** 2 * x2 * y2
     # avoid division by zero in this way
     return num / (denom + 1e-15)
 
@@ -481,7 +481,7 @@ def _project_tangent(x, u, c):
     # get the almost infinite vecotor estimate
     # this is the norm of travel vector to the opposite pole
     dim = x.size(-1)
-    p = torch.ones((dim,), dtype=c.dtype, device=c.device)
+    p = torch.ones((dim,), dtype=x.dtype, device=x.device)
     p = p / dim ** 0.5 / (c ** 0.5)
     p = _project(p, c)
     # normalize its length based on x
