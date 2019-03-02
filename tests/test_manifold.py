@@ -40,8 +40,6 @@ def t(request):
     ],
 )
 def manifold(request, retraction_order):
-    if not issubclass(request.param, geoopt.manifolds.PoincareBall):
-        pytest.skip(".")
     man = request.param()
     try:
         return man.set_default_order(retraction_order)

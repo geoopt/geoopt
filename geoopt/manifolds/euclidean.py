@@ -50,5 +50,5 @@ class Euclidean(Manifold):
     def _logmap(self, x, y):
         return y - x
 
-    def _dist(self, x, y):
+    def _dist(self, x, y, keepdim):
         return (x - y).abs()

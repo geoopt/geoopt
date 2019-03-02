@@ -88,7 +88,7 @@ class Sphere(Manifold):
 
     def _logmap(self, x, y):
         u = self._proju(x, y - x)
-        dist = self._dist(x, y).unsqueeze(-1)
+        dist = self._dist(x, y, keepdim=True)
         # If the two points are "far apart", correct the norm.
         cond = dist.gt(1e-6)
         return torch.where(cond, u * dist / u.norm(dim=-1, keepdim=True), u)
