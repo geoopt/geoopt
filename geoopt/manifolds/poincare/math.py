@@ -935,7 +935,7 @@ def mobiusify(fn):
     return mobius_fn
 
 
-def dist2plane(x, a, p, *, c=1.0, keepdim=False, signed=False):
+def dist2plane(x, p, a, *, c=1.0, keepdim=False, signed=False):
     r"""
     Distance from :math:`x` to a hyperbolic hyperplane in Poincare ball
     that is orthogonal to :math:`a` and contains :math:`p`.
@@ -1028,7 +1028,7 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False, signed=False):
     x : tensor
         point on poincare ball
     a : tensor
-        point on poincare ball, that is orthogonal to hyperplane
+        vector on tangent space of :math:`p`
     p : tensor
         point on poincare ball lying on the hyperplane
     c : float|tensor
