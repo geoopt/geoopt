@@ -1,5 +1,5 @@
 import pytest
-import torch
+import torch.nn
 import numpy as np
 import geoopt
 import tempfile
@@ -73,3 +73,19 @@ def test_pickle2():
     assert p.requires_grad == p1.requires_grad
     np.testing.assert_allclose(p.detach(), p1.detach())
     assert p.manifold == p1.manifold
+
+
+def test_manifold_to_smth():
+    span = torch.randn(10, 2)
+    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    sub_sphere.to(torch.float64)
+    assert sub_sphere._projector.dtype == torch.float64
+
+
+def test_manifold_is_submodule():
+    span = torch.randn(10, 2)
+    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    sub_sphere.to(torch.float64)
+    container = torch.nn.ModuleDict({"sphere": sub_sphere})
+    container.to(torch.float64)
+    assert sub_sphere._projector.dtype == torch.float64
