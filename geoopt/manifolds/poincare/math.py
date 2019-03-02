@@ -7,17 +7,19 @@ a well written paper by Octavian-Eugen Ganea (2018) [1]_
 """
 
 import functools
-import torch
+import torch.jit
 
 
 def tanh(x):
     return x.clamp(-15, 15).tanh()
 
 
+@torch.jit.script
 def artanh(x):
-    x = x.clamp(-1 + 1e-15, 1 - 1e-15)
+    dtype = x.dtype
+    x = x.double().clamp(-1 + 1e-15, 1 - 1e-15)
     res = 0.5 * (torch.log(1 + x) - torch.log(1 - x))
-    return res
+    return res.type(dtype)
 
 
 def arsinh(x):
