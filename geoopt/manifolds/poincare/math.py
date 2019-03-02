@@ -8,29 +8,23 @@ a well written paper by Octavian-Eugen Ganea (2018) [1]_
 
 import functools
 import torch
-import torch.jit
 
 
-@torch.jit.script
-def tanh(x):  # pragma: no cover
+def tanh(x):
     return x.clamp(-15, 15).tanh()
 
 
-# noinspection PyTypeChecker,PyUnresolvedReferences
-@torch.jit.script
-def artanh(x):  # pragma: no cover
+def artanh(x):
     x = x.clamp(-1 + 1e-15, 1 - 1e-15)
     res = 0.5 * (torch.log(1 + x) - torch.log(1 - x))
     return res
 
 
-@torch.jit.script
-def arsinh(x):  # pragma: no cover
+def arsinh(x):
     return torch.log(x + torch.sqrt(1 + x ** 2))
 
 
-@torch.jit.script
-def arcosh(x):  # pragma: no cover
+def arcosh(x):
     x = x.clamp(-1 + 1e-15, 1 - 1e-15)
     return torch.log(x + torch.sqrt(1 + x) * torch.sqrt(x - 1))
 
@@ -51,12 +45,10 @@ def project(x, *, c=1.0):
     tensor
         projected vector on the manifold
     """
-    c = torch.as_tensor(c).type_as(x)
     return _project(x, c)
 
 
-@torch.jit.script
-def _project(x, c):  # pragma: no cover
+def _project(x, c):
     norm = x.norm(dim=-1, keepdim=True, p=2)
     if x.dtype == torch.float64:
         maxnorm = (1 - 1e-5) / (c ** 0.5)
@@ -89,12 +81,10 @@ def lambda_x(x, *, c=1.0, keepdim=False):
     tensor
         conformal factor
     """
-    c = torch.as_tensor(c).type_as(x)
     return _lambda_x(x, c, keepdim=keepdim)
 
 
-@torch.jit.script
-def _lambda_x(x, c, keepdim: bool = False):  # pragma: no cover
+def _lambda_x(x, c, keepdim: bool = False):
     return 2 / (1 - c * x.pow(2).sum(-1, keepdim=keepdim))
 
 
@@ -124,12 +114,10 @@ def inner(x, u, v, *, c=1.0, keepdim=False):
     tensor
         inner product
     """
-    c = torch.as_tensor(c).type_as(x)
     return _inner(x, u, v, c, keepdim=keepdim)
 
 
-@torch.jit.script
-def _inner(x, u, v, c, keepdim: bool = False):  # pragma: no cover
+def _inner(x, u, v, c, keepdim: bool = False):
     return _lambda_x(x, c, keepdim=True) ** 2 * (u * v).sum(-1, keepdim=keepdim)
 
 
@@ -157,12 +145,10 @@ def norm(x, u, *, c=1.0, keepdim=False):
     tensor
         norm of vector
     """
-    c = torch.as_tensor(c).type_as(x)
     return _norm(x, u, c, keepdim=keepdim)
 
 
-@torch.jit.script
-def _norm(x, u, c, keepdim: bool = False):  # pragma: no cover
+def _norm(x, u, c, keepdim: bool = False):
     return _lambda_x(x, c, keepdim=keepdim) * u.norm(dim=-1, keepdim=keepdim, p=2)
 
 
@@ -218,12 +204,10 @@ def mobius_add(x, y, *, c=1.0):
     tensor
         the result of mobius addition
     """
-    c = torch.as_tensor(c).type_as(x)
     return _mobius_add(x, y, c)
 
 
-@torch.jit.script
-def _mobius_add(x, y, c):  # pragma: no cover
+def _mobius_add(x, y, c):
     y = y + 1e-15
     x2 = x.pow(2).sum(dim=-1, keepdim=True)
     y2 = y.pow(2).sum(dim=-1, keepdim=True)
@@ -256,12 +240,10 @@ def mobius_sub(x, y, *, c=1.0):
     tensor
         the result of mobius substraction
     """
-    c = torch.as_tensor(c).type_as(x)
     return _mobius_sub(x, y, c)
 
 
-@torch.jit.script
-def _mobius_sub(x, y, c):  # pragma: no cover
+def _mobius_sub(x, y, c):
     return _mobius_add(x, -y, c)
 
 
@@ -305,7 +287,6 @@ def mobius_coadd(x, y, *, c=1.0):
         the result of mobius coaddition
 
     """
-    c = torch.as_tensor(c).type_as(x)
     return _mobius_coadd(x, y, c)
 
 
@@ -342,11 +323,9 @@ def mobius_cosub(x, y, *, c=1.0):
         the result of mobius coaddition
 
     """
-    c = torch.as_tensor(c).type_as(x)
     return _mobius_cosub(x, y, c)
 
 
-@torch.jit.script
 def _mobius_cosub(x, y, c):
     return _mobius_coadd(x, -y, c)
 
@@ -399,13 +378,10 @@ def mobius_scalar_mul(r, x, *, c=1.0):
     tensor
         the result of mobius scalar multiplication
     """
-    c = torch.as_tensor(c).type_as(x)
-    r = torch.as_tensor(r).type_as(x)
     return _mobius_scalar_mul(r, x, c)
 
 
-@torch.jit.script
-def _mobius_scalar_mul(r, x, c):  # pragma: no cover
+def _mobius_scalar_mul(r, x, c):
     x = x + 1e-15
     x_norm = x.norm(dim=-1, keepdim=True, p=2)
     sqrt_c = c ** 0.5
@@ -439,12 +415,10 @@ def dist(x, y, *, c=1.0, keepdim=False):
     tensor
         geodesic distance between :math:`x` and :math:`y`
     """
-    c = torch.as_tensor(c).type_as(x)
     return _dist(x, y, c, keepdim=keepdim)
 
 
-@torch.jit.script
-def _dist(x, y, c, keepdim: bool = False):  # pragma: no cover
+def _dist(x, y, c, keepdim: bool = False):
     sqrt_c = c ** 0.5
     dist_c = artanh(sqrt_c * _mobius_add(-x, y, c).norm(dim=-1, p=2, keepdim=keepdim))
     return dist_c * 2 / sqrt_c
@@ -468,12 +442,10 @@ def dist0(x, *, c=1.0, keepdim=False):
     tensor
         geodesic distance between :math:`x` and :math:`0`
     """
-    c = torch.as_tensor(c).type_as(x)
     return _dist0(x, c, keepdim=keepdim)
 
 
-@torch.jit.script
-def _dist0(x, c, keepdim: bool = False):  # pragma: no cover
+def _dist0(x, c, keepdim: bool = False):
     sqrt_c = c ** 0.5
     dist_c = artanh(sqrt_c * x.norm(dim=-1, p=2, keepdim=keepdim))
     return dist_c * 2 / sqrt_c
@@ -502,12 +474,10 @@ def project_tangent(x, u, *, c):
     tensor
         same tangent vector with reasonable values
     """
-    c = torch.as_tensor(c).type_as(x)
     return _project_tangent(x, u, c)
 
 
-@torch.jit.script
-def _project_tangent(x, u, c):  # pragma: no cover
+def _project_tangent(x, u, c):
     # get the almost infinite vecotor estimate
     # this is the norm of travel vector to the opposite pole
     dim = x.size(-1)
@@ -573,13 +543,10 @@ def geodesic(t, x, y, *, c=1.0):
     tensor
         point on the Poincare ball
     """
-    c = torch.as_tensor(c).type_as(x)
-    t = torch.as_tensor(t).type_as(x)
     return _geodesic(t, x, y, c)
 
 
-@torch.jit.script
-def _geodesic(t, x, y, c):  # pragma: no cover
+def _geodesic(t, x, y, c):
     # this is not very numerically unstable
     v = _mobius_add(-x, y, c)
     tv = _mobius_scalar_mul(t, v, c)
@@ -622,12 +589,10 @@ def expmap(x, u, *, c=1.0):
     tensor
         :math:`\gamma_{x, u}(1)` end point
     """
-    c = torch.as_tensor(c).type_as(x)
     return _expmap(x, u, c)
 
 
-@torch.jit.script
-def _expmap(x, u, c):  # pragma: no cover
+def _expmap(x, u, c):
     u += 1e-15
     sqrt_c = c ** 0.5
     u_norm = u.norm(dim=-1, p=2, keepdim=True)
@@ -660,12 +625,10 @@ def expmap0(u, *, c=1.0):
     tensor
         :math:`\gamma_{0, u}(1)` end point
     """
-    c = torch.as_tensor(c).type_as(u)
     return _expmap0(u, c)
 
 
-@torch.jit.script
-def _expmap0(u, c):  # pragma: no cover
+def _expmap0(u, c):
     u = u + 1e-15
     sqrt_c = c ** 0.5
     u_norm = u.norm(dim=-1, p=2, keepdim=True)
@@ -697,12 +660,10 @@ def geodesic_unit(t, x, u, *, c=1.0):
     tensor
         the point on geodesic line
     """
-    c = torch.as_tensor(c).type_as(x)
     return _geodesic_unit(t, x, u, c)
 
 
-@torch.jit.script
-def _geodesic_unit(t, x, u, c):  # pragma: no cover
+def _geodesic_unit(t, x, u, c):
     sqrt_c = c ** 0.5
     u_norm = u.norm(dim=-1, p=2, keepdim=True)
     second_term = tanh(sqrt_c / 2 * t) * u / (sqrt_c * u_norm)
@@ -741,12 +702,10 @@ def logmap(x, y, *, c=1.0):
     tensor
         tangent vector that transports :math:`x` to :math:`y`
     """
-    c = torch.as_tensor(c).type_as(x)
     return _logmap(x, y, c)
 
 
-@torch.jit.script
-def _logmap(x, y, c):  # pragma: no cover
+def _logmap(x, y, c):
     sub = _mobius_add(-x, y, c)
     sub_norm = sub.norm(dim=-1, p=2, keepdim=True)
     lam = _lambda_x(x, c, keepdim=True)
@@ -781,12 +740,10 @@ def logmap0(y, *, c=1.0):
     tensor
         tangent vector that transports :math:`0` to :math:`y`
     """
-    c = torch.as_tensor(c).type_as(y)
     return _logmap0(y, c)
 
 
-@torch.jit.script
-def _logmap0(y, c):  # pragma: no cover
+def _logmap0(y, c):
     sqrt_c = c ** 0.5
     y = y + 1e-15
     y_norm = y.norm(dim=-1, p=2, keepdim=True)
@@ -818,12 +775,10 @@ def mobius_matvec(m, x, *, c=1.0):
     tensor
         Mobius matvec result
     """
-    c = torch.as_tensor(c).type_as(x)
     return _mobius_matvec(m, x, c)
 
 
-@torch.jit.script
-def _mobius_matvec(m, x, c):  # pragma: no cover
+def _mobius_matvec(m, x, c):
     x = x + 1e-15
     x_norm = x.norm(dim=-1, keepdim=True, p=2)
     sqrt_c = c ** 0.5
@@ -861,12 +816,10 @@ def mobius_pointwise_mul(w, x, *, c=1.0):
     tensor
         Mobius pointwise mul result
     """
-    c = torch.as_tensor(c).type_as(x)
     return _mobius_pointwise_mul(w, x, c)
 
 
-@torch.jit.script
-def _mobius_pointwise_mul(w, x, c):  # pragma: no cover
+def _mobius_pointwise_mul(w, x, c):
     x = x + 1e-15
     x_norm = x.norm(dim=-1, keepdim=True, p=2)
     sqrt_c = c ** 0.5
@@ -919,7 +872,7 @@ def mobius_fn_apply_chain(x, *fns, c=1.0):
     if not fns:
         return x
     else:
-        c = torch.as_tensor(c).type_as(x)
+
         ex = _logmap0(x, c)
         for fn in fns:
             ex = fn(ex)
@@ -952,7 +905,6 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
     tensor
         Result of function in hyperbolic space
     """
-    c = torch.as_tensor(c).type_as(x)
     ex = _logmap0(x, c)
     ex = fn(ex, *args, **kwargs)
     y = _expmap0(ex, c)
@@ -976,7 +928,7 @@ def mobiusify(fn):
 
     @functools.wraps(fn)
     def mobius_fn(x, *args, c=1.0, **kwargs):
-        c = torch.as_tensor(c).type_as(x)
+
         ex = _logmap0(x, c)
         ex = fn(ex, *args, **kwargs)
         y = _expmap0(ex, c)
@@ -1093,14 +1045,10 @@ def dist2plane(x, a, p, *, c=1.0, keepdim=False, signed=False):
     tensor
         distance to the hyperplane
     """
-    c = torch.as_tensor(c).type_as(x)
     return _dist2plane(x, a, p, c, keepdim=keepdim, signed=signed)
 
 
-@torch.jit.script
-def _dist2plane(
-    x, a, p, c, keepdim: bool = False, signed: bool = False
-):  # pragma: no cover
+def _dist2plane(x, a, p, c, keepdim: bool = False, signed: bool = False):
     sqrt_c = c ** 0.5
     diff = _mobius_add(-p, x, c)
     diff_norm2 = diff.pow(2).sum(dim=-1, keepdim=keepdim)
@@ -1160,12 +1108,10 @@ def gyration(a, b, u, *, c=1.0):
     ----------
     [1]  A. A. Ungar (2009), A Gyrovector Space Approach to Hyperbolic Geometry
     """
-    c = torch.as_tensor(c).type_as(a)
     return _gyration(a, b, u, c)
 
 
-@torch.jit.script
-def _gyration(u, v, w, c):  # pragma: no cover
+def _gyration(u, v, w, c):
     # non-simplified
     # mupv = -_mobius_add(u, v, c)
     # vpw = _mobius_add(u, w, c)
@@ -1235,12 +1181,10 @@ def parallel_transport(x, y, v, *, c=1.0):
     tensor
         transported vector
     """
-    c = torch.as_tensor(c).type_as(x)
     return _parallel_transport(x, y, v, c)
 
 
-@torch.jit.script
-def _parallel_transport(x, y, u, c):  # pragma: no cover
+def _parallel_transport(x, y, u, c):
     return (
         _gyration(y, -x, u, c)
         * _lambda_x(x, c, keepdim=True)
@@ -1266,12 +1210,10 @@ def parallel_transport0(y, v, *, c=1.0):
     -------
     tensor
     """
-    c = torch.as_tensor(c).type_as(y)
     return _parallel_transport0(y, v, c)
 
 
-@torch.jit.script
-def _parallel_transport0(y, v, c):  # pragma: no cover
+def _parallel_transport0(y, v, c):
     return v * (1 - c * y.pow(2).sum(-1, keepdim=True))
 
 
@@ -1297,10 +1239,8 @@ def egrad2rgrad(x, grad, *, c=1.0):
     tensor
         Riemannian gradient :math:`u\in T_x\mathbb{D}_c^n`
     """
-    c = torch.as_tensor(c).type_as(x)
     return _egrad2rgrad(x, grad, c)
 
 
-@torch.jit.script
-def _egrad2rgrad(x, grad, c):  # pragma: no cover
+def _egrad2rgrad(x, grad, c):
     return grad / _lambda_x(x, c, keepdim=True) ** 2
