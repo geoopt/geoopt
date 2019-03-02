@@ -24,3 +24,4 @@ Deprecations
 
 Bug Fixes
 ---------
+* Make pickle work with ManifoldTensors (#47)
