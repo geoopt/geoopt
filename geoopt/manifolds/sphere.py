@@ -1,6 +1,6 @@
 import torch
 
-from .base import Manifold
+from .base import Manifold, Retraction, Transport, TransportAlong, RetractAndTransport, TransportAlongAndExpmap
 import geoopt.linalg.batch_linalg
 
 __all__ = [
@@ -53,6 +53,7 @@ class Sphere(Manifold):
     def _proju(self, x, u):
         return u - (x * u).sum(dim=-1, keepdim=True) * x
 
+    @Retraction(order=-1)
     def _expmap(self, x, u, t):
         ut = u * t
         norm_ut = ut.norm(dim=-1, keepdim=True)
@@ -61,23 +62,28 @@ class Sphere(Manifold):
         cond = norm_ut > 1e-3
         return torch.where(cond, exp, retr)
 
+    @Retraction
     def _retr(self, x, u, t):
         return self._projx(x + u * t)
 
+    @TransportAlong
     def _transp_follow(self, x, v, *more, u, t):
         y = self._retr(x, u, t)
         return self._transp2y(x, v, *more, y=y)
 
+    @Transport
     def _transp2y(self, x, v, *more, y):
         if more:
             return tuple(self._proju(y, _v) for _v in (v,) + more)
         else:
             return self._proju(y, v)
 
+    @TransportAlongAndExpmap
     def _transp_follow_expmap(self, x, v, *more, u, t):
         y = self._expmap(x, u, t)
         return self._transp2y(x, v, *more, y=y)
 
+    @RetractAndTransport(order=-1)
     def _expmap_transp(self, x, v, *more, u, t):
         y = self._expmap(x, u, t)
         vs = self._transp2y(x, v, *more, y=y)

@@ -1,34 +1,142 @@
 from collections import defaultdict
+from bisect import bisect_right
 import abc
 import torch.nn
-import re
 
 __all__ = ["Manifold"]
 
 
+class ApproxMethodDecorator:
+    def __new__(cls, *methods, order=1):
+        self = super().__new__(cls)
+        if len(methods) == 0:
+            return self
+        self.__init__(order=order)
+        return self(*methods)
+
+    def __init__(self, order=1):
+        self.order = order
+
+    def __call__(self, meth):
+        setattr(meth, '_methodset', self.methodset)
+        setattr(meth, '_methodorder', self.order)
+        return meth
+
+    @staticmethod
+    def is_approx_method(method):
+        try:
+            ApproxMethodDecorator.get_methodset(method)
+            ApproxMethodDecorator.get_order(method)
+            return True
+        except AttributeError:
+            return False
+
+    @staticmethod
+    def get_methodset(method):
+        return getattr(method, '_methodset')
+
+    @staticmethod
+    def get_order(method):
+        return getattr(method, '_methodorder')
+
+
+
+class Retraction(ApproxMethodDecorator):
+    """
+    Methods decorated with``@Retraction(order)``
+    implement given-order approximations of exponential map.
+    Exact exponential map corresponds to ``order=-1``.
+
+    Example
+    -------
+
+    .. code-block:: python
+        @Retraction
+        def _retr(self, point, direction, time):
+            return point + direction * time
+    """
+    methodset = 'retr'
+
+
+class RetractAndTransport(ApproxMethodDecorator):
+    """
+    Methods decorated with``@RetractAndTransport(order)``
+    implement ``retr_transp``.
+    with given retraction ``order``.
+
+
+    Example
+    -------
+
+    .. code-block:: python
+        @RetractAndTransport
+        def _retr_transp(
+            point,
+            tangent,
+            *more_tangents,
+            transport_direction,
+            transport_time):
+            pass
+    """
+    methodset = 'retr_transport'
+
+
+class Transport(ApproxMethodDecorator):
+    """
+    Methods decorated with ``@Transport``
+    implement ``transp()``
+    """
+    methodset = 'transport'
+
+
+class TransportAlong(ApproxMethodDecorator):
+    """
+    Methods decorated with ``@Transport``
+    implement ``transp_along()``,
+    i.e. transport along a direction
+    for a given time
+    """
+    methodset = 'transport_along'
+
+
+class TransportAlongAndExpmap(ApproxMethodDecorator):
+    """
+    It's really unclear for me what these methods do,
+    but I wouldn't just remove them
+    """
+    methodset = 'transp_along_expmap'
+
+
 class ManifoldMeta(abc.ABCMeta):
     r"""
-    We use a metaclass that tracks and registers retractions.
-    Right after a class creation, it filters ``dir(cls)`` and looks for
-    special declared methods. If a method is not implemented, then it should be
-    ``geoopt.base.not_implemented``. ``geoopt.base.not_implemented`` is just a
-    placeholder for a function that raises not implemented error.
+    We use a metaclass that tracks and registers implementations
+    of approximate methods, e.g. approximations of exponential map (retractions),
+    approximations of parallel transport, et cetera..
+
+    During construction of a Manifold class,
+    ``ManifoldMeta`` iterates over ``dir(cls)``
+    and looks for methods marked by any of ``ApproxMethodDecorator``\s.
+    Such methods are registered in corresponding ``MethodDict``\s.
+    Best (``order=-1``) and default (``order=None``)
+    approximations are provided.
+
+    Approximations missing implementation should be registered as
+    ``geoopt.base.not_implemented``, which is a placeholder function
+    that raises a "not implemented" error.
 
     Special private functions contain the following:
 
-    * ``r"^_retr(\d+)?$"`` for retraction of a given order (if int postfix provided)
-    * ``r"^_retr(\d+)?_transp$"`` for retraction and transport
-    * ``r"^_transp_follow(\d+)?$"`` vector transport that uses direction + retraction rather that the final point
-    * ``r"^_expmap$"`` for exponential map (retraction with order ``-1``)
-    * ``r"^_expmap_transp$"`` for exponential map + vector transport (retraction with order ``-1``)
-    * ``r"^_transp_follow_expmap$"`` vector transport that uses direction + exponential map rather that the final point (retraction+transport with order `-1`)
-
-    After this all is registered in ``MethodDict`` (default dict with ``geoopt.base.not_implemented`` as a missing value)
+    * marked by ``@Retraction``
+    * marked by ``@TransportAlong``: vector transport that uses direction + retraction rather that the final point
+    * marked by ``@Transport``: parallel transport
+    * (TODO) marked by ``@Expmap``: same as ``@Retraction(order=-1)``
+    * (TODO) marked by ``@ExpmapAndTransport``: for exponential map + vector transport (retraction with order ``-1``)
+    * (TODO) marked by ``@TransportAlongAndExpmap``: vector transport that uses direction + exponential map rather that the final point (retraction+transport with order `-1`)
 
     .. code-block:: python
 
-        retractoins = MethodDict()
-        retractoins_transport = MethodDict()
+        retractions = MethodDict()
+        retractions_transport = MethodDict()
         transports_follow = MethodDict()
 
     With this dict it comes possible to define generic dispatch methods for different orders of approximations like this:
@@ -60,79 +168,29 @@ class ManifoldMeta(abc.ABCMeta):
             )
         default_order = cls._default_order
         # create dict access for orders for a range of methods
-        retractoins = MethodDict()
-        retractoins_transport = MethodDict()
-        transports_follow = MethodDict()
+        methodsets = defaultdict(MethodDict)
         # loop for all class members
         for name in dir(cls):
-            # retraction pattern
-            if re.match(r"^_retr(\d+)?$", name):
-                order = int(name[len("_retr") :] or "1")
-                meth = getattr(cls, name)
-                retractoins[order] = meth
-            # retraction + transport pattern
-            elif re.match(r"^_retr(\d+)?_transp$", name):
-                meth = getattr(cls, name)
-                # if some method is not implemented it should be set as `not_implemented`
-                # function from exactply this module
-                # to make metaclass work properly
-                order = int(name[len("_retr") : -len("_transp")] or "1")
-                retractoins_transport[order] = meth
-            # exponential map pattern
-            elif re.match(r"^_expmap$", name):
-                meth = getattr(cls, name)
-                retractoins[-1] = meth
-            # exponential map + transport pattern
-            elif re.match(r"^_expmap_transp$", name):
-                meth = getattr(cls, name)
-                retractoins_transport[-1] = meth
-            # transport using retraction pattern
-            elif re.match(r"^_transp_follow(\d+)?$", name):
-                meth = getattr(cls, name)
-                order = int(name[len("_transp_follow") :] or "1")
-                transports_follow[order] = meth
-            # transport using expmap pattern
-            elif re.match(r"^_transp_follow_expmap$", name):
-                meth = getattr(cls, name)
-                transports_follow[-1] = meth
-        # set best possible retraction to use in expmap as a fallback
-        if transports_follow[-1] is not_implemented:
-            best_transport_follow = max(
-                (o for o, m in transports_follow.items() if m is not not_implemented),
-                default=None,
-            )
-        else:
-            best_transport_follow = -1
-        if retractoins[-1] is not_implemented:
-            best_retraction = max(
-                (o for o, m in retractoins.items() if m is not not_implemented),
-                default=None,
-            )
-        else:
-            best_retraction = -1
-        if retractoins_transport[-1] is not_implemented:
-            best_retraction_transport = max(
-                (
-                    o
-                    for o, m in retractoins_transport.items()
-                    if m is not not_implemented
-                ),
-                default=None,
-            )
-        else:
-            best_retraction_transport = -1
-        # assign default methods
-        retractoins[None] = retractoins[default_order]
-        retractoins_transport[None] = retractoins_transport[default_order]
-        transports_follow[None] = transports_follow[default_order]
-        # assign best possible options
-        retractoins[-1] = retractoins[best_retraction]
-        retractoins_transport[-1] = retractoins_transport[best_retraction_transport]
-        transports_follow[-1] = transports_follow[best_transport_follow]
+            meth = getattr(cls, name)
+            if not ApproxMethodDecorator.is_approx_method(meth):
+                continue
+            ms = ApproxMethodDecorator.get_methodset(meth)
+            order = ApproxMethodDecorator.get_order(meth)
+            methodsets[ms][order] = meth
+        for ms, methods in methodsets.items():
+            order_cmp_key = lambda o: float('inf') if o in [-1, None] else o
+            implemented_orders = sorted(methods.keys(), key=order_cmp_key)
+            # set best possible retraction to use in expmap as a fallback
+            if -1 not in methods:
+                methods[-1] = methods[implemented_orders[-1]]
+            # assign default methods
+            if None not in methods:
+                # TODO: check if default_order is implemented
+                methods[None] = methods[default_order]
         # set class attributes
-        cls._transport_follow_funcs = transports_follow
-        cls._retr_transport_funcs = retractoins_transport
-        cls._retr_funcs = retractoins
+        for ms, methods in methodsets.items():
+            attr_name = f'_{ms}_funcs'
+            setattr(cls, attr_name, methods)
         return cls
 
 
@@ -218,12 +276,12 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         if (
             order not in self._retr_transport_funcs
             or order not in self._retr_funcs
-            or order not in self._transport_follow_funcs
+            or order not in self._transport_along_funcs
         ):
             possible_orders = (
                 set(self._retr_transport_funcs)
                 & set(self._retr_funcs)
-                & set(self._transport_follow_funcs)
+                & set(self._transport_along_funcs)
             )
             raise ValueError(
                 "new default order should be one of {}".format(possible_orders)
@@ -232,8 +290,8 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         self._retr_transport_funcs[None] = self._retr_transport_funcs[order]
         self._retr_funcs = self._retr_funcs.copy()
         self._retr_funcs[None] = self._retr_funcs[order]
-        self._transport_follow_funcs = self._transport_follow_funcs.copy()
-        self._transport_follow_funcs[None] = self._transport_follow_funcs[order]
+        self._transport_along_funcs = self._transport_along_funcs.copy()
+        self._transport_along_funcs[None] = self._transport_along_funcs[order]
         self._retr_funcs[None] = self._retr_funcs[order]
         self._default_order = order
         return self
@@ -636,7 +694,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         if y is not None:
             return self._transp2y(x, v, *more, y=y)
         elif u is not None:
-            return self._transport_follow_funcs[order](self, x, v, *more, u=u, t=t)
+            return self._transport_along_funcs[order](self, x, v, *more, u=u, t=t)
         else:
             raise TypeError("transp() requires either y or u")
 

@@ -1,4 +1,8 @@
 from .base import Manifold
+from .base import Retraction
+from .base import RetractAndTransport
+from .base import Transport
+from .base import TransportAlong
 
 __all__ = ["Euclidean"]
 
@@ -21,6 +25,7 @@ class Euclidean(Manifold):
     def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
         return True, None
 
+    @Retraction
     def _retr(self, x, u, t):
         return x + t * u
 
@@ -33,6 +38,7 @@ class Euclidean(Manifold):
     def _projx(self, x):
         return x
 
+    @TransportAlong
     def _transp_follow(self, x, v, *more, u, t):
         if not more:
             return v
@@ -41,6 +47,7 @@ class Euclidean(Manifold):
 
     _retr_transp_default_preference = "2y"
 
+    @Transport
     def _transp2y(self, x, v, *more, y):
         if not more:
             return v

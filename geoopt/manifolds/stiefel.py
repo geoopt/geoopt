@@ -1,7 +1,7 @@
 import torch
 
 from geoopt import linalg
-from .base import Manifold
+from .base import Manifold, Retraction, Transport, TransportAlong, RetractAndTransport, TransportAlongAndExpmap
 
 
 __all__ = ["Stiefel", "EuclideanStiefel", "CanonicalStiefel"]
@@ -128,12 +128,14 @@ class CanonicalStiefel(Stiefel):
         )
         return tuple(qvs[..., i, :] for i in range(n))
 
+    @TransportAlong
     def _transp_follow(self, x, v, *more, u, t):
         if more:
             return self._transp_follow_many(x, v, *more, u=u, t=t)
         else:
             return self._transp_follow_one(x, v, u=u, t=t)
 
+    @RetractAndTransport
     def _retr_transp(self, x, v, *more, u, t):
         """
         An optimized retr_transp for Stiefel Manifold
@@ -148,6 +150,7 @@ class CanonicalStiefel(Stiefel):
     def _proju(self, x, u):
         return u - x @ u.transpose(-1, -2) @ x
 
+    @Retraction
     def _retr(self, x, u, t):
         return self._transp_follow_one(x, x, u=u, t=t)
 
@@ -166,16 +169,19 @@ class EuclideanStiefel(Stiefel):
     def _proju(self, x, u):
         return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
+    @TransportAlong
     def _transp_follow(self, x, v, *more, u, t):
         y = self._retr(x, u, t)
         return self._transp2y(x, v, *more, y=y)
 
+    @Transport
     def _transp2y(self, x, v, *more, y):
         if not more:
             return self._proju(y, v)
         else:
             return tuple(self._proju(y, v_) for v_ in (v,) + more)
 
+    @RetractAndTransport
     def _retr_transp(self, x, v, *more, u, t):
         y = self._retr(x, u, t)
         vs = self._transp2y(x, v, *more, y=y)
@@ -187,12 +193,14 @@ class EuclideanStiefel(Stiefel):
     def _inner(self, x, u, v, keepdim):
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
+    @Retraction
     def _retr(self, x, u, t):
         q, r = linalg.batch_linalg.qr(x + u * t)
         unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
 
+    @Retraction(order=-1)
     def _expmap(self, x, u, t):
         u = u * t
         xtu = x.transpose(-1, -2) @ u
@@ -205,6 +213,7 @@ class EuclideanStiefel(Stiefel):
         y = torch.cat((x, u), dim=-1) @ w @ z
         return y
 
+    @RetractAndTransport(order=-1)
     def _expmap_transp(self, x, v, *more, u, t):
         y = self._expmap(x, u, t)
         vs = self._transp2y(x, v, *more, y=y)
@@ -213,6 +222,7 @@ class EuclideanStiefel(Stiefel):
         else:
             return y, vs
 
+    @TransportAlongAndExpmap
     def _transp_follow_expmap(self, x, v, *more, u, t):
         y = self._expmap(x, u, t)
         return self._transp2y(x, v, *more, y=y)
