@@ -3,6 +3,10 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib import rcParams
+
+rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+rcParams["text.usetex"] = True
 
 sns.set_style("white")
 radius = 1
