@@ -343,7 +343,7 @@ def test_add_infinity_and_beyond(a, b, c):
     z = poincare.math.expmap(a, -infty, c=c)
     # they just need to be very far, exact answer is not supposed
     tolerance = {
-        torch.float32: dict(rtol=3e-1, atol=1e-1),
+        torch.float32: dict(rtol=3e-1, atol=2e-1),
         torch.float64: dict(rtol=1e-1, atol=1e-3),
     }
     np.testing.assert_allclose(z, -a, **tolerance[c.dtype])
