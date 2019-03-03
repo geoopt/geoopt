@@ -109,6 +109,7 @@ def test_manifold_is_submodule():
 
 
 def test_manifold_is_submodule_poincare():
+    print(torch.get_default_dtype())
     c = torch.tensor(1.0)
     ball = geoopt.manifolds.PoincareBall(c)
     assert ball.c.dtype == torch.float32
