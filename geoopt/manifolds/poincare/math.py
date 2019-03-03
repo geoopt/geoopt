@@ -166,6 +166,8 @@ def mobius_add(x, y, *, c=1.0):
             1 + 2 c \langle x, y\rangle + c^2 \|x\|^2_2 \|y\|^2_2
         }
 
+    .. plot:: plots/extended/poincare/mobius_add.py
+
     In general this operation is not commutative:
 
     .. math::
@@ -399,7 +401,7 @@ def dist(x, y, *, c=1.0, keepdim=False):
 
         d_c(x, y) = \frac{2}{\sqrt{c}}\tanh^{-1}(\sqrt{c}\|(-x)\oplus_c y\|_2)
 
-    .. plot:: plots/extended/Poincare/distance.py
+    .. plot:: plots/extended/poincare/distance.py
 
     Parameters
     ----------
@@ -762,6 +764,7 @@ def mobius_matvec(m, x, *, c=1.0):
             \frac{\|Mx\|_2}{\|x\|_2}\tanh^{-1}(\sqrt{c}\|x\|_2)
         \right)\frac{Mx}{\|Mx\|_2}
 
+    .. plot:: plots/extended/poincare/mobius_matvec.py
 
     Parameters
     ----------
@@ -892,6 +895,8 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
     .. math::
 
         f^{\otimes_c}(x) = \operatorname{Exp}^c_0(f(\operatorname{Log}^c_0(y)))
+
+    .. plot:: plots/extended/poincare/mobius_sigmoid_apply.py
 
     Parameters
     ----------
