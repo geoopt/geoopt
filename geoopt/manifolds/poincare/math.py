@@ -22,12 +22,12 @@ def artanh(x):
 
 
 def arsinh(x):
-    return (x + torch.sqrt(1 + x ** 2)).clamp_min(1e-15).log()
+    z = x.double()
+    return (z + torch.sqrt(1 + z ** 2)).clamp_min(1e-15).log().to(x.dtype)
 
 
-def arcosh(x):
-    x = x.clamp(-1 + 1e-15, 1 - 1e-15)
-    return torch.log(x + torch.sqrt(1 + x) * torch.sqrt(x - 1))
+def pushzero(x):
+    return x - 1e-20
 
 
 def project(x, *, c=1.0):
@@ -49,9 +49,13 @@ def project(x, *, c=1.0):
     return _project(x, c)
 
 
+@torch.jit.script
 def _project(x, c):
     norm = x.norm(dim=-1, keepdim=True, p=2)
-    maxnorm = (1 - 1e-5) / (c ** 0.5)
+    if x.dtype == torch.float32:
+        maxnorm = (1 - 3e-3) / (c ** 0.5)
+    else:
+        maxnorm = (1 - 1e-5) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
@@ -99,9 +103,9 @@ def inner(x, u, v, *, c=1.0, keepdim=False):
     x : tensor
         point on the Poincare ball
     u : tensor
-        tangent vector to :math:`x` on poincare ball
+        tangent vector to :math:`x` on Poincare ball
     v : tensor
-        tangent vector to :math:`x` on poincare ball
+        tangent vector to :math:`x` on Poincare ball
     c : float|tensor
         ball negative curvature
     keepdim : bool
@@ -132,7 +136,7 @@ def norm(x, u, *, c=1.0, keepdim=False):
     x : tensor
         point on the Poincare ball
     u : tensor
-        tangent vector to :math:`x` on poincare ball
+        tangent vector to :math:`x` on Poincare ball
     c : float|tensor
         ball negative curvature
     keepdim : bool
@@ -227,9 +231,9 @@ def mobius_sub(x, y, *, c=1.0):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     y : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -273,9 +277,9 @@ def mobius_coadd(x, y, *, c=1.0):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     y : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -309,9 +313,9 @@ def mobius_cosub(x, y, *, c=1.0):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     y : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -336,7 +340,7 @@ def mobius_scalar_mul(r, x, *, c=1.0):
 
         r \otimes_c x = (1/\sqrt{c}) \tanh(r\tanh^{-1}(\sqrt{c}\|x\|_2))\frac{x}{\|x\|_2}
 
-    This operation has properties similar to euclidean
+    This operation has properties similar to Euclidean
 
     * `n-addition` property
 
@@ -367,7 +371,7 @@ def mobius_scalar_mul(r, x, *, c=1.0):
     r : float|tensor
         scalar for multiplication
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -384,7 +388,7 @@ def _mobius_scalar_mul(r, x, c):
     x_norm = x.norm(dim=-1, keepdim=True, p=2)
     sqrt_c = c ** 0.5
     res_c = tanh(r * artanh(sqrt_c * x_norm)) * x / (x_norm * sqrt_c)
-    return _project(res_c, c)
+    return res_c
 
 
 def dist(x, y, *, c=1.0, keepdim=False):
@@ -395,14 +399,14 @@ def dist(x, y, *, c=1.0, keepdim=False):
 
         d_c(x, y) = \frac{2}{\sqrt{c}}\tanh^{-1}(\sqrt{c}\|(-x)\oplus_c y\|_2)
 
-    .. plot:: plots/extended/poincare/distance.py
+    .. plot:: plots/extended/Poincare/distance.py
 
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     y : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         ball negative curvature
     keepdim : bool
@@ -429,7 +433,7 @@ def dist0(x, *, c=1.0, keepdim=False):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         ball negative curvature
     keepdim : bool
@@ -461,7 +465,7 @@ def project_tangent(x, u, *, c):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     u : tensor
         tangent vector
     c : float|tensor
@@ -530,9 +534,9 @@ def geodesic(t, x, y, *, c=1.0):
     t : float|tensor
         travelling time
     x : tensor
-        starting point on poincare ball
+        starting point on Poincare ball
     y : tensor
-        target point on poincare ball
+        target point on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -576,9 +580,9 @@ def expmap(x, u, *, c=1.0):
     Parameters
     ----------
     x : tensor
-        starting point on poincare ball
+        starting point on Poincare ball
     u : tensor
-        speed vector on poincare ball
+        speed vector on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -614,7 +618,7 @@ def expmap0(u, *, c=1.0):
     Parameters
     ----------
     u : tensor
-        speed vector on poincare ball
+        speed vector on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -689,9 +693,9 @@ def logmap(x, y, *, c=1.0):
     Parameters
     ----------
     x : tensor
-        starting point on poincare ball
+        starting point on Poincare ball
     y : tensor
-        target point on poincare ball
+        target point on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -729,7 +733,7 @@ def logmap0(y, *, c=1.0):
     Parameters
     ----------
     y : tensor
-        target point on poincare ball
+        target point on Poincare ball
     c : float|tensor
         ball negative curvature
 
@@ -764,7 +768,7 @@ def mobius_matvec(m, x, *, c=1.0):
     m : tensor
         matrix for multiplication
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         negative ball curvature
 
@@ -786,7 +790,7 @@ def _mobius_matvec(m, x, c):
     cond = (mx == 0).prod(-1, keepdim=True, dtype=torch.uint8)
     res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
     res = torch.where(cond, res_0, res_c)
-    return _project(res, c)
+    return res
 
 
 def mobius_pointwise_mul(w, x, *, c=1.0):
@@ -805,7 +809,7 @@ def mobius_pointwise_mul(w, x, *, c=1.0):
     w : tensor
         weights for multiplication
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     c : float|tensor
         negative ball curvature
 
@@ -856,7 +860,7 @@ def mobius_fn_apply_chain(x, *fns, c=1.0):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     fns : callable[]
         functions to apply
     c : float|tensor
@@ -892,7 +896,7 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     fn : callable
         function to apply
     c : float|tensor
@@ -1026,11 +1030,11 @@ def dist2plane(x, p, a, *, c=1.0, keepdim=False, signed=False):
     Parameters
     ----------
     x : tensor
-        point on poincare ball
+        point on Poincare ball
     a : tensor
         vector on tangent space of :math:`p`
     p : tensor
-        point on poincare ball lying on the hyperplane
+        point on Poincare ball lying on the hyperplane
     c : float|tensor
         ball negative curvature
     keepdim : bool
@@ -1056,7 +1060,7 @@ def _dist2plane(x, a, p, c, keepdim: bool = False, signed: bool = False):
     a_norm = a.norm(dim=-1, keepdim=keepdim, p=2)
     num = 2 * sqrt_c * sc_diff_a
     denom = (1 - c * diff_norm2) * a_norm
-    return arsinh(num / denom) / sqrt_c
+    return arsinh(num / (denom + 1e-15)) / sqrt_c
 
 
 def gyration(a, b, u, *, c=1.0):
@@ -1089,9 +1093,9 @@ def gyration(a, b, u, *, c=1.0):
     Parameters
     ----------
     a : tensor
-        first point on poincare ball
+        first point on Poincare ball
     b : tensor
-        second point on poincare ball
+        second point on Poincare ball
     u : tensor
         vector field for operation
     c : float|tensor
@@ -1226,9 +1230,9 @@ def egrad2rgrad(x, grad, *, c=1.0):
     Parameters
     ----------
     x : tensor
-        point on the poincare ball
+        point on the Poincare ball
     grad : tensor
-        euclidean gradient for :math:`x`
+        Euclidean gradient for :math:`x`
     c : float|tensor
         ball negative curvature
 
