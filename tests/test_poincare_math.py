@@ -330,7 +330,7 @@ def test_parallel_transport_a_b(a, b, c):
 
 def test_add_infinity_and_beyond(a, b, c):
     infty = b * 10000000
-    infty = poincare.math.project_tangent(a, infty, c=c)
+    infty = poincare.math.clip_tangent(a, infty, c=c)
     for i in range(100):
         z = poincare.math.expmap(a, infty, c=c)
         z = poincare.math.project(z, c=c)
