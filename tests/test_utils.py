@@ -58,7 +58,7 @@ def test_pickle1():
     assert p.storage_offset() == p1.storage_offset()
     assert p.requires_grad == p1.requires_grad
     np.testing.assert_allclose(p.detach(), p1.detach())
-    assert p.manifold == p1.manifold
+    assert isinstance(p.manifold, type(p1.manifold))
 
 
 def test_pickle2():
@@ -72,7 +72,24 @@ def test_pickle2():
     assert p.storage_offset() == p1.storage_offset()
     assert p.requires_grad == p1.requires_grad
     np.testing.assert_allclose(p.detach(), p1.detach())
-    assert p.manifold == p1.manifold
+    assert isinstance(p.manifold, type(p1.manifold))
+
+
+def test_pickle3():
+    t = torch.ones(10)
+    span = torch.randn(10, 2)
+    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    p = geoopt.ManifoldParameter(t, manifold=sub_sphere)
+    with tempfile.TemporaryDirectory() as path:
+        torch.save(p, os.path.join(path, "tens.t7"))
+        p1 = torch.load(os.path.join(path, "tens.t7"))
+    assert isinstance(p1, geoopt.ManifoldParameter)
+    assert p.stride() == p1.stride()
+    assert p.storage_offset() == p1.storage_offset()
+    assert p.requires_grad == p1.requires_grad
+    np.testing.assert_allclose(p.detach(), p1.detach())
+    assert isinstance(p.manifold, type(p1.manifold))
+    np.testing.assert_allclose(p.manifold._projector, p1.manifold._projector)
 
 
 def test_manifold_to_smth():
