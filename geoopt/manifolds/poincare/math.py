@@ -453,7 +453,7 @@ def _dist0(x, c, keepdim: bool = False):
     return dist_c * 2 / sqrt_c
 
 
-def project_tangent(x, u, *, c):
+def clip_tangent(x, u, *, c):
     r"""
     Project tangent vector to reasonable values that do not exceed
     maximum allowed (vector norm allowing to travel to the opposite pole)
@@ -476,10 +476,10 @@ def project_tangent(x, u, *, c):
     tensor
         same tangent vector with reasonable values
     """
-    return _project_tangent(x, u, c)
+    return _clip_tangent(x, u, c)
 
 
-def _project_tangent(x, u, c):
+def _clip_tangent(x, u, c):
     # get the almost infinite vecotor estimate
     # this is the norm of travel vector to the opposite pole
     dim = x.size(-1)
