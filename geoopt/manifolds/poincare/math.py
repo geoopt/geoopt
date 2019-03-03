@@ -1084,7 +1084,7 @@ def gyration(a, b, u, *, c=1.0):
     .. math::
 
         A = - c^2 \langle u, w\rangle \langle v, v\rangle + c \langle v, w\rangle +
-            2 c \langle u, v\rangle \langle v, w\rangle\\
+            2 c^2 \langle u, v\rangle \langle v, w\rangle\\
         B = - c^2 \langle v, w\rangle \langle u, u\rangle - c \langle u, w\rangle\\
         D = 1 + 2 c \langle u, v\rangle + c^2 \langle u, u\rangle \langle v, v\rangle\\
 
