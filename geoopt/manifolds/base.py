@@ -542,7 +542,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         return self._retr_funcs[-1](self, x=x, u=u, t=t)
 
     def logmap(self, x, y):
-        """
+        r"""
         Perform an logarithmic map for a pair of points :math:`x` and :math:`y`.
         The result lies in :math:`u \in T_x\mathcal{M}` is such that:
 
@@ -951,6 +951,3 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             return self.name + "({}) manifold".format(extra)
         else:
             return self.name + " manifold"
-
-    def __eq__(self, other):
-        return type(self) is type(other)
