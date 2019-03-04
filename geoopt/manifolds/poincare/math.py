@@ -26,11 +26,7 @@ def arsinh(x):
     return (z + torch.sqrt(1 + z ** 2)).clamp_min(1e-15).log().to(x.dtype)
 
 
-def pushzero(x):
-    return x - 1e-20
-
-
-def project(x, *, c=1.0):
+def project(x, *, c=1.0, dim=-1):
     r"""
     Safe projection on the manifold for numerical stability.
 
@@ -40,28 +36,35 @@ def project(x, *, c=1.0):
         point on the Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension to compute norm
 
     Returns
     -------
     tensor
         projected vector on the manifold
     """
-    return _project(x, c)
+    return _project(x, c, dim)
 
 
 @torch.jit.script
-def _project(x, c):
-    norm = x.norm(dim=-1, keepdim=True, p=2)
+def _max_norm(x):
     if x.dtype == torch.float32:
-        maxnorm = (1 - 3e-3) / (c ** 0.5)
+        maxnorm = (1 - 3e-3)
     else:
-        maxnorm = (1 - 1e-5) / (c ** 0.5)
+        maxnorm = (1 - 1e-5)
+    return maxnorm
+
+
+def _project(x, c, dim: int = -1):
+    norm = x.norm(dim=dim, keepdim=True, p=2)
+    maxnorm = _max_norm(x) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
 
 
-def lambda_x(x, *, c=1.0, keepdim=False):
+def lambda_x(x, *, c=1.0, keepdim=False, dim=-1):
     r"""
     Compute the conformal factor :math:`\lambda^c_x` for a point on the ball
 
@@ -77,20 +80,22 @@ def lambda_x(x, *, c=1.0, keepdim=False):
         ball negative curvature
     keepdim : bool
         retain the last dim? (default: false)
+    dim : int
+        reduction dimension
 
     Returns
     -------
     tensor
         conformal factor
     """
-    return _lambda_x(x, c, keepdim=keepdim)
+    return _lambda_x(x, c, keepdim=keepdim, dim=dim)
 
 
-def _lambda_x(x, c, keepdim: bool = False):
-    return 2 / (1 - c * x.pow(2).sum(-1, keepdim=keepdim))
+def _lambda_x(x, c, keepdim: bool = False, dim: int = -1):
+    return 2 / (1 - c * x.pow(2).sum(dim=dim, keepdim=keepdim))
 
 
-def inner(x, u, v, *, c=1.0, keepdim=False):
+def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
     r"""
     Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball
 
@@ -110,20 +115,22 @@ def inner(x, u, v, *, c=1.0, keepdim=False):
         ball negative curvature
     keepdim : bool
         retain the last dim? (default: false)
+    dim : int
+        reduction dimension
 
     Returns
     -------
     tensor
         inner product
     """
-    return _inner(x, u, v, c, keepdim=keepdim)
+    return _inner(x, u, v, c, keepdim=keepdim, dim=dim)
 
 
-def _inner(x, u, v, c, keepdim: bool = False):
-    return _lambda_x(x, c, keepdim=True) ** 2 * (u * v).sum(-1, keepdim=keepdim)
+def _inner(x, u, v, c, keepdim: bool = False, dim: int = -1):
+    return _lambda_x(x, c, keepdim=True, dim=dim) ** 2 * (u * v).sum(dim=dim, keepdim=keepdim)
 
 
-def norm(x, u, *, c=1.0, keepdim=False):
+def norm(x, u, *, c=1.0, keepdim=False, dim=-1):
     r"""
     Compute vector norm on the tangent space w.r.t Riemannian metric on the Poincare ball
 
@@ -141,20 +148,22 @@ def norm(x, u, *, c=1.0, keepdim=False):
         ball negative curvature
     keepdim : bool
         retain the last dim? (default: false)
+    dim : int
+        reduction dimension
 
     Returns
     -------
     tensor
         norm of vector
     """
-    return _norm(x, u, c, keepdim=keepdim)
+    return _norm(x, u, c, keepdim=keepdim, dim=dim)
 
 
-def _norm(x, u, c, keepdim: bool = False):
-    return _lambda_x(x, c, keepdim=keepdim) * u.norm(dim=-1, keepdim=keepdim, p=2)
+def _norm(x, u, c, keepdim: bool = False, dim: int = -1):
+    return _lambda_x(x, c, keepdim=keepdim, dim=dim) * u.norm(dim=dim, keepdim=keepdim, p=2)
 
 
-def mobius_add(x, y, *, c=1.0):
+def mobius_add(x, y, *, c=1.0, dim=-1):
     r"""
     Mobius addition is a special operation in a hyperbolic space.
 
@@ -202,27 +211,29 @@ def mobius_add(x, y, *, c=1.0):
         point on the Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         the result of mobius addition
     """
-    return _mobius_add(x, y, c)
+    return _mobius_add(x, y, c, dim=dim)
 
 
-def _mobius_add(x, y, c):
+def _mobius_add(x, y, c, dim=-1):
     y = y + 1e-15
-    x2 = x.pow(2).sum(dim=-1, keepdim=True)
-    y2 = y.pow(2).sum(dim=-1, keepdim=True)
-    xy = (x * y).sum(dim=-1, keepdim=True)
+    x2 = x.pow(2).sum(dim=dim, keepdim=True)
+    y2 = y.pow(2).sum(dim=dim, keepdim=True)
+    xy = (x * y).sum(dim=dim, keepdim=True)
     num = (1 + 2 * c * xy + c * y2) * x + (1 - c * x2) * y
     denom = 1 + 2 * c * xy + c ** 2 * x2 * y2
     # avoid division by zero in this way
     return num / (denom + 1e-15)
 
 
-def mobius_sub(x, y, *, c=1.0):
+def mobius_sub(x, y, *, c=1.0, dim=-1):
     r"""
     Mobius substraction that can be represented via Mobius addition as follows:
 
@@ -238,20 +249,22 @@ def mobius_sub(x, y, *, c=1.0):
         point on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         the result of mobius substraction
     """
-    return _mobius_sub(x, y, c)
+    return _mobius_sub(x, y, c, dim=dim)
 
 
-def _mobius_sub(x, y, c):
-    return _mobius_add(x, -y, c)
+def _mobius_sub(x, y, c, dim: int = -1):
+    return _mobius_add(x, -y, c, dim=dim)
 
 
-def mobius_coadd(x, y, *, c=1.0):
+def mobius_coadd(x, y, *, c=1.0, dim=-1):
     r"""
     Mobius coaddition operation
 
@@ -284,6 +297,8 @@ def mobius_coadd(x, y, *, c=1.0):
         point on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
@@ -291,20 +306,20 @@ def mobius_coadd(x, y, *, c=1.0):
         the result of mobius coaddition
 
     """
-    return _mobius_coadd(x, y, c)
+    return _mobius_coadd(x, y, c, dim=dim)
 
 
-def _mobius_coadd(x, y, c):
+def _mobius_coadd(x, y, c, dim: int = -1):
     y = y + 1e-15
-    x2 = x.pow(2).sum(dim=-1, keepdim=True)
-    y2 = y.pow(2).sum(dim=-1, keepdim=True)
+    x2 = x.pow(2).sum(dim=dim, keepdim=True)
+    y2 = y.pow(2).sum(dim=dim, keepdim=True)
     num = (1 - c * y2) * x + (1 - c * x2) * y
     denom = 1 - c ** 2 * x2 * y2
     # avoid division by zero in this way
     return num / (denom + 1e-15)
 
 
-def mobius_cosub(x, y, *, c=1.0):
+def mobius_cosub(x, y, *, c=1.0, dim=-1):
     """
     Mobius cosubstraction operation
 
@@ -320,6 +335,8 @@ def mobius_cosub(x, y, *, c=1.0):
         point on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
@@ -327,14 +344,14 @@ def mobius_cosub(x, y, *, c=1.0):
         the result of mobius coaddition
 
     """
-    return _mobius_cosub(x, y, c)
+    return _mobius_cosub(x, y, c, dim=dim)
 
 
-def _mobius_cosub(x, y, c):
-    return _mobius_coadd(x, -y, c)
+def _mobius_cosub(x, y, c, dim: int = -1):
+    return _mobius_coadd(x, -y, c, dim=dim)
 
 
-def mobius_scalar_mul(r, x, *, c=1.0):
+def mobius_scalar_mul(r, x, *, c=1.0, dim=-1):
     r"""
     Left scalar multiplication on the Poincare ball
 
@@ -376,24 +393,26 @@ def mobius_scalar_mul(r, x, *, c=1.0):
         point on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         the result of mobius scalar multiplication
     """
-    return _mobius_scalar_mul(r, x, c)
+    return _mobius_scalar_mul(r, x, c, dim=dim)
 
 
-def _mobius_scalar_mul(r, x, c):
+def _mobius_scalar_mul(r, x, c, dim: int = -1):
     x = x + 1e-15
-    x_norm = x.norm(dim=-1, keepdim=True, p=2)
+    x_norm = x.norm(dim=dim, keepdim=True, p=2)
     sqrt_c = c ** 0.5
     res_c = tanh(r * artanh(sqrt_c * x_norm)) * x / (x_norm * sqrt_c)
     return res_c
 
 
-def dist(x, y, *, c=1.0, keepdim=False):
+def dist(x, y, *, c=1.0, keepdim=False, dim=-1):
     r"""
     Distance on the Poincare ball
 
@@ -413,22 +432,24 @@ def dist(x, y, *, c=1.0, keepdim=False):
         ball negative curvature
     keepdim : bool
         retain the last dim? (default: false)
+    dim : int
+        reduction dimension
 
     Returns
     -------
     tensor
         geodesic distance between :math:`x` and :math:`y`
     """
-    return _dist(x, y, c, keepdim=keepdim)
+    return _dist(x, y, c, keepdim=keepdim, dim=dim)
 
 
-def _dist(x, y, c, keepdim: bool = False):
+def _dist(x, y, c, keepdim: bool = False, dim: int = -1):
     sqrt_c = c ** 0.5
-    dist_c = artanh(sqrt_c * _mobius_add(-x, y, c).norm(dim=-1, p=2, keepdim=keepdim))
+    dist_c = artanh(sqrt_c * _mobius_add(-x, y, c, dim=dim).norm(dim=dim, p=2, keepdim=keepdim))
     return dist_c * 2 / sqrt_c
 
 
-def dist0(x, *, c=1.0, keepdim=False):
+def dist0(x, *, c=1.0, keepdim=False, dim=-1):
     r"""
     Distance on the Poincare ball to zero
 
@@ -440,22 +461,24 @@ def dist0(x, *, c=1.0, keepdim=False):
         ball negative curvature
     keepdim : bool
         retain the last dim? (default: false)
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         geodesic distance between :math:`x` and :math:`0`
     """
-    return _dist0(x, c, keepdim=keepdim)
+    return _dist0(x, c, keepdim=keepdim, dim=dim)
 
 
-def _dist0(x, c, keepdim: bool = False):
+def _dist0(x, c, keepdim: bool = False, dim: int = -1):
     sqrt_c = c ** 0.5
-    dist_c = artanh(sqrt_c * x.norm(dim=-1, p=2, keepdim=keepdim))
+    dist_c = artanh(sqrt_c * x.norm(dim=dim, p=2, keepdim=keepdim))
     return dist_c * 2 / sqrt_c
 
 
-def clip_tangent(x, u, *, c):
+def clip_tangent(x, u, *, c=1.0, dim=-1):
     r"""
     Project tangent vector to reasonable values that do not exceed
     maximum allowed (vector norm allowing to travel to the opposite pole)
@@ -472,31 +495,33 @@ def clip_tangent(x, u, *, c):
         tangent vector
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension to compute norm
 
     Returns
     -------
     tensor
         same tangent vector with reasonable values
     """
-    return _clip_tangent(x, u, c)
+    return _clip_tangent(x, u, c, dim=dim)
 
 
-def _clip_tangent(x, u, c):
+def _clip_tangent(x, u, c, dim: int = -1):
     # get the almost infinite vecotor estimate
     # this is the norm of travel vector to the opposite pole
-    dim = x.size(-1)
-    p = torch.ones((dim,), dtype=x.dtype, device=x.device)
-    p = p / dim ** 0.5 / (c ** 0.5)
-    p = _project(p, c)
+    s = x.size(dim)
+    p = torch.ones((s,), dtype=x.dtype, device=x.device)
+    p = p / s ** 0.5 / (c ** 0.5)
+    p = _project(p, c, dim=dim)
     # normalize its length based on x
-    maxnorm = _dist(p, -p, c, keepdim=True) / _lambda_x(x, c, keepdim=True)
-    norm = u.norm(dim=-1, keepdim=True, p=2)
+    maxnorm = _dist(p, -p, c, keepdim=True, dim=dim) / _lambda_x(x, c, keepdim=True, dim=dim)
+    norm = u.norm(dim=dim, keepdim=True, p=2)
     cond = norm > maxnorm
     projected = u / norm * maxnorm
     return torch.where(cond, projected, u)
 
 
-def geodesic(t, x, y, *, c=1.0):
+def geodesic(t, x, y, *, c=1.0, dim=-1):
     r"""
     Geodesic (the shortest) path connecting :math:`x` and :math:`y`.
     The path can be treated as and extension of a line segment between
@@ -541,24 +566,26 @@ def geodesic(t, x, y, *, c=1.0):
         target point on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         point on the Poincare ball
     """
-    return _geodesic(t, x, y, c)
+    return _geodesic(t, x, y, c, dim=dim)
 
 
-def _geodesic(t, x, y, c):
+def _geodesic(t, x, y, c, dim: int = -1):
     # this is not very numerically unstable
-    v = _mobius_add(-x, y, c)
-    tv = _mobius_scalar_mul(t, v, c)
-    gamma_t = _mobius_add(x, tv, c)
+    v = _mobius_add(-x, y, c, dim=dim)
+    tv = _mobius_scalar_mul(t, v, c, dim=dim)
+    gamma_t = _mobius_add(x, tv, c, dim=dim)
     return gamma_t
 
 
-def expmap(x, u, *, c=1.0):
+def expmap(x, u, *, c=1.0, dim=-1):
     r"""
     Exponential map for Poincare ball model. This is tightly related with :func:`geodesic`.
     Intuitively Exponential map is a smooth constant travelling from starting point :math:`x` with speed :math:`u`.
@@ -587,29 +614,31 @@ def expmap(x, u, *, c=1.0):
         speed vector on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         :math:`\gamma_{x, u}(1)` end point
     """
-    return _expmap(x, u, c)
+    return _expmap(x, u, c, dim=dim)
 
 
-def _expmap(x, u, c):
+def _expmap(x, u, c, dim: int = -1):
     u += 1e-15
     sqrt_c = c ** 0.5
-    u_norm = u.norm(dim=-1, p=2, keepdim=True)
+    u_norm = u.norm(dim=dim, p=2, keepdim=True)
     second_term = (
-        tanh(sqrt_c / 2 * _lambda_x(x, c, keepdim=True) * u_norm)
+        tanh(sqrt_c / 2 * _lambda_x(x, c, keepdim=True, dim=dim) * u_norm)
         * u
         / (sqrt_c * u_norm)
     )
-    gamma_1 = _mobius_add(x, second_term, c)
+    gamma_1 = _mobius_add(x, second_term, c, dim=dim)
     return gamma_1
 
 
-def expmap0(u, *, c=1.0):
+def expmap0(u, *, c=1.0, dim=-1):
     r"""
     Exponential map for Poincare ball model from :math:`0`.
 
@@ -623,24 +652,26 @@ def expmap0(u, *, c=1.0):
         speed vector on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         :math:`\gamma_{0, u}(1)` end point
     """
-    return _expmap0(u, c)
+    return _expmap0(u, c, dim=dim)
 
 
-def _expmap0(u, c):
+def _expmap0(u, c, dim: int = -1):
     u = u + 1e-15
     sqrt_c = c ** 0.5
-    u_norm = u.norm(dim=-1, p=2, keepdim=True)
+    u_norm = u.norm(dim=dim, p=2, keepdim=True)
     gamma_1 = tanh(sqrt_c * u_norm) * u / (sqrt_c * u_norm)
     return gamma_1
 
 
-def geodesic_unit(t, x, u, *, c=1.0):
+def geodesic_unit(t, x, u, *, c=1.0, dim=-1):
     r"""
     Unit speed geodesic starting from :math:`x` with direction :math:`u/\|u\|_x`
 
@@ -658,24 +689,26 @@ def geodesic_unit(t, x, u, *, c=1.0):
         direction
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         the point on geodesic line
     """
-    return _geodesic_unit(t, x, u, c)
+    return _geodesic_unit(t, x, u, c, dim=dim)
 
 
-def _geodesic_unit(t, x, u, c):
+def _geodesic_unit(t, x, u, c, dim: int = -1):
     sqrt_c = c ** 0.5
-    u_norm = u.norm(dim=-1, p=2, keepdim=True)
+    u_norm = u.norm(dim=dim, p=2, keepdim=True)
     second_term = tanh(sqrt_c / 2 * t) * u / (sqrt_c * u_norm)
-    gamma_1 = _mobius_add(x, second_term, c)
+    gamma_1 = _mobius_add(x, second_term, c, dim=dim)
     return gamma_1
 
 
-def logmap(x, y, *, c=1.0):
+def logmap(x, y, *, c=1.0, dim=-1):
     r"""
     Logarithmic map for two points :math:`x` and :math:`y` on the manifold.
 
@@ -700,24 +733,26 @@ def logmap(x, y, *, c=1.0):
         target point on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         tangent vector that transports :math:`x` to :math:`y`
     """
-    return _logmap(x, y, c)
+    return _logmap(x, y, c, dim=dim)
 
 
-def _logmap(x, y, c):
-    sub = _mobius_add(-x, y, c)
-    sub_norm = sub.norm(dim=-1, p=2, keepdim=True)
-    lam = _lambda_x(x, c, keepdim=True)
+def _logmap(x, y, c, dim: int = -1):
+    sub = _mobius_add(-x, y, c, dim=dim)
+    sub_norm = sub.norm(dim=dim, p=2, keepdim=True)
+    lam = _lambda_x(x, c, keepdim=True, dim=dim)
     sqrt_c = c ** 0.5
     return 2 / sqrt_c / lam * artanh(sqrt_c * sub_norm) * sub / sub_norm
 
 
-def logmap0(y, *, c=1.0):
+def logmap0(y, *, c=1.0, dim=-1):
     r"""
     Logarithmic map for :math:`y` from :math:`0` on the manifold.
 
@@ -738,23 +773,25 @@ def logmap0(y, *, c=1.0):
         target point on Poincare ball
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         tangent vector that transports :math:`0` to :math:`y`
     """
-    return _logmap0(y, c)
+    return _logmap0(y, c, dim=dim)
 
 
-def _logmap0(y, c):
+def _logmap0(y, c, dim: int = -1):
     sqrt_c = c ** 0.5
     y = y + 1e-15
-    y_norm = y.norm(dim=-1, p=2, keepdim=True)
+    y_norm = y.norm(dim=dim, p=2, keepdim=True)
     return y / y_norm / sqrt_c * artanh(sqrt_c * y_norm)
 
 
-def mobius_matvec(m, x, *, c=1.0):
+def mobius_matvec(m, x, *, c=1.0, dim=-1):
     r"""
     Generalization for matrix-vector multiplication to hyperbolic space defined as
 
@@ -774,29 +811,31 @@ def mobius_matvec(m, x, *, c=1.0):
         point on Poincare ball
     c : float|tensor
         negative ball curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         Mobius matvec result
     """
-    return _mobius_matvec(m, x, c)
+    return _mobius_matvec(m, x, c, dim=dim)
 
 
-def _mobius_matvec(m, x, c):
+def _mobius_matvec(m, x, c, dim: int = -1):
     x = x + 1e-15
-    x_norm = x.norm(dim=-1, keepdim=True, p=2)
+    x_norm = x.norm(dim=dim, keepdim=True, p=2)
     sqrt_c = c ** 0.5
-    mx = x @ m.transpose(-1, -2)
-    mx_norm = mx.norm(dim=-1, keepdim=True, p=2)
+    mx = torch.tensordot(x, m, dims=([dim], [1]))
+    mx_norm = mx.norm(dim=dim, keepdim=True, p=2)
     res_c = tanh(mx_norm / x_norm * artanh(sqrt_c * x_norm)) * mx / (mx_norm * sqrt_c)
-    cond = (mx == 0).prod(-1, keepdim=True, dtype=torch.uint8)
+    cond = (mx == 0).prod(dim=dim, keepdim=True, dtype=torch.uint8)
     res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
     res = torch.where(cond, res_0, res_c)
     return res
 
 
-def mobius_pointwise_mul(w, x, *, c=1.0):
+def mobius_pointwise_mul(w, x, *, c=1.0, dim=-1):
     r"""
     Generalization for pointwise multiplication to hyperbolic space defined as
 
@@ -810,34 +849,36 @@ def mobius_pointwise_mul(w, x, *, c=1.0):
     Parameters
     ----------
     w : tensor
-        weights for multiplication
+        weights for multiplication (should be broadcastable to x)
     x : tensor
         point on Poincare ball
     c : float|tensor
         negative ball curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         Mobius pointwise mul result
     """
-    return _mobius_pointwise_mul(w, x, c)
+    return _mobius_pointwise_mul(w, x, c, dim=dim)
 
 
-def _mobius_pointwise_mul(w, x, c):
+def _mobius_pointwise_mul(w, x, c, dim: int = -1):
     x = x + 1e-15
-    x_norm = x.norm(dim=-1, keepdim=True, p=2)
+    x_norm = x.norm(dim=dim, keepdim=True, p=2)
     sqrt_c = c ** 0.5
-    wx = x * w
-    wx_norm = wx.norm(dim=-1, keepdim=True, p=2)
+    wx = w * x
+    wx_norm = wx.norm(dim=dim, keepdim=True, p=2)
     res_c = tanh(wx_norm / x_norm * artanh(sqrt_c * x_norm)) * wx / (wx_norm * sqrt_c)
-    cond = (wx == 0).prod(-1, keepdim=True, dtype=torch.uint8)
+    cond = (wx == 0).prod(dim=dim, keepdim=True, dtype=torch.uint8)
     res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
     res = torch.where(cond, res_0, res_c)
-    return _project(res, c)
+    return res
 
 
-def mobius_fn_apply_chain(x, *fns, c=1.0):
+def mobius_fn_apply_chain(x, *fns, c=1.0, dim=-1):
     r"""
     Generalization for functions in hyperbolic space.
     First, hyperbolic vector is mapped to a Euclidean space via
@@ -868,6 +909,8 @@ def mobius_fn_apply_chain(x, *fns, c=1.0):
         functions to apply
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
@@ -877,15 +920,14 @@ def mobius_fn_apply_chain(x, *fns, c=1.0):
     if not fns:
         return x
     else:
-
-        ex = _logmap0(x, c)
+        ex = _logmap0(x, c, dim=dim)
         for fn in fns:
             ex = fn(ex)
-        y = _expmap0(ex, c)
+        y = _expmap0(ex, c, dim=dim)
         return y
 
 
-def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
+def mobius_fn_apply(fn, x, *args, c=1.0, dim=-1, **kwargs):
     r"""
     Generalization for functions in hyperbolic space.
     First, hyperbolic vector is mapped to a Euclidean space via
@@ -906,15 +948,17 @@ def mobius_fn_apply(fn, x, *args, c=1.0, **kwargs):
         function to apply
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         Result of function in hyperbolic space
     """
-    ex = _logmap0(x, c)
+    ex = _logmap0(x, c, dim=dim)
     ex = fn(ex, *args, **kwargs)
-    y = _expmap0(ex, c)
+    y = _expmap0(ex, c, dim=dim)
     return y
 
 
@@ -934,17 +978,16 @@ def mobiusify(fn):
     """
 
     @functools.wraps(fn)
-    def mobius_fn(x, *args, c=1.0, **kwargs):
-
-        ex = _logmap0(x, c)
+    def mobius_fn(x, *args, c=1.0, dim=-1, **kwargs):
+        ex = _logmap0(x, c, dim=dim)
         ex = fn(ex, *args, **kwargs)
-        y = _expmap0(ex, c)
+        y = _expmap0(ex, c, dim=dim)
         return y
 
     return mobius_fn
 
 
-def dist2plane(x, p, a, *, c=1.0, keepdim=False, signed=False):
+def dist2plane(x, p, a, *, c=1.0, keepdim=False, signed=False, dim=-1):
     r"""
     Distance from :math:`x` to a hyperbolic hyperplane in Poincare ball
     that is orthogonal to :math:`a` and contains :math:`p`.
@@ -1046,29 +1089,31 @@ def dist2plane(x, p, a, *, c=1.0, keepdim=False, signed=False):
         retain the last dim? (default: false)
     signed : bool
         return signed distance
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         distance to the hyperplane
     """
-    return _dist2plane(x, a, p, c, keepdim=keepdim, signed=signed)
+    return _dist2plane(x, a, p, c, keepdim=keepdim, signed=signed, dim=dim)
 
 
-def _dist2plane(x, a, p, c, keepdim: bool = False, signed: bool = False):
+def _dist2plane(x, a, p, c, keepdim: bool = False, signed: bool = False, dim: int = -1):
     sqrt_c = c ** 0.5
-    diff = _mobius_add(-p, x, c)
-    diff_norm2 = diff.pow(2).sum(dim=-1, keepdim=keepdim)
-    sc_diff_a = (diff * a).sum(dim=-1, keepdim=keepdim)
+    diff = _mobius_add(-p, x, c, dim=dim)
+    diff_norm2 = diff.pow(2).sum(dim=dim, keepdim=keepdim)
+    sc_diff_a = (diff * a).sum(dim=dim, keepdim=keepdim)
     if not signed:
         sc_diff_a = sc_diff_a.abs()
-    a_norm = a.norm(dim=-1, keepdim=keepdim, p=2)
+    a_norm = a.norm(dim=dim, keepdim=keepdim, p=2)
     num = 2 * sqrt_c * sc_diff_a
     denom = (1 - c * diff_norm2) * a_norm
     return arsinh(num / (denom + 1e-15)) / sqrt_c
 
 
-def gyration(a, b, u, *, c=1.0):
+def gyration(a, b, u, *, c=1.0, dim=-1):
     r"""
     Gyration is a special operation in hyperbolic geometry.
     Addition operation :math:`\oplus` is not associative (as mentioned in :func:`mobius_add`),
@@ -1105,6 +1150,8 @@ def gyration(a, b, u, *, c=1.0):
         vector field for operation
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
@@ -1115,21 +1162,21 @@ def gyration(a, b, u, *, c=1.0):
     ----------
     [1]  A. A. Ungar (2009), A Gyrovector Space Approach to Hyperbolic Geometry
     """
-    return _gyration(a, b, u, c)
+    return _gyration(a, b, u, c, dim=dim)
 
 
-def _gyration(u, v, w, c):
+def _gyration(u, v, w, c, dim: int = -1):
     # non-simplified
     # mupv = -_mobius_add(u, v, c)
     # vpw = _mobius_add(u, w, c)
     # upvpw = _mobius_add(u, vpw, c)
     # return _mobius_add(mupv, upvpw, c)
     # simplified
-    u2 = u.pow(2).sum(dim=-1, keepdim=True)
-    v2 = v.pow(2).sum(dim=-1, keepdim=True)
-    uv = (u * v).sum(dim=-1, keepdim=True)
-    uw = (u * w).sum(dim=-1, keepdim=True)
-    vw = (v * w).sum(dim=-1, keepdim=True)
+    u2 = u.pow(2).sum(dim=dim, keepdim=True)
+    v2 = v.pow(2).sum(dim=dim, keepdim=True)
+    uv = (u * v).sum(dim=dim, keepdim=True)
+    uw = (u * w).sum(dim=dim, keepdim=True)
+    vw = (v * w).sum(dim=dim, keepdim=True)
     c2 = c ** 2
     a = -c2 * uw * v2 + c * vw + 2 * c2 * uv * vw
     b = -c2 * vw * u2 - c * uw
@@ -1137,7 +1184,7 @@ def _gyration(u, v, w, c):
     return w + 2 * (a * u + b * v) / (d + 1e-15)
 
 
-def parallel_transport(x, y, v, *, c=1.0):
+def parallel_transport(x, y, v, *, c=1.0, dim=-1):
     r"""
     Parallel transport is essential for adaptive algorithms in Riemannian manifolds.
     For Hyperbolic spaces parallel transport is expressed via gyration.
@@ -1182,24 +1229,26 @@ def parallel_transport(x, y, v, *, c=1.0):
         tangent vector to be transported
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         transported vector
     """
-    return _parallel_transport(x, y, v, c)
+    return _parallel_transport(x, y, v, c, dim=dim)
 
 
-def _parallel_transport(x, y, u, c):
+def _parallel_transport(x, y, u, c, dim: int = -1):
     return (
-        _gyration(y, -x, u, c)
-        * _lambda_x(x, c, keepdim=True)
-        / _lambda_x(y, c, keepdim=True)
+        _gyration(y, -x, u, c, dim=dim)
+        * _lambda_x(x, c, keepdim=True, dim=dim)
+        / _lambda_x(y, c, keepdim=True, dim=dim)
     )
 
 
-def parallel_transport0(y, v, *, c=1.0):
+def parallel_transport0(y, v, *, c=1.0, dim=-1):
     r"""
     Special case parallel transport with starting point at zero that
     can be computed more efficiently and numerically stable
@@ -1212,19 +1261,21 @@ def parallel_transport0(y, v, *, c=1.0):
         vector to be transported
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
     """
-    return _parallel_transport0(y, v, c)
+    return _parallel_transport0(y, v, c, dim=dim)
 
 
-def _parallel_transport0(y, v, c):
-    return v * (1 - c * y.pow(2).sum(-1, keepdim=True))
+def _parallel_transport0(y, v, c, dim: int = -1):
+    return v * (1 - c * y.pow(2).sum(dim=dim, keepdim=True))
 
 
-def egrad2rgrad(x, grad, *, c=1.0):
+def egrad2rgrad(x, grad, *, c=1.0, dim=-1):
     r"""
     Translate Euclidean gradient to Riemannian gradient on tangent space of :math:`x`
 
@@ -1240,14 +1291,16 @@ def egrad2rgrad(x, grad, *, c=1.0):
         Euclidean gradient for :math:`x`
     c : float|tensor
         ball negative curvature
+    dim : int
+        reduction dimension for operations
 
     Returns
     -------
     tensor
         Riemannian gradient :math:`u\in T_x\mathbb{D}_c^n`
     """
-    return _egrad2rgrad(x, grad, c)
+    return _egrad2rgrad(x, grad, c, dim=dim)
 
 
-def _egrad2rgrad(x, grad, c):
-    return grad / _lambda_x(x, c, keepdim=True) ** 2
+def _egrad2rgrad(x, grad, c, dim: int = -1):
+    return grad / _lambda_x(x, c, keepdim=True, dim=dim) ** 2
