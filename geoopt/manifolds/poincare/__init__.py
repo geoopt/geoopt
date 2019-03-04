@@ -1,6 +1,7 @@
 import torch
 from . import math
-from ..base import Manifold, Retraction, Transport, TransportAlong, RetractAndTransport, TransportAlongAndExpmap
+from ..base import Manifold
+from ..base import Retraction, Transport, TransportAlong, RetractAndTransport, TransportAlongAndExpmap
 
 __all__ = ["PoincareBall"]
 
@@ -25,7 +26,8 @@ class PoincareBall(Manifold):
     name = "Poincare ball"
 
     def __init__(self, c=1.0):
-        self.c = c
+        super().__init__()
+        self.register_buffer("c", torch.as_tensor(c))
 
     def _check_shape(self, x, name):
         ok = x.dim() > 0
@@ -65,7 +67,7 @@ class PoincareBall(Manifold):
         return math.project(x, c=self.c)
 
     def _proju(self, x, u):
-        return math.project_tangent(x, u, c=self.c)
+        return math.clip_tangent(x, u, c=self.c)
 
     def _inner(self, x, u, v, keepdim):
         return math.inner(x, u, v, c=self.c, keepdim=keepdim)

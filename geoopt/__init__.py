@@ -5,6 +5,13 @@ from . import samplers
 from . import linalg
 
 from .tensor import ManifoldParameter, ManifoldTensor
-from .manifolds import Stiefel, Euclidean, Sphere, PoincareBall
+from .manifolds import (
+    Stiefel,
+    Euclidean,
+    Sphere,
+    SphereSubspaceIntersection,
+    SphereSubspaceComplementIntersection,
+    PoincareBall,
+)
 
 __version__ = "0.0.1"

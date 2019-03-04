@@ -149,7 +149,7 @@ class SphereSubspaceIntersection(Sphere):
 
     def _configure_manifold(self, span):
         Q, _ = geoopt.linalg.batch_linalg.qr(span)
-        self._projector = Q @ Q.transpose(-1, -2)
+        self.register_buffer("_projector", Q @ Q.transpose(-1, -2))
 
     def _project_on_subspace(self, x):
         return x @ self._projector.transpose(-1, -2)
@@ -182,4 +182,4 @@ class SphereSubspaceComplementIntersection(SphereSubspaceIntersection):
         Q, _ = geoopt.linalg.batch_linalg.qr(span)
         P = -Q @ Q.transpose(-1, -2)
         P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
-        self._projector = P
+        self.register_buffer("_projector", P)

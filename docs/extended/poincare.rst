@@ -114,4 +114,8 @@ Numerical stability is a pain in this model. It is strongly recommended to work 
 so expect adventures in ``float32`` (but this is not certain).
 
 .. autofunction:: geoopt.manifolds.poincare.math.project
+<<<<<<< HEAD
 .. autofunction:: geoopt.manifolds.poincare.math.project_tangent
+=======
+.. autofunction:: geoopt.manifolds.poincare.math.clip_tangent
+>>>>>>> upstream/poincare

@@ -42,7 +42,7 @@ def t(request):
 def manifold(request, retraction_order):
     man = request.param()
     try:
-        return man.set_default_order(retraction_order)
+        return man.set_default_order(retraction_order).double()
     except ValueError:
         pytest.skip("not supported retraction order for {}".format(man))
 

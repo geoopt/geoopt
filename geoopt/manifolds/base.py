@@ -169,6 +169,27 @@ class ManifoldMeta(abc.ABCMeta):
         default_order = cls._default_order
         # create dict access for orders for a range of methods
         methodsets = defaultdict(MethodDict)
+        # A hack used to bypass the fact that Manifold
+        # accesses all `_funcs` as class attributes
+        # that used to be manually initialized
+        # by metaclass.
+        # This is troublesome, as it requires
+        # that adding new methodset comes
+        # with modification of base.py
+        # (though this is not the only place,
+        # e.g. Manifold being another one)
+        REQUIRED_METHODSETS = [
+                Retraction,
+                RetractAndTransport,
+                Transport,
+                TransportAlong,
+                TransportAlongAndExpmap
+                ]
+        for ms in REQUIRED_METHODSETS:
+            # set default_order approximation to not_implemented,
+            # thus assuring methodsets[ms] is a non-empty dict
+            ms = ms.methodset
+            methodsets[ms][default_order] = not_implemented
         # loop for all class members
         for name in dir(cls):
             meth = getattr(cls, name)
@@ -176,17 +197,26 @@ class ManifoldMeta(abc.ABCMeta):
                 continue
             ms = ApproxMethodDecorator.get_methodset(meth)
             order = ApproxMethodDecorator.get_order(meth)
+            print(ms, order)
             methodsets[ms][order] = meth
+        print(cls.__name__)
+        print(methodsets)
         for ms, methods in methodsets.items():
-            order_cmp_key = lambda o: float('inf') if o in [-1, None] else o
+            def order_cmp_key(o):
+                INFTY = 2**32
+                if o == -1:
+                    return INFTY
+                elif o is None:
+                    return INFTY - 1
+                else:
+                    return o
             implemented_orders = sorted(methods.keys(), key=order_cmp_key)
+            # implemented_orders = [o for o in implemented_orders if o is not None]
+            assert(len(implemented_orders) > 0)
             # set best possible retraction to use in expmap as a fallback
-            if -1 not in methods:
-                methods[-1] = methods[implemented_orders[-1]]
+            methods[-1] = methods[implemented_orders[-1]]
             # assign default methods
-            if None not in methods:
-                # TODO: check if default_order is implemented
-                methods[None] = methods[default_order]
+            methods[None] = methods[default_order]
         # set class attributes
         for ms, methods in methodsets.items():
             attr_name = f'_{ms}_funcs'
@@ -1013,6 +1043,3 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             return self.name + "({}) manifold".format(extra)
         else:
             return self.name + " manifold"
-
-    def __eq__(self, other):
-        return type(self) is type(other)
