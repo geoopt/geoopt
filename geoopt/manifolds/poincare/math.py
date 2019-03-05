@@ -806,7 +806,8 @@ def mobius_matvec(m, x, *, c=1.0, dim=-1):
     Parameters
     ----------
     m : tensor
-        matrix for multiplication
+        matrix for multiplication.
+        Batched matmul is performed if ``m.dim() > 2``, but only last dim reduction is supported
     x : tensor
         point on Poincare ball
     c : float|tensor
@@ -823,10 +824,15 @@ def mobius_matvec(m, x, *, c=1.0, dim=-1):
 
 
 def _mobius_matvec(m, x, c, dim: int = -1):
+    if m.dim() > 2 and dim != -1:
+        raise RuntimeError("broadcasted Mobius matvec is supported for the last dim only")
     x = x + 1e-15
     x_norm = x.norm(dim=dim, keepdim=True, p=2)
     sqrt_c = c ** 0.5
-    mx = torch.tensordot(x, m, dims=([dim], [1]))
+    if dim != -1 or m.dim() == 2:
+        mx = torch.tensordot(x, m, dims=([dim], [1]))
+    else:
+        mx = torch.matmul(m, x.unsqueeze(-1)).squeeze(-1)
     mx_norm = mx.norm(dim=dim, keepdim=True, p=2)
     res_c = tanh(mx_norm / x_norm * artanh(sqrt_c * x_norm)) * mx / (mx_norm * sqrt_c)
     cond = (mx == 0).prod(dim=dim, keepdim=True, dtype=torch.uint8)
