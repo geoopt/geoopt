@@ -34,13 +34,14 @@ classifiers = [
 if __name__ == "__main__":
     setup(
         name="geoopt",
-        author="Maxim Kochurov, Victor Yanush",
+        author="Geoopt Developers",
         description=DESCRIPTION,
+        maintainer_email="maxim.v.kochurov@gmail.com",
         long_description=LONG_DESCRIPTION,
         packages=find_packages(),
         install_requires=["torch>=1.0.0", "numpy"],
         version=get_version("geoopt", "__init__.py"),
-        url="https://github.com/ferrine/geoopt",
+        url="https://github.com/geoopt-devs/geoopt",
         python_requires=">=3.6.0",
         license="Apache License, Version 2.0",
         classifiers=classifiers
