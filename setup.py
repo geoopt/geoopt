@@ -41,7 +41,7 @@ if __name__ == "__main__":
         packages=find_packages(),
         install_requires=["torch>=1.0.0", "numpy"],
         version=get_version("geoopt", "__init__.py"),
-        url="https://github.com/geoopt-devs/geoopt",
+        url="https://github.com/geoopt/geoopt",
         python_requires=">=3.6.0",
         license="Apache License, Version 2.0",
         classifiers=classifiers
