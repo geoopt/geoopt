@@ -18,7 +18,7 @@ There are two ways to install geoopt:
 
 .. code-block:: bash
 
-    pip install git+https://github.com/ferrine/geoopt.git
+    pip install git+https://github.com/geoopt-devs/geoopt.git
 
 
 2. pypi (this might be significantly behind master branch)
