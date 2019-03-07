@@ -21,7 +21,7 @@ class Artanh(torch.autograd.Function):
         ctx.save_for_backward(x)
         dtype = x.dtype
         x = x.double()
-        res = (torch.log_(1 + x).sub_(torch.log_(1 - x))).mul_(.5)
+        res = (torch.log_(1 + x).sub_(torch.log_(1 - x))).mul_(0.5)
         return res.to(dtype)
 
     @staticmethod
@@ -40,7 +40,7 @@ class Arsinh(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         input, = ctx.saved_tensors
-        return grad_output / (1 + input ** 2) ** .5
+        return grad_output / (1 + input ** 2) ** 0.5
 
 
 def artanh(x):
@@ -152,7 +152,9 @@ def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
 
 
 def _inner(x, u, v, c, keepdim: bool = False, dim: int = -1):
-    return _lambda_x(x, c, keepdim=True, dim=dim) ** 2 * (u * v).sum(dim=dim, keepdim=keepdim)
+    return _lambda_x(x, c, keepdim=True, dim=dim) ** 2 * (u * v).sum(
+        dim=dim, keepdim=keepdim
+    )
 
 
 def norm(x, u, *, c=1.0, keepdim=False, dim=-1):
@@ -185,7 +187,9 @@ def norm(x, u, *, c=1.0, keepdim=False, dim=-1):
 
 
 def _norm(x, u, c, keepdim: bool = False, dim: int = -1):
-    return _lambda_x(x, c, keepdim=keepdim, dim=dim) * u.norm(dim=dim, keepdim=keepdim, p=2)
+    return _lambda_x(x, c, keepdim=keepdim, dim=dim) * u.norm(
+        dim=dim, keepdim=keepdim, p=2
+    )
 
 
 def mobius_add(x, y, *, c=1.0, dim=-1):
@@ -470,7 +474,9 @@ def dist(x, y, *, c=1.0, keepdim=False, dim=-1):
 
 def _dist(x, y, c, keepdim: bool = False, dim: int = -1):
     sqrt_c = c ** 0.5
-    dist_c = artanh(sqrt_c * _mobius_add(-x, y, c, dim=dim).norm(dim=dim, p=2, keepdim=keepdim))
+    dist_c = artanh(
+        sqrt_c * _mobius_add(-x, y, c, dim=dim).norm(dim=dim, p=2, keepdim=keepdim)
+    )
     return dist_c * 2 / sqrt_c
 
 
@@ -539,7 +545,9 @@ def _clip_tangent(x, u, c, dim: int = -1):
     p = p / s ** 0.5 / (c ** 0.5)
     p = _project(p, c, dim=dim)
     # normalize its length based on x
-    maxnorm = _dist(p, -p, c, keepdim=True, dim=dim) / _lambda_x(x, c, keepdim=True, dim=dim)
+    maxnorm = _dist(p, -p, c, keepdim=True, dim=dim) / _lambda_x(
+        x, c, keepdim=True, dim=dim
+    )
     norm = u.norm(dim=dim, keepdim=True, p=2)
     cond = norm > maxnorm
     projected = u / norm * maxnorm
@@ -850,7 +858,9 @@ def mobius_matvec(m, x, *, c=1.0, dim=-1):
 
 def _mobius_matvec(m, x, c, dim: int = -1):
     if m.dim() > 2 and dim != -1:
-        raise RuntimeError("broadcasted Mobius matvec is supported for the last dim only")
+        raise RuntimeError(
+            "broadcasted Mobius matvec is supported for the last dim only"
+        )
     x = x + 1e-15
     x_norm = x.norm(dim=dim, keepdim=True, p=2)
     sqrt_c = c ** 0.5
