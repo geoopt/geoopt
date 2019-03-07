@@ -74,9 +74,9 @@ def project(x, *, c=1.0, dim=-1):
 @torch.jit.script
 def _max_norm(x):
     if x.dtype == torch.float32:
-        maxnorm = torch.full((), 1 - 3e-3)
+        maxnorm = torch.full((), 1 - 3e-3, dtype=x.dtype, device=x.device)
     else:
-        maxnorm = torch.full((), 1 - 1e-5)
+        maxnorm = torch.full((), 1 - 1e-5, dtype=x.dtype, device=x.device)
     return maxnorm
 
 
