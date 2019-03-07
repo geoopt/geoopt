@@ -22,7 +22,7 @@ Originally, the distance between points on the hyperboloid is defined as
 
 .. math::
 
-    d(x, y) = \arccos(x, y)
+    d(x, y) = \arccosh(x, y)
 
 It is difficult to work in (N+1)-dimensional space and there is a range of useful embeddings
 exist in literature
