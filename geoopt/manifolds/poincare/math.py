@@ -14,16 +14,40 @@ def tanh(x):
     return x.clamp(-15, 15).tanh()
 
 
+class Artanh(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        dtype = x.dtype
+        x = x.double().clamp(-1 + 1e-15, 1 - 1e-15)
+        res = 0.5 * (torch.log(1 + x) - torch.log(1 - x))
+        return res.to(dtype)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, = ctx.saved_tensors
+        return grad_output / (1 - input ** 2)
+
+
+class Arsinh(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        z = x.double()
+        return (z + torch.sqrt(1 + z ** 2)).clamp_min(1e-15).log().to(x.dtype)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, = ctx.saved_tensors
+        return grad_output / (1 + input ** 2) ** .5
+
+
 def artanh(x):
-    dtype = x.dtype
-    x = x.double().clamp(-1 + 1e-15, 1 - 1e-15)
-    res = 0.5 * (torch.log(1 + x) - torch.log(1 - x))
-    return res.to(dtype)
+    return Artanh.apply(x)
 
 
 def arsinh(x):
-    z = x.double()
-    return (z + torch.sqrt(1 + z ** 2)).clamp_min(1e-15).log().to(x.dtype)
+    return Arsinh.apply(x)
 
 
 def project(x, *, c=1.0, dim=-1):
@@ -50,9 +74,9 @@ def project(x, *, c=1.0, dim=-1):
 @torch.jit.script
 def _max_norm(x):
     if x.dtype == torch.float32:
-        maxnorm = (1 - 3e-3)
+        maxnorm = torch.full((), 1 - 3e-3)
     else:
-        maxnorm = (1 - 1e-5)
+        maxnorm = torch.full((), 1 - 1e-5)
     return maxnorm
 
 
