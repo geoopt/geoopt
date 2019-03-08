@@ -1,7 +1,9 @@
 import pytest
-import torch
+import torch.nn
 import numpy as np
 import geoopt
+import tempfile
+import os
 
 
 @pytest.fixture
@@ -43,3 +45,64 @@ def test_expm(A):
     expm_torch = geoopt.linalg.expm(A)
     np.testing.assert_allclose(expm_torch.detach(), expm_scipy, rtol=1e-6)
     expm_torch.sum().backward()  # this should work
+
+
+def test_pickle1():
+    t = torch.ones(10)
+    p = geoopt.ManifoldTensor(t, manifold=geoopt.Sphere())
+    with tempfile.TemporaryDirectory() as path:
+        torch.save(p, os.path.join(path, "tens.t7"))
+        p1 = torch.load(os.path.join(path, "tens.t7"))
+    assert isinstance(p1, geoopt.ManifoldTensor)
+    assert p.stride() == p1.stride()
+    assert p.storage_offset() == p1.storage_offset()
+    assert p.requires_grad == p1.requires_grad
+    np.testing.assert_allclose(p.detach(), p1.detach())
+    assert isinstance(p.manifold, type(p1.manifold))
+
+
+def test_pickle2():
+    t = torch.ones(10)
+    p = geoopt.ManifoldParameter(t, manifold=geoopt.Sphere())
+    with tempfile.TemporaryDirectory() as path:
+        torch.save(p, os.path.join(path, "tens.t7"))
+        p1 = torch.load(os.path.join(path, "tens.t7"))
+    assert isinstance(p1, geoopt.ManifoldParameter)
+    assert p.stride() == p1.stride()
+    assert p.storage_offset() == p1.storage_offset()
+    assert p.requires_grad == p1.requires_grad
+    np.testing.assert_allclose(p.detach(), p1.detach())
+    assert isinstance(p.manifold, type(p1.manifold))
+
+
+def test_pickle3():
+    t = torch.ones(10)
+    span = torch.randn(10, 2)
+    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    p = geoopt.ManifoldParameter(t, manifold=sub_sphere)
+    with tempfile.TemporaryDirectory() as path:
+        torch.save(p, os.path.join(path, "tens.t7"))
+        p1 = torch.load(os.path.join(path, "tens.t7"))
+    assert isinstance(p1, geoopt.ManifoldParameter)
+    assert p.stride() == p1.stride()
+    assert p.storage_offset() == p1.storage_offset()
+    assert p.requires_grad == p1.requires_grad
+    np.testing.assert_allclose(p.detach(), p1.detach())
+    assert isinstance(p.manifold, type(p1.manifold))
+    np.testing.assert_allclose(p.manifold._projector, p1.manifold._projector)
+
+
+def test_manifold_to_smth():
+    span = torch.randn(10, 2)
+    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    sub_sphere.to(torch.float64)
+    assert sub_sphere._projector.dtype == torch.float64
+
+
+def test_manifold_is_submodule():
+    span = torch.randn(10, 2)
+    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    sub_sphere.to(torch.float64)
+    container = torch.nn.ModuleDict({"sphere": sub_sphere})
+    container.to(torch.float64)
+    assert sub_sphere._projector.dtype == torch.float64

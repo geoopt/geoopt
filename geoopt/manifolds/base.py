@@ -1,6 +1,6 @@
 from collections import defaultdict
 import abc
-import torch
+import torch.nn
 import re
 
 __all__ = ["Manifold"]
@@ -148,7 +148,7 @@ def not_implemented(*args, **kwargs):
     raise NotImplementedError
 
 
-class Manifold(metaclass=ManifoldMeta):
+class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
     r"""
     Base class for Manifolds
 
@@ -190,6 +190,13 @@ class Manifold(metaclass=ManifoldMeta):
     ndim = None
     reversible = None
     _default_order = 1
+
+    def __init__(self, **kwargs):
+        super().__init__()
+
+    def forward(self, *input):
+        # this removes all warnings about implementing abstract methods
+        raise TypeError("Manifold is not callable")
 
     # noinspection PyAttributeOutsideInit
     def set_default_order(self, order):
@@ -535,7 +542,7 @@ class Manifold(metaclass=ManifoldMeta):
         return self._retr_funcs[-1](self, x=x, u=u, t=t)
 
     def logmap(self, x, y):
-        """
+        r"""
         Perform an logarithmic map for a pair of points :math:`x` and :math:`y`.
         The result lies in :math:`u \in T_x\mathcal{M}` is such that:
 
@@ -972,6 +979,3 @@ class Manifold(metaclass=ManifoldMeta):
             return self.name + "({}) manifold".format(extra)
         else:
             return self.name + " manifold"
-
-    def __eq__(self, other):
-        return type(self) is type(other)
