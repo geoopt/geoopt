@@ -102,7 +102,8 @@ class ManifoldTensor(torch.Tensor):
 
     def rand_(self):
         with torch.no_grad():
-            self.manifold.rand_(self.data)
+            self.normal_()
+            self.set_(self.manifold.rand_(self.data))
         return self
 
 

@@ -138,6 +138,12 @@ def test_retraction(unary_case, retraction_order, t):
         np.testing.assert_allclose(y, y_star)
 
 
+def test_rand(unary_case):
+    torch.manual_seed(43)
+    unary_case.x.rand_()
+    unary_case.manifold.assert_check_point_on_manifold(unary_case.x)
+
+
 def test_transport(unary_case, t):
     if isinstance(unary_case.manifold, geoopt.manifolds.CanonicalStiefel):
         pytest.skip("pymanopt uses euclidean Stiefel")

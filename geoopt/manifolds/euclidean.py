@@ -53,6 +53,5 @@ class Euclidean(Manifold):
     def _dist(self, x, y):
         return (x - y).abs()
 
-    def _rand_(self, x):
-        x.normal_()
+    def rand_(self, x):
         return x

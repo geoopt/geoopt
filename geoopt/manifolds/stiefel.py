@@ -149,8 +149,7 @@ class CanonicalStiefel(Stiefel):
     def _retr(self, x, u, t):
         return self._transp_follow_one(x, x, u=u, t=t)
 
-    def _rand_(self, x):
-        x.normal_()
+    def rand_(self, x):
         x.set_(linalg.qr(x)[0])
         return x
 
@@ -219,3 +218,7 @@ class EuclideanStiefel(Stiefel):
     def _transp_follow_expmap(self, x, v, *more, u, t):
         y = self._expmap(x, u, t)
         return self._transp2y(x, v, *more, y=y)
+
+    def rand_(self, x):
+        x.set_(linalg.qr(x)[0])
+        return x

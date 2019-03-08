@@ -97,8 +97,7 @@ class Sphere(Manifold):
         inner = self._inner(None, x, y).clamp(-1, 1)
         return torch.acos(inner)
 
-    def _rand_(self, x):
-        x.normal_()
+    def rand_(self, x):
         x.set_(self._projx(x))
         return x
 
