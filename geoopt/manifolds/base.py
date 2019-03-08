@@ -857,7 +857,8 @@ class Manifold(metaclass=ManifoldMeta):
             tensor of normally distributed points
             on manifold
         """
-        return self._rand(x)
+        x.normal_()
+        return self._rand_(x)
 
 
     """
@@ -954,7 +955,7 @@ class Manifold(metaclass=ManifoldMeta):
         return self._proju(x, u)
 
     @abc.abstractmethod
-    def rand_(self, x):
+    def _rand_(self, x):
         """
         Developer Guide
 
