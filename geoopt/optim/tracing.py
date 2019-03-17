@@ -1,4 +1,4 @@
-import torch
+# import torch
 
 
 def create_traced_update(step, manifold, point, *buffers, **kwargs):
@@ -21,12 +21,15 @@ def create_traced_update(step, manifold, point, *buffers, **kwargs):
     -------
     traced `step(point, grad, lr *buffers)` function
     """
-    point = point.clone()
-    grad = point.new(point.shape).normal_()
-    lr = torch.tensor(0.001).type_as(grad)
+    # TODO: resolve https://github.com/geoopt/geoopt/issues/56
+    # For some reason tracing fails to work on a non-toy problem in tests
+
+    # point = point.clone()
+    # grad = point.new(point.shape).normal_()
+    # lr = torch.tensor(0.001).type_as(grad)
 
     def partial(*args):
         step(manifold, *args, **kwargs)
         return args
-
-    return torch.jit.trace(partial, (point, grad, lr) + buffers)
+    return partial
+    # return torch.jit.trace(partial, (point, grad, lr) + buffers)
