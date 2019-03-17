@@ -101,10 +101,10 @@ Samplers
 .. |Read The Docs| image:: https://readthedocs.org/projects/geoopt/badge/?version=latest
    :target: https://geoopt.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
-.. |Build Status| image:: https://travis-ci.com/ferrine/geoopt.svg?branch=master
+.. |Build Status| image:: https://travis-ci.com/geoopt/geoopt.svg?branch=master
    :target: https://travis-ci.com/ferrine/geoopt
-.. |Coverage Status| image:: https://coveralls.io/repos/github/ferrine/geoopt/badge.svg?branch=master
-   :target: https://coveralls.io/github/ferrine/geoopt?branch=master
+.. |Coverage Status| image:: https://coveralls.io/repos/github/geoopt/geoopt/badge.svg?branch=master
+   :target: https://coveralls.io/github/geoopt/geoopt?branch=master
 .. |Codestyle Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/ambv/black
 .. |Gitter| image:: https://badges.gitter.im/geoopt/community.png
