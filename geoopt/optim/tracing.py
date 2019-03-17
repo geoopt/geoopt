@@ -22,7 +22,9 @@ def create_traced_update(step, manifold, point, *buffers, **kwargs):
     traced `step(point, grad, lr *buffers)` function
     """
     # TODO: resolve https://github.com/geoopt/geoopt/issues/56
-    # For some reason tracing fails to work on a non-toy problem in tests
+    # While this works in tests,
+    # for some reason tracing fails to work on a non-toy problem.
+    # Removing tracing solved the problem
 
     # point = point.clone()
     # grad = point.new(point.shape).normal_()
