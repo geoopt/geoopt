@@ -309,14 +309,14 @@ def mobius_coadd(x, y, *, c=1.0, dim=-1):
             1 + c^2 \|x\|^2_2 \|y\|^2_2
         },
 
-    where :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))`
+    where :math:`\operatorname{gyr}[a, b]c = \ominus_c (a \oplus b) \oplus_c (a \oplus_c (b \oplus_c c))`
 
     The following right cancellation property holds
 
     .. math::
 
         (a \boxplus_c b) \ominus_c b = a\\
-        (a \oplus_c b) \boxminus b = a
+        (a \oplus_c b) \boxminus_c b = a
 
     Parameters
     ----------
@@ -1157,18 +1157,18 @@ def _dist2plane(x, a, p, c, keepdim: bool = False, signed: bool = False, dim: in
 def gyration(a, b, u, *, c=1.0, dim=-1):
     r"""
     Gyration is a special operation in hyperbolic geometry.
-    Addition operation :math:`\oplus` is not associative (as mentioned in :func:`mobius_add`),
+    Addition operation :math:`\oplus_c` is not associative (as mentioned in :func:`mobius_add`),
     but gyroassociative which means
 
     .. math::
 
-        u \oplus (v \oplus w) = (u\oplus v) \oplus \operatorname{gyr}[u, v]w,
+        u \oplus_c (v \oplus_c w) = (u\oplus_c v) \oplus_c \operatorname{gyr}[u, v]w,
 
     where
 
     .. math::
 
-        \operatorname{gyr}[u, v]w = \ominus (u \oplus v) \oplus (u \oplus (v \oplus w))
+        \operatorname{gyr}[u, v]w = \ominus (u \oplus_c v) \oplus (u \oplus_c (v \oplus_c w))
 
     We can simplify this equation using explicit formula for Mobius addition [1]. Recall
 
@@ -1240,7 +1240,7 @@ def parallel_transport(x, y, v, *, c=1.0, dim=-1):
         P_{x\to y}(z) = \operatorname{gyr}[y, -x]z,
 
     where :math:`x,\:y,\:z \in \mathbb{D}_c^n` and
-    :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))`
+    :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus_c b) \oplus_c (a \oplus_c (b \oplus_c c))`
 
     But we want to obtain parallel transport for vectors, not for gyrovectors.
     The blessing is isomorphism mentioned above. This mapping is given by
