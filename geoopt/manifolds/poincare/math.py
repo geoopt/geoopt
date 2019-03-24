@@ -226,7 +226,7 @@ def mobius_add(x, y, *, c=1.0, dim=-1):
 
         x \oplus_0 y = y \oplus_0 x
 
-    Another usefull property is so called left-cancellation law:
+    Another useful property is so called left-cancellation law:
 
     .. math::
 
@@ -311,7 +311,7 @@ def mobius_coadd(x, y, *, c=1.0, dim=-1):
 
     where :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus b) \oplus (a \oplus (b \oplus c))`
 
-    The following right cancelation property holds
+    The following right cancellation property holds
 
     .. math::
 
@@ -878,7 +878,7 @@ def _mobius_matvec(m, x, c, dim: int = -1):
 
 def mobius_pointwise_mul(w, x, *, c=1.0, dim=-1):
     r"""
-    Generalization for pointwise multiplication to hyperbolic space defined as
+    Generalization for point-wise multiplication to hyperbolic space defined as
 
     .. math::
 
@@ -901,7 +901,7 @@ def mobius_pointwise_mul(w, x, *, c=1.0, dim=-1):
     Returns
     -------
     tensor
-        Mobius pointwise mul result
+        Mobius point-wise mul result
     """
     return _mobius_pointwise_mul(w, x, c, dim=dim)
 
