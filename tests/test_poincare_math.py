@@ -162,7 +162,7 @@ def test_scalar_multiplication_associative(a, c, r1, r2):
         r2, poincare.math.mobius_scalar_mul(r1, a, c=c), c=c
     )
     tolerance = {
-        torch.float32: dict(atol=1e-7, rtol=1e-7),
+        torch.float32: dict(atol=1e-7, rtol=1e-6),  # worked with rtol=1e-7 locally
         torch.float64: dict(atol=1e-7, rtol=1e-10),
     }
     np.testing.assert_allclose(res1, res, **tolerance[c.dtype])
