@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 DESCRIPTION = """Unofficial implementation for “Riemannian Adaptive Optimization Methods” ICLR2019 and more"""
 PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(PROJECT_ROOT, 'README.rst'), encoding='utf-8') as buff:
+with open(os.path.join(PROJECT_ROOT, "README.rst"), encoding="utf-8") as buff:
     LONG_DESCRIPTION = buff.read()
 
 
@@ -44,5 +44,5 @@ if __name__ == "__main__":
         url="https://github.com/geoopt/geoopt",
         python_requires=">=3.6.0",
         license="Apache License, Version 2.0",
-        classifiers=classifiers
+        classifiers=classifiers,
     )

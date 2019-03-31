@@ -210,7 +210,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
 
         Returns
         -------
-        self
+        Manifold
             returns same instance
         """
         if order is None:
@@ -245,7 +245,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
 
         Returns
         -------
-        self
+        Manifold
             returns same instance
         """
         return self.set_default_order(None)
@@ -471,7 +471,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
                 )
             )
 
-    def dist(self, x, y):
+    def dist(self, x, y, keepdim=False):
         """
         Compute distance between 2 points on the manifold that is the shortest path along geodesics
 
@@ -481,13 +481,15 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             point on the manifold
         y : tensor
             point on the manifold
+        keepdim : bool
+            keep the last dim?
 
         Returns
         -------
         scalar
             distance between two points
         """
-        return self._dist(x, y)
+        return self._dist(x, y, keepdim=keepdim)
 
     def retr(self, x, u, t=1.0, order=None):
         """
@@ -638,7 +640,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         else:
             raise TypeError("transp() requires either y or u")
 
-    def inner(self, x, u, v=None):
+    def inner(self, x, u, v=None, keepdim=False):
         """
         Inner product for tangent vectors at point :math:`x`
 
@@ -650,6 +652,8 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             tangent vector at point :math:`x`
         v : tensor (optional)
             tangent vector at point :math:`x`
+        keepdim : bool
+            keep the last dim?
 
         Returns
         -------
@@ -658,7 +662,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         """
         if v is None and self._inner_autofill:
             v = u
-        return self._inner(x, u, v)
+        return self._inner(x, u, v, keepdim=keepdim)
 
     # dev: autofill None parameter or propagate None?
     _inner_autofill = True
@@ -907,7 +911,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
     _dist = not_implemented
 
     @abc.abstractmethod
-    def _inner(self, x, u, v):
+    def _inner(self, x, u, v, keepdim):
         """
         Developer Guide
 

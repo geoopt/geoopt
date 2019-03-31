@@ -106,3 +106,14 @@ def test_manifold_is_submodule():
     container = torch.nn.ModuleDict({"sphere": sub_sphere})
     container.to(torch.float64)
     assert sub_sphere._projector.dtype == torch.float64
+
+
+def test_manifold_is_submodule_poincare():
+    print(torch.get_default_dtype())
+    c = torch.tensor(1.0)
+    ball = geoopt.manifolds.PoincareBall(c)
+    assert ball.c.dtype == torch.float32
+    ball.to(torch.float64)
+    container = torch.nn.ModuleDict({"ball": ball})
+    container.to(torch.float64)
+    assert ball.c.dtype == torch.float64
