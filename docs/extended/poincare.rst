@@ -50,14 +50,14 @@ First of all we note, that Poincare ball is embedded in a Sphere of radius :math
 where c is negative curvature. We also note, as :math:`c` goes to `0`, we recover infinite radius ball.
 We should expect this limiting behaviour recovers Euclidean geometry.
 
-To connect euclidean space with its embedded manifold we need to get :math:`g_x`.
+To connect Euclidean space with its embedded manifold we need to get :math:`g_x`.
 It is done via `conformal factor` :math:`\lambda^c_x`.
 
 
 .. autofunction:: geoopt.manifolds.poincare.math.lambda_x
 
 
-:math:`\lambda^c_x` connects euclidean inner product with Riemannian one
+:math:`\lambda^c_x` connects Euclidean inner product with Riemannian one
 
 .. autofunction:: geoopt.manifolds.poincare.math.inner
 .. autofunction:: geoopt.manifolds.poincare.math.norm
