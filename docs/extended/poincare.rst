@@ -47,7 +47,7 @@ Poincare Model
 Here we go.
 
 First of all we note, that Poincare ball is embedded in a Sphere of radius :math:`r=1/\sqrt{c}`,
-where c is negative curvature. We also note, as :math:`c` goes to `0`, we recover infinite radius ball.
+where c is negative curvature. We also note, as :math:`c` goes to :math:`0`, we recover infinite radius ball.
 We should expect this limiting behaviour recovers Euclidean geometry.
 
 To connect Euclidean space with its embedded manifold we need to get :math:`g_x`.
