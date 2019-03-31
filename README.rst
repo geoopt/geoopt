@@ -72,6 +72,8 @@ Manifolds
 -  ``geoopt.Stiefel`` – Stiefel manifold on matrices
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
+-  ``geoopt.PoincareBall`` - Poincare ball model (`wiki <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_)
+
 
 All manifolds implement methods necessary to manipulate tensors on manifolds and
 tangent vectors to be used in general purpose. See more in `documentation`_.
