@@ -6,3 +6,5 @@ from .sphere import (
     SphereSubspaceComplementIntersection,
     SphereSubspaceIntersection,
 )
+from .poincare import PoincareBall
+from . import poincare

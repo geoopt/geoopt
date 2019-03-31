@@ -6,6 +6,15 @@ import pytest
 import geoopt.samplers.rhmc
 
 
+@pytest.fixture(autouse=True)
+def withdtype():
+    torch.set_default_dtype(torch.float64)
+    try:
+        yield
+    finally:
+        torch.set_default_dtype(torch.float32)
+
+
 @pytest.mark.parametrize(
     "params",
     [
@@ -20,8 +29,6 @@ import geoopt.samplers.rhmc
     ],
 )
 def test_leapfrog_reversibility(params):
-    torch.set_default_dtype(torch.float64)
-
     class NormalDist(torch.nn.Module):
         def __init__(self, mu, sigma):
             super().__init__()

@@ -83,17 +83,10 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(p)
                         # Exponential moving average of squared gradient values
-                        inner_prod_shape = p.shape
-                        if manifold.ndim > 0:
-                            inner_prod_shape = inner_prod_shape[: -manifold.ndim]
-                        state["exp_avg_sq"] = torch.zeros(
-                            inner_prod_shape, dtype=p.dtype, device=p.device
-                        )
+                        state["exp_avg_sq"] = torch.zeros_like(p)
                         if amsgrad:
                             # Maintains max of all exp. moving avg. of sq. grad. values
-                            state["max_exp_avg_sq"] = torch.zeros(
-                                inner_prod_shape, dtype=p.dtype, device=p.device
-                            )
+                            state["max_exp_avg_sq"] = torch.zeros_like(p)
 
                     # this is assumed to be already transported
                     if "traced_step" not in state:
@@ -174,7 +167,9 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         grad.add_(weight_decay, point)
         grad = manifold.egrad2rgrad(point, grad)
         exp_avg.mul_(betas[0]).add_(1 - betas[0], grad)
-        exp_avg_sq.mul_(betas[1]).add_(1 - betas[1], manifold.inner(point, grad))
+        exp_avg_sq.mul_(betas[1]).add_(
+            1 - betas[1], manifold.inner(point, grad, keepdim=True)
+        )
         if amsgrad:
             # Maintains the maximum of all 2nd moment running avg. till now
             torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
@@ -182,7 +177,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
             denom = max_exp_avg_sq.sqrt().add_(eps)
         else:
             denom = exp_avg_sq.sqrt().add_(eps)
-        denom = manifold.broadcast_scalar(denom)
         step.add_(1)
         bias_correction1 = 1 - betas[0] ** step.type_as(betas)
         bias_correction2 = 1 - betas[1] ** step.type_as(betas)

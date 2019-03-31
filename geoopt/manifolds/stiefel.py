@@ -89,7 +89,7 @@ class CanonicalStiefel(Stiefel):
     name = "Stiefel(canonical)"
     reversible = True
 
-    def _inner(self, x, u, v):
+    def _inner(self, x, u, v, keepdim):
         # <u, v>_x = tr(u^T(I-1/2xx^T)v)
         # = tr(u^T(v-1/2xx^Tv))
         # = tr(u^Tv-1/2u^Txx^Tv)
@@ -102,7 +102,9 @@ class CanonicalStiefel(Stiefel):
             v = u
         else:
             xtv = x.transpose(-1, -2) @ v
-        return (u * v).sum([-1, -2]) - 0.5 * (xtv * xtu).sum([-1, -2])
+        return (u * v).sum([-1, -2], keepdim=keepdim) - 0.5 * (xtv * xtu).sum(
+            [-1, -2], keepdim=keepdim
+        )
 
     # we do faster on inner without autofill
     _inner_autofill = False
@@ -112,6 +114,7 @@ class CanonicalStiefel(Stiefel):
         rhs = v + t / 2 * a @ v
         lhs = -t / 2 * a
         lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
+        # TODO: torch.gesv -> torch.solve after pytorch release
         qv, _ = torch.gesv(rhs, lhs)
         return qv
 
@@ -182,8 +185,8 @@ class EuclideanStiefel(Stiefel):
         else:
             return y, vs
 
-    def _inner(self, x, u, v):
-        return (u * v).sum([-1, -2])
+    def _inner(self, x, u, v, keepdim):
+        return (u * v).sum([-1, -2], keepdim=keepdim)
 
     def _retr(self, x, u, t):
         q, r = linalg.batch_linalg.qr(x + u * t)
