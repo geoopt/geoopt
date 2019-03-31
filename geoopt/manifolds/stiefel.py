@@ -114,6 +114,7 @@ class CanonicalStiefel(Stiefel):
         rhs = v + t / 2 * a @ v
         lhs = -t / 2 * a
         lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
+        # TODO: torch.gesv -> torch.solve after pytorch release
         qv, _ = torch.gesv(rhs, lhs)
         return qv
 
