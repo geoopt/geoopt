@@ -3,7 +3,7 @@ python:
     - "3.6"
 
 env:
-  - PYTHON_VERSION=3.6 PYTORCH='pytorch>=1.0.0' COVERAGE='--cov geoopt'
+  - PYTHON_VERSION=3.6 PYTORCH='pytorch' COVERAGE='--cov geoopt'
   - PYTHON_VERSION=3.6 PYTORCH='pytorch-nightly' COVERAGE=''
 
 matrix:
