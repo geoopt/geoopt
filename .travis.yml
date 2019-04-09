@@ -5,27 +5,30 @@ cache:
     - $HOME/miniconda3
 
 env:
-  - PYTHON_VERSION=3.6 TORCH='pytorch>=1.0.0' COVERAGE='--cov geoopt'
-  - PYTHON_VERSION=3.6 TORCH='pytorch-nightly' COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH='pytorch>=1.0.0' COVERAGE='--cov geoopt'
+  - PYTHON_VERSION=3.6 PYTORCH='pytorch-nightly' COVERAGE=''
 
 matrix:
   allow_failures:
-    - env: PYTHON_VERSION=3.6 TORCH='pytorch-nightly' COVERAGE=''
+    - env: PYTHON_VERSION=3.6 PYTORCH='pytorch-nightly' COVERAGE=''
 
 before_install:
-  - . ./scripts/install_miniconda.sh
+  - docker pull conda/miniconda3
+  - docker --version
 
 install:
-  - . ./scripts/create_testenv.sh
-  - conda install --yes numpy mkl-service
-  - conda install --yes $TORCH -c pytorch
-  - pip install -r requirements-dev.txt
-  - pip install travis-sphinx
-  - pip install -e . --no-deps
+  - . ./scripts/container.sh --build
+  # Print conda details
+  - docker run --rm geoopt:latest bash -c "conda info -a"
+  # Print conda environment details
+  - docker run --rm geoopt:latest bash -c "conda list && pip freeze"
+  # install coverage if needed
+  - if [[ $COVERAGE ]]; then pip install coveralls ; fi
 
 script:
-  - black --check --diff geoopt tests
-  - py.test -v --durations=0 $COVERAGE
+  - ./scripts/container.sh --test
 
 after_success:
-  - coveralls
+  - echo $(pwd)
+  - ls -la
+  - if [[ $COVERAGE ]]; then sed -i 's@/opt/geoopt@/home/travis/build/geoopt/geoopt@g' .coverage && coveralls; fi

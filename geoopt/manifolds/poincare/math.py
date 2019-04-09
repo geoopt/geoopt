@@ -75,7 +75,7 @@ def project(x, *, c=1.0, dim=-1):
 @torch.jit.script
 def _max_norm(x):
     if x.dtype == torch.float32:
-        maxnorm = torch.full((), 1 - 3e-3, dtype=x.dtype, device=x.device)
+        maxnorm = torch.full((), 1 - 4e-3, dtype=x.dtype, device=x.device)
     else:
         maxnorm = torch.full((), 1 - 1e-5, dtype=x.dtype, device=x.device)
     return maxnorm
@@ -659,7 +659,7 @@ def expmap(x, u, *, c=1.0, dim=-1):
 
 
 def _expmap(x, u, c, dim: int = -1):
-    u += 1e-15
+    u = u + 1e-15
     sqrt_c = c ** 0.5
     u_norm = u.norm(dim=dim, p=2, keepdim=True)
     second_term = (
