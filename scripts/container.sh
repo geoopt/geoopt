@@ -18,12 +18,12 @@ fi
 
 if [[ $* == *--test* ]]; then
     echo "Testing Geoopt"
-    docker run -it --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)",target=/opt/geoopt/ geoopt:latest \
+    docker run --rm -it --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)",target=/opt/geoopt/ geoopt:latest \
         bash -c "pytest --durations=0 -v tests/ ${COVERAGE}" && \
         if [[ ${COVERAGE} ]]; then sed -i 's@/opt/geoopt@'${SRC_DIR}'@g' "$(pwd)/.coverage"; fi
 fi
 
 if [[ $* == *--bash* ]]; then
     echo "Running Bash"
-    docker run -it --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)",target=/opt/geoopt/ geoopt:latest bash
+    docker run --rm -it --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)",target=/opt/geoopt/ geoopt:latest bash
 fi
