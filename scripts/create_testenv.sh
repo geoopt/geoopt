@@ -10,9 +10,7 @@ command -v conda >/dev/null 2>&1 || {
   exit 1;
 }
 
-conda install --yes python=${PYTHON_VERSION}
-pip install --upgrade pip
-conda install --yes numpy mkl-service
+conda install --yes python=${PYTHON_VERSION} pip numpy mkl-service
 conda install --yes ${PYTORCH} -c pytorch
 pip install -r requirements-dev.txt
 
