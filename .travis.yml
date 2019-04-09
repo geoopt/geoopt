@@ -23,9 +23,10 @@ install:
   # Print conda environment details
   - docker run --rm geoopt:latest bash -c "conda list && pip freeze"
   # install coverage if needed
-  - if [[ $COVERAGE ]]; then pip install coveralls ; fi
+  - if [[ $COVERAGE ]]; then pip install coveralls black; fi
 
 script:
+  - if [[ $COVERAGE ]]; then black --check --diff geoopt tests; fi
   - ./scripts/container.sh --test
 
 after_success:
