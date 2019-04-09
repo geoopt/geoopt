@@ -1,9 +1,6 @@
 language: python
 python:
     - "3.6"
-cache:
-  directories:
-    - $HOME/miniconda3
 
 env:
   - PYTHON_VERSION=3.6 PYTORCH='pytorch>=1.0.0' COVERAGE='--cov geoopt'
