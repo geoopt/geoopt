@@ -32,4 +32,4 @@ script:
 after_success:
   - echo $(pwd)
   - ls -la
-  - if [[ $COVERAGE ]]; then sed -i 's@/opt/geoopt@/home/travis/build/geoopt/geoopt@g' .coverage && coveralls; fi
+  - if [[ $COVERAGE ]]; then sed -i 's@/opt/geoopt@/home/travis/build/geoopt@g' .coverage && coveralls; fi

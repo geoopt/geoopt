@@ -17,7 +17,7 @@ fi
 if [[ $* == *--test* ]]; then
     echo "Testing Geoopt"
     docker run -it --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)",target=/opt/geoopt/ geoopt:latest bash -c \
-                                      "pytest -v tests/ ${COVERAGE}/"
+                                      "pytest --durations=0 -v tests/ ${COVERAGE}/"
 fi
 
 if [[ $* == *--bash* ]]; then
