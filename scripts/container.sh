@@ -8,8 +8,8 @@ if [[ $* == *--build* ]]; then
     echo "Building Docker Image"
     docker build \
         -t geoopt \
-        -f $SRC_DIR/scripts/Dockerfile \
-        --build-arg SRC_DIR=. $SRC_DIR \
+        -f ${SRC_DIR}/scripts/Dockerfile \
+        --build-arg SRC_DIR=. ${SRC_DIR} \
         --build-arg PYTORCH=${PYTORCH} \
         --rm
 fi
