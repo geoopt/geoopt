@@ -1,6 +1,6 @@
 FROM conda/miniconda3
 
-MAINTAINER Maxim Kochurov <maxim.v.kochurov@gmail.com>
+LABEL maintainer="Maxim Kochurov <maxim.v.kochurov@gmail.com>"
 # source files for geoopt
 ARG SRC_DIR
 # pytorch version
