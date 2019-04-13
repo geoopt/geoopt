@@ -1373,7 +1373,9 @@ def midpoint(x, c=1.0, dim=-1):
 def _midpoint(x, c=1.0, dim: int = -1):
     x = _poincare2klein(x, c)
     lambdas = lambda_x(x, c=c, keepdim=True)
-    mean = torch.sum(lambdas * x, dim=dim, keepdim=True) / torch.sum(lambdas, dim=dim, keepdim=True)
+    mean = torch.sum(lambdas * x, dim=dim, keepdim=True) / torch.sum(
+        lambdas, dim=dim, keepdim=True
+    )
     mean = _klein2poincare(mean, c)
     return mean.squeeze(dim)
 
@@ -1401,8 +1403,8 @@ def poincare2klein(x, c=1.0, dim=-1):
 
 
 def _poincare2klein(x, c, dim: int = -1):
-    denom = 1. + c * x.pow(2).sum(dim, keepdim=True)
-    return 2. * x / denom
+    denom = 1.0 + c * x.pow(2).sum(dim, keepdim=True)
+    return 2.0 * x / denom
 
 
 def klein2poincare(x, c=1.0, dim=-1):
@@ -1428,5 +1430,5 @@ def klein2poincare(x, c=1.0, dim=-1):
 
 
 def _klein2poincare(x, c, dim: int = -1):
-    denom = 1. + torch.sqrt(1. - c * x.pow(2).sum(dim, keepdim=True))
+    denom = 1.0 + torch.sqrt(1.0 - c * x.pow(2).sum(dim, keepdim=True))
     return x / denom
