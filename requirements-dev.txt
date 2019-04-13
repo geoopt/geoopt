@@ -1,7 +1,7 @@
 pytest
 black
 readme2tex
-pytest - cov
+pytest-cov
 coveralls
 pymanopt
 twine
