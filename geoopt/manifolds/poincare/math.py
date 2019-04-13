@@ -1347,7 +1347,7 @@ def _egrad2rgrad(x, grad, c, dim: int = -1):
     return grad / _lambda_x(x, c, keepdim=True, dim=dim) ** 2
 
 
-def midpoint(x, c=1.0, dim=-1):
+def midpoint(x, *, c=1.0, dim=-1):
     r"""
     Finds the Einstein midpoint, analogue of finding average over features
     in Euclidean space
@@ -1367,20 +1367,20 @@ def midpoint(x, c=1.0, dim=-1):
     tensor
         midpoint
     """
-    return _mean(x, c, dim=dim)
+    return _midpoint(x, c, dim=dim)
 
 
-def _midpoint(x, c=1.0, dim: int = -1):
-    x = _poincare2klein(x, c)
+def _midpoint(x, c, dim: int = -1):
+    x = _poincare2klein(x, c, dim)
     lambdas = lambda_x(x, c=c, keepdim=True)
-    mean = torch.sum(lambdas * x, dim=dim, keepdim=True) / torch.sum(
+    midpoint = torch.sum(lambdas * x, dim=dim, keepdim=True) / torch.sum(
         lambdas, dim=dim, keepdim=True
     )
-    mean = _klein2poincare(mean, c)
-    return mean.squeeze(dim)
+    midpoint = _klein2poincare(midpoint, c, dim)
+    return midpoint.squeeze(dim)
 
 
-def poincare2klein(x, c=1.0, dim=-1):
+def poincare2klein(x, *, c=1.0, dim=-1):
     r"""
     Maps points from Poincare model to Klein model
 
@@ -1407,7 +1407,7 @@ def _poincare2klein(x, c, dim: int = -1):
     return 2.0 * x / denom
 
 
-def klein2poincare(x, c=1.0, dim=-1):
+def klein2poincare(x, *, c=1.0, dim=-1):
     r"""
     Maps points from Klein model to Poincare model
 
