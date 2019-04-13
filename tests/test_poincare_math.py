@@ -13,6 +13,7 @@ def seed(request):
     seed = request.param
     torch.manual_seed(seed)
     random.seed(seed)
+    np.random.seed(seed)
     return seed
 
 
