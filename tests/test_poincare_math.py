@@ -373,6 +373,14 @@ def test_distance2plane(a, c):
 
 
 def test_klein_transition(a, c):
-    kl = poincare.math.poincare2klein(a, c)
-    b = poincare.math.klein2poincare(kl, c)
+    kl = poincare.math.poincare2klein(a, c=c)
+    b = poincare.math.klein2poincare(kl, c=c)
     np.testing.assert_allclose(a, b, atol=1e-6, rtol=1e-6)
+
+
+def test_midpoint(a, c):
+    # test the midpoint with zero curvature
+    mids_a = torch.mean(a, dim=-1)
+    mids_b = poincare.math.midpoint(a, c=0, dim=-1)
+    np.testing.assert_allclose(mids_a, mids_b, atol=1e-6, rtol=1e-6)
+
