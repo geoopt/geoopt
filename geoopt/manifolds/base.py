@@ -854,8 +854,8 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         return out
 
     """
-    To make ``retr_transp`` work in case of ``_transp2y`` is much more efficient than 
-    ``_transp_follow`` there is a class attribute ``_retr_transp_default_preference`` to indicate this. 
+    To make ``retr_transp`` work in case of ``_transp2y`` is much more efficient than
+    ``_transp_follow`` there is a class attribute ``_retr_transp_default_preference`` to indicate this.
     The attribute should be present in the class definition if differs from default provided in `Manifold`.
     Its values should be in {'follow', '2y'}, default is 'follow'
     """

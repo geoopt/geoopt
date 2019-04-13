@@ -1345,3 +1345,88 @@ def egrad2rgrad(x, grad, *, c=1.0, dim=-1):
 
 def _egrad2rgrad(x, grad, c, dim: int = -1):
     return grad / _lambda_x(x, c, keepdim=True, dim=dim) ** 2
+
+
+def midpoint(x, c=1.0, dim=-1):
+    r"""
+    Finds the Einstein midpoint, analogue of finding average over features
+    in Euclidean space
+
+    Parameters:
+
+    ----------
+    x : tensor
+        point on the Poincare ball
+    c : float|tensor
+        ball negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        midpoint
+    """
+    return _mean(x, c, dim=dim)
+
+
+def _midpoint(x, c=1.0, dim: int = -1):
+    x = _poincare2klein(x, c)
+    lambdas = lambda_x(x, c=c, keepdim=True)
+    mean = torch.sum(lambdas * x, dim=dim, keepdim=True) / torch.sum(lambdas, dim=dim, keepdim=True)
+    mean = _klein2poincare(mean, c)
+    return mean.squeeze(dim)
+
+
+def poincare2klein(x, c=1.0, dim=-1):
+    r"""
+    Maps points from Poincare model to Klein model
+
+    Parameters:
+
+    ----------
+    x : tensor
+        point on the Poincare ball
+    c : float|tensor
+        ball negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        points in Klein model, :math:`\mathbf{x}_{\mathbb{K}}=\frac{2 \mathbf{x}_{\mathbb{D}}}{1+c\left\|\mathbf{x}_{\mathbb{D}}\right\|^{2}}`
+    """
+    return _poincare2klein(x, c, dim)
+
+
+def _poincare2klein(x, c, dim: int = -1):
+    denom = 1. + c * x.pow(2).sum(dim, keepdim=True)
+    return 2. * x / denom
+
+
+def klein2poincare(x, c=1.0, dim=-1):
+    r"""
+    Maps points from Klein model to Poincare model
+
+    Parameters:
+
+    ----------
+    x : tensor
+        point on the Poincare ball
+    c : float|tensor
+        ball negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        points in Poincare: \mathbf{x}_{\mathbb{D}}=\frac{\mathbf{X}_{\mathbb{K}}}{1+\sqrt{1-c\left\|\mathbf{x}_{\mathbb{K}}\right\|^{2}}}
+    """
+    return _klein2poincare(x, c, dim)
+
+
+def _klein2poincare(x, c, dim: int = -1):
+    denom = 1. + torch.sqrt(1. - c * x.pow(2).sum(dim, keepdim=True))
+    return x / denom

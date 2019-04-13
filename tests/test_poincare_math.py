@@ -369,3 +369,8 @@ def test_distance2plane(a, c):
     dist = poincare.math.dist2plane(z, a, vr, c=c)
 
     np.testing.assert_allclose(dist, dist1, atol=1e-5, rtol=1e-5)
+
+def test_klein_transition(a, c):
+    kl = poincare.math.poincare2klein(a, c)
+    b = poincare.math.klein2poincare(kl, c)
+    np.testing.assert_allclose(a, b, atol=1e-6, rtol=1e-6)
