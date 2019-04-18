@@ -51,7 +51,7 @@ def arsinh(x):
     return Arsinh.apply(x)
 
 
-def project(x, *, c=1.0, dim=-1):
+def project(x, *, c=1.0, dim=-1, eps=None):
     r"""
     Safe projection on the manifold for numerical stability.
 
@@ -63,27 +63,31 @@ def project(x, *, c=1.0, dim=-1):
         ball negative curvature
     dim : int
         reduction dimension to compute norm
+    eps : float
+        stability parameter, uses default for dtype if not provided
 
     Returns
     -------
     tensor
         projected vector on the manifold
     """
-    return _project(x, c, dim)
+    return _project(x, c, dim, eps)
 
 
 @torch.jit.script
-def _max_norm(x):
+def _eps(x):
     if x.dtype == torch.float32:
-        maxnorm = torch.full((), 1 - 4e-3, dtype=x.dtype, device=x.device)
+        maxnorm = torch.full((), 4e-3, dtype=x.dtype, device=x.device)
     else:
-        maxnorm = torch.full((), 1 - 1e-5, dtype=x.dtype, device=x.device)
+        maxnorm = torch.full((), 1e-5, dtype=x.dtype, device=x.device)
     return maxnorm
 
 
-def _project(x, c, dim: int = -1):
+def _project(x, c, dim: int = -1, eps: float = None):
     norm = x.norm(dim=dim, keepdim=True, p=2)
-    maxnorm = _max_norm(x) / (c ** 0.5)
+    if eps is None:
+        eps = _eps(x)
+    maxnorm = (1-eps) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
