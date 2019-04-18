@@ -551,7 +551,7 @@ def _clip_tangent(x, u, c, dim: int = -1, eps=None):
     p = p / s ** 0.5 / (c ** 0.5)
     p = _project(p, c, eps=eps)
     # normalize its length based on x
-    maxnorm = _dist(p, -p, c, keepdim=False, dim=dim) / _lambda_x(
+    maxnorm = _dist(p, -p, c, keepdim=False) / _lambda_x(
         x, c, keepdim=True, dim=dim
     )
     norm = u.norm(dim=dim, keepdim=True, p=2)
