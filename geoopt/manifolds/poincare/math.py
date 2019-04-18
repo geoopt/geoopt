@@ -513,7 +513,7 @@ def _dist0(x, c, keepdim: bool = False, dim: int = -1):
     return dist_c * 2 / sqrt_c
 
 
-def clip_tangent(x, u, *, c=1.0, dim=-1):
+def clip_tangent(x, u, *, c=1.0, dim=-1, eps=None):
     r"""
     Project tangent vector to reasonable values that do not exceed
     maximum allowed (vector norm allowing to travel to the opposite pole)
@@ -532,22 +532,24 @@ def clip_tangent(x, u, *, c=1.0, dim=-1):
         ball negative curvature
     dim : int
         reduction dimension to compute norm
+    eps : float
+        stability parameter
 
     Returns
     -------
     tensor
         same tangent vector with reasonable values
     """
-    return _clip_tangent(x, u, c, dim=dim)
+    return _clip_tangent(x, u, c, dim=dim, eps=eps)
 
 
-def _clip_tangent(x, u, c, dim: int = -1):
+def _clip_tangent(x, u, c, dim: int = -1, eps=None):
     # get the almost infinite vecotor estimate
     # this is the norm of travel vector to the opposite pole
     s = x.size(dim)
     p = torch.ones((s,), dtype=x.dtype, device=x.device)
     p = p / s ** 0.5 / (c ** 0.5)
-    p = _project(p, c, dim=dim)
+    p = _project(p, c, dim=dim, eps=eps)
     # normalize its length based on x
     maxnorm = _dist(p, -p, c, keepdim=True, dim=dim) / _lambda_x(
         x, c, keepdim=True, dim=dim
