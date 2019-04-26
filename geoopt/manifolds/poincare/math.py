@@ -87,7 +87,7 @@ def _project(x, c, dim: int = -1, eps: float = None):
     norm = x.norm(dim=dim, keepdim=True, p=2)
     if eps is None:
         eps = _eps(x)
-    maxnorm = (1-eps) / (c ** 0.5)
+    maxnorm = (1 - eps) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
@@ -551,9 +551,7 @@ def _clip_tangent(x, u, c, dim: int = -1, eps=None):
     p = p / s ** 0.5 / (c ** 0.5)
     p = _project(p, c, eps=eps)
     # normalize its length based on x
-    maxnorm = _dist(p, -p, c, keepdim=False) / _lambda_x(
-        x, c, keepdim=True, dim=dim
-    )
+    maxnorm = _dist(p, -p, c, keepdim=False) / _lambda_x(x, c, keepdim=True, dim=dim)
     norm = u.norm(dim=dim, keepdim=True, p=2)
     cond = norm > maxnorm
     projected = u / norm * maxnorm
