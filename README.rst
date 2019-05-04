@@ -10,7 +10,7 @@ Methods”`_ ICLR2019 and more.
 
 Installation
 ------------
-Make sure you have pytorch>=1.0.0 installed
+Make sure you have pytorch>=1.1.0 installed
 
 There are two ways to install geoopt:
 
