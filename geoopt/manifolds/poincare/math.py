@@ -10,6 +10,10 @@ import functools
 import torch.jit
 
 
+MIN_NORM = 1e-15
+BALL_EPS = {torch.float32: 4e-3, torch.float64: 1e-5}
+
+
 def tanh(x):
     return x.clamp(-15, 15).tanh()
 
@@ -35,7 +39,7 @@ class Arsinh(torch.autograd.Function):
     def forward(ctx, x):
         ctx.save_for_backward(x)
         z = x.double()
-        return (z + torch.sqrt_(1 + z.pow(2))).clamp_min_(1e-15).log_().to(x.dtype)
+        return (z + torch.sqrt_(1 + z.pow(2))).clamp_min_(MIN_NORM).log_().to(x.dtype)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -74,19 +78,10 @@ def project(x, *, c=1.0, dim=-1, eps=None):
     return _project(x, c, dim, eps)
 
 
-@torch.jit.script
-def _eps(x):
-    if x.dtype == torch.float32:
-        maxnorm = torch.full((), 4e-3, dtype=x.dtype, device=x.device)
-    else:
-        maxnorm = torch.full((), 1e-5, dtype=x.dtype, device=x.device)
-    return maxnorm
-
-
 def _project(x, c, dim: int = -1, eps: float = None):
-    norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
+    norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     if eps is None:
-        eps = _eps(x)
+        eps = BALL_EPS[x.dtype]
     maxnorm = (1 - eps) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
@@ -121,7 +116,7 @@ def lambda_x(x, *, c=1.0, keepdim=False, dim=-1):
 
 
 def _lambda_x(x, c, keepdim: bool = False, dim: int = -1):
-    return 2 / (1 - c * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(1e-15)
+    return 2 / (1 - c * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
 
 
 def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
@@ -256,14 +251,13 @@ def mobius_add(x, y, *, c=1.0, dim=-1):
 
 
 def _mobius_add(x, y, c, dim=-1):
-    y = y + 1e-15
     x2 = x.pow(2).sum(dim=dim, keepdim=True)
     y2 = y.pow(2).sum(dim=dim, keepdim=True)
     xy = (x * y).sum(dim=dim, keepdim=True)
     num = (1 + 2 * c * xy + c * y2) * x + (1 - c * x2) * y
     denom = 1 + 2 * c * xy + c ** 2 * x2 * y2
     # avoid division by zero in this way
-    return num / (denom + 1e-15)
+    return num / denom.clamp_min(MIN_NORM)
 
 
 def mobius_sub(x, y, *, c=1.0, dim=-1):
@@ -348,7 +342,7 @@ def _mobius_coadd(x, y, c, dim: int = -1):
     num = (1 - c * y2) * x + (1 - c * x2) * y
     denom = 1 - c ** 2 * x2 * y2
     # avoid division by zero in this way
-    return num / denom.clamp_min(1e-15)
+    return num / denom.clamp_min(MIN_NORM)
 
 
 def mobius_cosub(x, y, *, c=1.0, dim=-1):
@@ -437,7 +431,7 @@ def mobius_scalar_mul(r, x, *, c=1.0, dim=-1):
 
 
 def _mobius_scalar_mul(r, x, c, dim: int = -1):
-    x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
+    x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     sqrt_c = c ** 0.5
     res_c = tanh(r * artanh(sqrt_c * x_norm)) * x / (x_norm * sqrt_c)
     return res_c
@@ -617,7 +611,7 @@ def expmap(x, u, *, c=1.0, dim=-1):
 
 def _expmap(x, u, c, dim: int = -1):
     sqrt_c = c ** 0.5
-    u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
+    u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     second_term = (
         tanh(sqrt_c / 2 * _lambda_x(x, c, keepdim=True, dim=dim) * u_norm)
         * u
@@ -654,7 +648,7 @@ def expmap0(u, *, c=1.0, dim=-1):
 
 def _expmap0(u, c, dim: int = -1):
     sqrt_c = c ** 0.5
-    u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
+    u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     gamma_1 = tanh(sqrt_c * u_norm) * u / (sqrt_c * u_norm)
     return gamma_1
 
@@ -690,7 +684,7 @@ def geodesic_unit(t, x, u, *, c=1.0, dim=-1):
 
 def _geodesic_unit(t, x, u, c, dim: int = -1):
     sqrt_c = c ** 0.5
-    u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
+    u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     second_term = tanh(sqrt_c / 2 * t) * u / (sqrt_c * u_norm)
     gamma_1 = _mobius_add(x, second_term, c, dim=dim)
     return gamma_1
@@ -734,7 +728,7 @@ def logmap(x, y, *, c=1.0, dim=-1):
 
 def _logmap(x, y, c, dim: int = -1):
     sub = _mobius_add(-x, y, c, dim=dim)
-    sub_norm = sub.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
+    sub_norm = sub.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     lam = _lambda_x(x, c, keepdim=True, dim=dim)
     sqrt_c = c ** 0.5
     return 2 / sqrt_c / lam * artanh(sqrt_c * sub_norm) * sub / sub_norm
@@ -774,8 +768,7 @@ def logmap0(y, *, c=1.0, dim=-1):
 
 def _logmap0(y, c, dim: int = -1):
     sqrt_c = c ** 0.5
-    y = y + 1e-15
-    y_norm = y.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
+    y_norm = y.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     return y / y_norm / sqrt_c * artanh(sqrt_c * y_norm)
 
 
@@ -816,13 +809,13 @@ def _mobius_matvec(m, x, c, dim: int = -1):
         raise RuntimeError(
             "broadcasted Mobius matvec is supported for the last dim only"
         )
-    x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
+    x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     sqrt_c = c ** 0.5
     if dim != -1 or m.dim() == 2:
         mx = torch.tensordot(x, m, dims=([dim], [1]))
     else:
         mx = torch.matmul(m, x.unsqueeze(-1)).squeeze(-1)
-    mx_norm = mx.norm(dim=dim, keepdim=True, p=2)
+    mx_norm = mx.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     res_c = tanh(mx_norm / x_norm * artanh(sqrt_c * x_norm)) * mx / (mx_norm * sqrt_c)
     cond = (mx == 0).prod(dim=dim, keepdim=True, dtype=torch.uint8)
     res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
@@ -861,10 +854,10 @@ def mobius_pointwise_mul(w, x, *, c=1.0, dim=-1):
 
 
 def _mobius_pointwise_mul(w, x, c, dim: int = -1):
-    x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
+    x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     sqrt_c = c ** 0.5
     wx = w * x
-    wx_norm = wx.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
+    wx_norm = wx.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     res_c = tanh(wx_norm / x_norm * artanh(sqrt_c * x_norm)) * wx / (wx_norm * sqrt_c)
     cond = (wx == 0).prod(dim=dim, keepdim=True, dtype=torch.uint8)
     res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
@@ -1097,14 +1090,14 @@ def dist2plane(x, p, a, *, c=1.0, keepdim=False, signed=False, dim=-1):
 def _dist2plane(x, a, p, c, keepdim: bool = False, signed: bool = False, dim: int = -1):
     sqrt_c = c ** 0.5
     diff = _mobius_add(-p, x, c, dim=dim)
-    diff_norm2 = diff.pow(2).sum(dim=dim, keepdim=keepdim).clamp_min(1e-15)
+    diff_norm2 = diff.pow(2).sum(dim=dim, keepdim=keepdim).clamp_min(MIN_NORM)
     sc_diff_a = (diff * a).sum(dim=dim, keepdim=keepdim)
     if not signed:
         sc_diff_a = sc_diff_a.abs()
-    a_norm = a.norm(dim=dim, keepdim=keepdim, p=2).clamp_min(1e-15)
+    a_norm = a.norm(dim=dim, keepdim=keepdim, p=2).clamp_min(MIN_NORM)
     num = 2 * sqrt_c * sc_diff_a
     denom = (1 - c * diff_norm2) * a_norm
-    return arsinh(num / (denom + 1e-15)) / sqrt_c
+    return arsinh(num / denom.clamp_min(MIN_NORM)) / sqrt_c
 
 
 def gyration(a, b, u, *, c=1.0, dim=-1):
@@ -1175,7 +1168,7 @@ def _gyration(u, v, w, c, dim: int = -1):
     a = -c2 * uw * v2 + c * vw + 2 * c2 * uv * vw
     b = -c2 * vw * u2 - c * uw
     d = 1 + 2 * c * uv + c2 * u2 * v2
-    return w + 2 * (a * u + b * v) / (d + 1e-15)
+    return w + 2 * (a * u + b * v) / d.clamp_min(MIN_NORM)
 
 
 def parallel_transport(x, y, v, *, c=1.0, dim=-1):
@@ -1266,7 +1259,7 @@ def parallel_transport0(y, v, *, c=1.0, dim=-1):
 
 
 def _parallel_transport0(y, v, c, dim: int = -1):
-    return v * (1 - c * y.pow(2).sum(dim=dim, keepdim=True))
+    return v * (1 - c * y.pow(2).sum(dim=dim, keepdim=True)).clamp_min(MIN_NORM)
 
 
 def egrad2rgrad(x, grad, *, c=1.0, dim=-1):
