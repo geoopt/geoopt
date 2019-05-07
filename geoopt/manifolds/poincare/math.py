@@ -256,7 +256,18 @@ def _mobius_add(x, y, c, dim=-1):
     xy = (x * y).sum(dim=dim, keepdim=True)
     num = (1 + 2 * c * xy + c * y2) * x + (1 - c * x2) * y
     denom = 1 + 2 * c * xy + c ** 2 * x2 * y2
-    # avoid division by zero in this way
+    # minimize denom (omit c to simplify th notation)
+    # 1)
+    # {d(denom)/d(x) = 2 y + 2x * <y, y> = 0
+    # {d(denom)/d(y) = 2 x + 2y * <x, x> = 0
+    # 2)
+    # {y + x * <y, y> = 0
+    # {x + y * <x, x> = 0
+    # 3)
+    # {- y/<y, y> = x
+    # {- x/<x, x> = y
+    # 4)
+    # minimum = 1 - 2 <y, y>/<y, y> + <y, y>/<y, y> = 0
     return num / denom.clamp_min(MIN_NORM)
 
 
