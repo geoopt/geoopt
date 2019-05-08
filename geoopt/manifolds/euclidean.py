@@ -1,3 +1,5 @@
+import torch
+
 from .base import Manifold
 
 __all__ = ["Euclidean"]
@@ -51,4 +53,4 @@ class Euclidean(Manifold):
         return y - x
 
     def _dist(self, x, y, keepdim):
-        return (x - y).abs()
+        return torch.sqrt((x-y).norm(dim=-1, p=2, keepdim=keepdim))
