@@ -809,10 +809,11 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         Developer Guide
 
         Exhaustive implementation for checking if
-        a given point lies on the manifold. It
-        should return boolean and a reason of
-        failure if check is not passed. You can
-        assume assert_check_point is already
+        a given point lies in the tangent space at x
+        of the manifold. It should return a boolean
+        indicating whether the test was passed
+        and a reason of failure if check is not passed. 
+        You can assume assert_check_point is already
         passed beforehand
 
         Parameters
