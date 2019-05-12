@@ -183,6 +183,8 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                 p.set_(manifold.projx(p))
                 if momentum > 0:
                     param_state = self.state[p]
+                    if not param_state:  # due to None grads
+                        continue
                     if "momentum_buffer" in param_state:
                         buf = param_state["momentum_buffer"]
                         buf.set_(manifold.proju(p, buf))

@@ -198,6 +198,8 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
                     continue
                 state = self.state[p]
+                if not state:  # due to None grads
+                    continue
                 manifold = p.manifold
                 exp_avg = state["exp_avg"]
                 p.set_(manifold.projx(p))

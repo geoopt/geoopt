@@ -65,7 +65,7 @@ class PoincareBall(Manifold):
         return math.project(x, c=self.c)
 
     def _proju(self, x, u):
-        return math.clip_tangent(x, u, c=self.c)
+        return u
 
     def _inner(self, x, u, v, keepdim):
         return math.inner(x, u, v, c=self.c, keepdim=keepdim)
