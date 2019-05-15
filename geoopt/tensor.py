@@ -35,7 +35,7 @@ class ManifoldTensor(torch.Tensor):
         Returns
         -------
         tensor
-            same instance (contiguous)
+            same instance
         """
         return self.copy_(self.manifold.projx(self))
 
