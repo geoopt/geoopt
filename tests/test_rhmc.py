@@ -116,7 +116,7 @@ def test_sampling(params):
 
     points = np.asarray(points)
     points = points[::20]
-
+    assert nd.x.is_contiguous()
     np.testing.assert_allclose(mu.numpy(), points.mean(axis=0), atol=1e-1)
     np.testing.assert_allclose(sigma.numpy(), points.std(axis=0), atol=1e-1)
 

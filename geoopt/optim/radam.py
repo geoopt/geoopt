@@ -189,7 +189,8 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         new_point, exp_avg_new = manifold.retr_transp(
             point, exp_avg, u=direction, t=-step_size
         )
-        point.set_(new_point)
+        # use copy only for user facing point
+        point.copy_(new_point)
         exp_avg.set_(exp_avg_new)
 
     def stabilize_group(self, group):
@@ -202,7 +203,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     continue
                 manifold = p.manifold
                 exp_avg = state["exp_avg"]
-                p.set_(manifold.projx(p))
+                p.copy_(manifold.projx(p))
                 exp_avg.set_(manifold.proju(p, exp_avg))
 
     def _sanitize_group(self, group):

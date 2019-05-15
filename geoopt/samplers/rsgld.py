@@ -50,8 +50,8 @@ class RSGLD(Sampler):
 
                     n = torch.randn_like(p).mul_(math.sqrt(epsilon))
                     r = egrad2rgrad(p, 0.5 * epsilon * p.grad + n)
-
-                    p.set_(retr(p, r, 1.0))
+                    # use copy only for user facing point
+                    p.copy_(retr(p, r, 1.0))
                     p.grad.zero_()
 
         if not self.burnin:
@@ -67,4 +67,4 @@ class RSGLD(Sampler):
                     if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         continue
 
-                    p.set_(p.manifold.projx(p))
+                    p.copy_(p.manifold.projx(p))

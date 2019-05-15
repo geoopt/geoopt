@@ -34,7 +34,7 @@ def test_rsgd_stiefel(params):
         if (X - Xstar).norm() < 1e-5:
             break
         optim.step(closure)
-
+    assert X.is_contiguous()
     np.testing.assert_allclose(X.data, Xstar, atol=1e-5)
     optim.load_state_dict(optim.state_dict())
     optim.step(closure)
@@ -56,5 +56,6 @@ def test_init_manifold():
     opt.zero_grad()
     opt.step()
     assert not np.allclose(p0.data, p0old.data)
+    assert p0.is_contiguous()
     np.testing.assert_allclose(p1.data, p1old.data)
     np.testing.assert_allclose(p0.data, stiefel.projx(p0old.data), atol=1e-4)

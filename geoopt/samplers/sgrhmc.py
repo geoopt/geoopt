@@ -76,7 +76,7 @@ class SGRHMC(Sampler):
                         v = self.state[p]["v"]
 
                         p_, v_ = retr_transp(p, v, u=v, t=1.0)
-                        p.set_(p_)
+                        p.copy_(p_)
                         v.set_(v_)
 
                         n = egrad2rgrad(p, torch.randn_like(v))
@@ -104,6 +104,6 @@ class SGRHMC(Sampler):
                 manifold = p.manifold
                 v = self.state[p]["v"]
 
-                p.set_(manifold.projx(p))
+                p.copy_(manifold.projx(p))
                 # proj here is ok
                 v.set_(manifold.proju(p, v))

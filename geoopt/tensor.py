@@ -27,6 +27,7 @@ class ManifoldTensor(torch.Tensor):
         instance.manifold = manifold
         return instance
 
+    @torch.no_grad()
     def proj_(self):
         """
         Inplace projection to the manifold
@@ -34,11 +35,9 @@ class ManifoldTensor(torch.Tensor):
         Returns
         -------
         tensor
-            same instance
+            same instance (contiguous)
         """
-        with torch.no_grad():
-            self.set_(self.manifold.projx(self.data))
-        return self
+        return self.copy_(self.manifold.projx(self))
 
     @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
     def retr(self, u, t=1.0, order=None):
