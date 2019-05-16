@@ -4,6 +4,7 @@ from .mixin import OptimMixin
 from .tracing import create_traced_update
 from ..tensor import ManifoldParameter, ManifoldTensor
 from ..manifolds import Euclidean
+from ..utils import copy_or_set
 
 
 class RiemannianAdam(OptimMixin, torch.optim.Adam):
@@ -190,7 +191,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
             point, exp_avg, u=direction, t=-step_size
         )
         # use copy only for user facing point
-        point.copy_(new_point)
+        copy_or_set(point, new_point)
         exp_avg.set_(exp_avg_new)
 
     def stabilize_group(self, group):
@@ -203,7 +204,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     continue
                 manifold = p.manifold
                 exp_avg = state["exp_avg"]
-                p.copy_(manifold.projx(p))
+                copy_or_set(p, manifold.projx(p))
                 exp_avg.set_(manifold.proju(p, exp_avg))
 
     def _sanitize_group(self, group):

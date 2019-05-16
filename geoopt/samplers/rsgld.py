@@ -5,7 +5,7 @@ import torch
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
 from geoopt.manifolds import Euclidean
 from geoopt.samplers.base import Sampler
-
+from ..utils import copy_or_set
 
 __all__ = ["RSGLD"]
 
@@ -66,5 +66,4 @@ class RSGLD(Sampler):
                 for p in group["params"]:
                     if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         continue
-
-                    p.copy_(p.manifold.projx(p))
+                    copy_or_set(p, p.manifold.projx(p))
