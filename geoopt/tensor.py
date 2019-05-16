@@ -1,6 +1,7 @@
 import torch.nn
 from .manifolds import Euclidean
 from .docutils import insert_docs
+from .utils import copy_or_set
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
 
@@ -37,7 +38,7 @@ class ManifoldTensor(torch.Tensor):
         tensor
             same instance
         """
-        return self.copy_(self.manifold.projx(self))
+        return copy_or_set(self, self.manifold.projx(self))
 
     @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
     def retr(self, u, t=1.0, order=None):
