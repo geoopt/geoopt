@@ -12,6 +12,7 @@ def copy_or_set(dest, source):
         Destination tensor where to store new data
     source : torch.Tensor
         Source data to put in the new tensor
+
     Returns
     -------
     dest
