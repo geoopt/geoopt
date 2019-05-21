@@ -26,7 +26,7 @@ def test_adam_stiefel(params):
         if (X - Xstar).norm() < 1e-5:
             break
         optim.step(closure)
-
+    assert X.is_contiguous()
     np.testing.assert_allclose(X.data, Xstar, atol=1e-5, rtol=1e-5)
     optim.load_state_dict(optim.state_dict())
     optim.step(closure)
@@ -49,5 +49,4 @@ def test_adam_poincare():
 
     for _ in range(2000):
         optim.step(closure)
-
     np.testing.assert_allclose(start.data, ideal, atol=1e-5, rtol=1e-5)
