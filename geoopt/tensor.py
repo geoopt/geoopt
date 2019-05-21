@@ -1,6 +1,7 @@
 import torch.nn
 from .manifolds import Euclidean
 from .docutils import insert_docs
+from .utils import copy_or_set_
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
 
@@ -27,6 +28,7 @@ class ManifoldTensor(torch.Tensor):
         instance.manifold = manifold
         return instance
 
+    @torch.no_grad()
     def proj_(self):
         """
         Inplace projection to the manifold
@@ -36,9 +38,7 @@ class ManifoldTensor(torch.Tensor):
         tensor
             same instance
         """
-        with torch.no_grad():
-            self.set_(self.manifold.projx(self.data))
-        return self
+        return copy_or_set_(self, self.manifold.projx(self))
 
     @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
     def retr(self, u, t=1.0, order=None):
