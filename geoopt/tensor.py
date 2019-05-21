@@ -28,7 +28,6 @@ class ManifoldTensor(torch.Tensor):
         instance.manifold = manifold
         return instance
 
-    @torch.no_grad()
     def proj_(self):
         """
         Inplace projection to the manifold
@@ -38,6 +37,10 @@ class ManifoldTensor(torch.Tensor):
         tensor
             same instance
         """
+        if self.requires_grad and torch.is_grad_enabled():
+            raise RuntimeError(
+                "a leaf Variable that requires grad has been used in an in-place operation"
+            )
         return copy_or_set_(self, self.manifold.projx(self))
 
     @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
