@@ -1,7 +1,7 @@
-__all__ = "copy_or_set"
+__all__ = "copy_or_set_"
 
 
-def copy_or_set(dest, source):
+def copy_or_set_(dest, source):
     """
     A workaround to respect strides of :code:`dest` when copying :code:`source`
     (https://github.com/geoopt/geoopt/issues/70)
@@ -16,7 +16,7 @@ def copy_or_set(dest, source):
     Returns
     -------
     dest
-        torch.Tensor
+        torch.Tensor, modified inplace
     """
     if dest.stride() != source.stride():
         return dest.copy_(source)

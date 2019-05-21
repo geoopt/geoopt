@@ -3,7 +3,7 @@ from ..manifolds import Euclidean
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin
 from .tracing import create_traced_update
-from ..utils import copy_or_set
+from ..utils import copy_or_set_
 
 __all__ = ["RiemannianSGD"]
 
@@ -169,10 +169,10 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
             )
             momentum_buffer.set_(new_momentum_buffer)
             # use copy only for user facing point
-            copy_or_set(point, new_point)
+            copy_or_set_(point, new_point)
         else:
             new_point = manifold.retr(point, grad, -lr)
-            copy_or_set(point, new_point)
+            copy_or_set_(point, new_point)
 
     def stabilize_group(self, group):
         with torch.no_grad():
@@ -181,7 +181,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                     continue
                 manifold = p.manifold
                 momentum = group["momentum"]
-                copy_or_set(p, manifold.projx(p))
+                copy_or_set_(p, manifold.projx(p))
                 if momentum > 0:
                     param_state = self.state[p]
                     if not param_state:  # due to None grads
