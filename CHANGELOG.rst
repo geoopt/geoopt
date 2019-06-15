@@ -6,6 +6,9 @@ geoopt v0.1.0 (unreleased)
 Breaking Changes
 ----------------
 * better public api, refactored developer api a lot (#40). See the corresponding PR for more details
+* Removed ``t`` argument from everywhere (#76). The argument just scaled tangent vectors but
+appeared to be very problematic in maintenance
+
 
 New Features
 ------------
@@ -22,10 +25,6 @@ Maintenance
 * Manifolds are Modules (#49)
 * Replace deprecated functions in torch>=1.1.0 (#67)
 * Remove PyManOpt from test requirements (#75)
-
-Deprecations
-------------
-* remove ``t`` argument from everywhere (#76)
 
 Bug Fixes
 ---------
