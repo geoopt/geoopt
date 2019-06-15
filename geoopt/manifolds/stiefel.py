@@ -74,8 +74,8 @@ class Stiefel(Manifold):
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
     def _projx(self, x):
-        U, d, V = linalg.batch_linalg.svd(x)
-        return torch.einsum("...ik,...k,...jk->...ij", U, torch.ones_like(d), V)
+        U, _, V = linalg.batch_linalg.svd(x)
+        return torch.einsum("...ik,...jk->...ij", U, V)
 
 
 class CanonicalStiefel(Stiefel):
@@ -126,7 +126,7 @@ class CanonicalStiefel(Stiefel):
         qvs = self._transp_follow_one(x, vs, u=u, t=t).view(
             x.shape[:-1] + (-1, x.shape[-1])
         )
-        return tuple(qvs[..., i, :] for i in range(n))
+        return qvs.unbind(-2)
 
     def _transp_follow(self, x, v, *more, u, t):
         if more:
@@ -143,7 +143,7 @@ class CanonicalStiefel(Stiefel):
         qxvs = self._transp_follow_one(x, xvs, u=u, t=t).view(
             x.shape[:-1] + (-1, x.shape[-1])
         )
-        return tuple(qxvs[..., i, :] for i in range(n))
+        return qxvs.unbind(-2)
 
     def _proju(self, x, u):
         return u - x @ u.transpose(-1, -2) @ x
