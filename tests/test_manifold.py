@@ -80,9 +80,9 @@ def unary_case(request, retraction_order):
 
             manifold = Manifold()
         elif issubclass(Manifold, geoopt.SphereSubspaceComplementIntersection):
-            compliment = torch.rand(shape[-1], 1)
+            complement = torch.rand(shape[-1], 1)
 
-            Q, _ = geoopt.linalg.batch_linalg.qr(compliment)
+            Q, _ = geoopt.linalg.batch_linalg.qr(complement)
             P = -Q @ Q.transpose(-1, -2)
             P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
 
@@ -91,7 +91,7 @@ def unary_case(request, retraction_order):
             x = (ex @ P.t()) / torch.norm(ex @ P.t())
             v = (ev - (x @ ev) * x) @ P.t()
 
-            manifold = Manifold(compliment)
+            manifold = Manifold(complement)
         elif issubclass(Manifold, geoopt.SphereSubspaceIntersection):
             subspace = torch.rand(shape[-1], 1)
 
