@@ -171,9 +171,9 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
     * ``_inner(x, u, v)`` required
         Computes inner product :math:`\langle u, v\rangle_x`
     * ``_retr(x, u, t)`` required
-        Performs retraction map for :math:`x` with direction :math:`u` and time :math:`t`
+        Performs retraction map for :math:`x` with direction :math:`u`
     * ``_transp_follow(x, v, *more, u, t)`` required
-        Performs vector transport for :math:`v` from :math:`x` with direction :math:`u` and time :math:`t`
+        Performs vector transport for :math:`v` from :math:`x` with direction :math:`u`
     * ``_transp2y(x, v, *more, u, t)`` desired
         Performs vector transport for :math:`v` with from :math:`x` to :math:`y`
     * ``_retr_transp(x, v, *more, u, t)`` desired
@@ -257,25 +257,6 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
     @default_order.setter
     def default_order(self, order):
         self.set_default_order(order)
-
-    def broadcast_scalar(self, t):
-        """
-        Broadcast scalar t for manifold, appending last dimensions if needed
-
-        Parameters
-        ----------
-        t : scalar
-            Potentially batched (individual for every point in a batch) scalar for points on the manifold.
-
-        Returns
-        -------
-        scalar
-            broadcasted representation for ``t``
-        """
-        if isinstance(t, torch.Tensor):
-            extra = (1,) * self.ndim
-            t = t.view(t.shape + extra)
-        return t
 
     def check_point(self, x, explain=False):
         """
@@ -491,10 +472,10 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         """
         return self._dist(x, y, keepdim=keepdim)
 
-    def retr(self, x, u, t=1.0, order=None):
+    def retr(self, x, u, *, order=None):
         """
         Perform a retraction from point :math:`x` with
-        given direction :math:`u` and time :math:`t`
+        given direction :math:`u`
 
         Parameters
         ----------
@@ -502,8 +483,6 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             point on the manifold
         u : tensor
             tangent vector at point :math:`x`
-        t : scalar
-            time to go with direction :math:`u`
         order : int
             order of retraction approximation, by default uses the simplest that is usually a first order approximation.
             Possible choices depend on a concrete manifold and -1 stays for exponential map
@@ -513,13 +492,12 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         tensor
             transported point
         """
-        t = self.broadcast_scalar(t)
-        return self._retr_funcs[order](self, x, u, t)
+        return self._retr_funcs[order](self, x, u)
 
-    def expmap(self, x, u, t=1.0):
+    def expmap(self, x, u):
         """
         Perform an exponential map from point :math:`x` with
-        given direction :math:`u` and time :math:`t`
+        given direction :math:`u`
 
         Parameters
         ----------
@@ -527,8 +505,6 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             point on the manifold
         u : tensor
             tangent vector at point :math:`x`
-        t : scalar
-            time to go with direction :math:`u`
 
         Returns
         -------
@@ -540,8 +516,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         By default, no error is raised if exponential map is not implemented. If so,
         the best approximation to exponential map is applied instead.
         """
-        t = self.broadcast_scalar(t)
-        return self._retr_funcs[-1](self, x=x, u=u, t=t)
+        return self._retr_funcs[-1](self, x=x, u=u)
 
     def logmap(self, x, y):
         r"""
@@ -566,10 +541,10 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         """
         return self._logmap(x, y)
 
-    def expmap_transp(self, x, v, *more, u, t=1.0):
+    def expmap_transp(self, x, v, *more, u):
         """
         Perform an exponential map from point :math:`x` with
-        given direction :math:`u` and time :math:`t`
+        given direction :math:`u`
 
         Parameters
         ----------
@@ -581,8 +556,6 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             other tangent vectors at point :math:`x` to be transported
         u : tensor
             tangent vector at point :math:`x`
-        t : scalar
-            time to go with direction :math:`u`
 
         Returns
         -------
@@ -594,14 +567,13 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         By default, no error is raised if exponential map is not implemented. If so,
         the best approximation to exponential map is applied instead.
         """
-        t = self.broadcast_scalar(t)
-        return self._retr_transport_funcs[-1](self, x, v, *more, u=u, t=t)
+        return self._retr_transport_funcs[-1](self, x, v, *more, u=u)
 
-    def transp(self, x, v, *more, u=None, t=1.0, y=None, order=None):
+    def transp(self, x, v, *more, u=None, y=None, order=None):
         """
         Perform vector transport from point :math:`x` for vector :math:`v` using one of the following:
 
-        1. Go by direction :math:`u` and time :math:`t`
+        1. Go by direction :math:`u`
         2. Use target point :math:`y` directly
 
         Either :math:`y` or :math:`u` should present but not both
@@ -616,8 +588,6 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             other tangent vectors at point :math:`x` to be transported
         u : tensor
             tangent vector at point :math:`x` (required if :math:`y` is not provided)
-        t : scalar
-            time to go with direction :math:`u`
         y : tensor
             the target point for vector transport  (required if :math:`u` is not provided)
         order : int
@@ -630,13 +600,12 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         tensor or tuple of tensors
             transported tensor(s)
         """
-        t = self.broadcast_scalar(t)
         if y is not None and u is not None:
             raise TypeError("transp() accepts either y or u only, not both")
         if y is not None:
             return self._transp2y(x, v, *more, y=y)
         elif u is not None:
-            return self._transport_follow_funcs[order](self, x, v, *more, u=u, t=t)
+            return self._transport_follow_funcs[order](self, x, v, *more, u=u)
         else:
             raise TypeError("transp() requires either y or u")
 
@@ -719,7 +688,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         """
         return self._projx(x)
 
-    def retr_transp(self, x, v, *more, u, t=1.0, order=None):
+    def retr_transp(self, x, v, *more, u, order=None):
         """
         Perform a retraction + vector transport at once
 
@@ -733,8 +702,6 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
             other tangent vector at point :math:`x` to be transported
         u : tensor
             tangent vector at point :math:`x` (required keyword only argument)
-        t : scalar
-            time to go with direction :math:`u`
         order : int
             order of retraction approximation, by default uses the simplest.
             Possible choices depend on a concrete manifold and -1 stays for exponential map
@@ -748,7 +715,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         -----
         Sometimes this is a far more optimal way to preform retraction + vector transport
         """
-        return self._retr_transport_funcs[order](self, x, v, *more, u=u, t=t)
+        return self._retr_transport_funcs[order](self, x, v, *more, u=u)
 
     # private implementation, public documentation design
 
@@ -833,7 +800,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         # return True, None
         raise NotImplementedError
 
-    def _retr_transp(self, x, v, *more, u, t):
+    def _retr_transp(self, x, v, *more, u):
         """
         Developer Guide
 
@@ -841,12 +808,12 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         transporting many vectors at once.
         """
 
-        y = self._retr(x, u, t)
+        y = self._retr(x, u)
         if self._retr_transp_default_preference == "follow":
             if more:
-                out = (y,) + self._transp_follow(x, v, *more, u=u, t=t)
+                out = (y,) + self._transp_follow(x, v, *more, u=u)
             else:
-                out = (y, self._transp_follow(x, v, *more, u=u, t=t))
+                out = (y, self._transp_follow(x, v, *more, u=u))
         else:
             if more:
                 out = (y,) + self._transp2y(x, v, *more, y=y)
@@ -863,7 +830,7 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
     _retr_transp_default_preference = "follow"
 
     @abc.abstractmethod
-    def _retr(self, x, u, t):
+    def _retr(self, x, u):
         """
         Developer Guide
 
@@ -871,11 +838,11 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         """
         raise NotImplementedError
 
-    # def _transp_follow(self, x, v, *more, u, t):
+    # def _transp_follow(self, x, v, *more, u):
     """
     Developer Guide
 
-    Private implementation for vector transport using :math:`u` and :math:`t`. Should allow broadcasting.
+    Private implementation for vector transport using :math:`u`. Should allow broadcasting.
     """
     _transp_follow = not_implemented
 

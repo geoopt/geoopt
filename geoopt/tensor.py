@@ -41,12 +41,12 @@ class ManifoldTensor(torch.Tensor):
         return copy_or_set_(self, self.manifold.projx(self))
 
     @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
-    def retr(self, u, t=1.0, order=None):
-        return self.manifold.retr(self, u=u, t=t, order=order)
+    def retr(self, u, *, order=None):
+        return self.manifold.retr(self, u=u, order=order)
 
     @insert_docs(Euclidean.expmap.__doc__, r"\s+x : .+\n.+", "")
-    def expmap(self, u, t=1.0):
-        return self.manifold.expmap(self, u=u, t=t)
+    def expmap(self, u):
+        return self.manifold.expmap(self, u=u)
 
     @insert_docs(Euclidean.inner.__doc__, r"\s+x : .+\n.+", "")
     def inner(self, u, v=None):
@@ -57,16 +57,16 @@ class ManifoldTensor(torch.Tensor):
         return self.manifold.proju(self, u)
 
     @insert_docs(Euclidean.transp.__doc__, r"\s+x : .+\n.+", "")
-    def transp(self, v, *more, u=None, t=1.0, y=None, order=None):
-        return self.manifold.transp(self, v, *more, u=u, t=t, y=y, order=order)
+    def transp(self, v, *more, u=None, y=None, order=None):
+        return self.manifold.transp(self, v, *more, u=u, y=y, order=order)
 
     @insert_docs(Euclidean.retr_transp.__doc__, r"\s+x : .+\n.+", "")
-    def retr_transp(self, v, *more, u, t=1.0, order=None):
-        return self.manifold.retr_transp(self, u, *more, u=v, t=t, order=order)
+    def retr_transp(self, v, *more, u, order=None):
+        return self.manifold.retr_transp(self, u, *more, u=v, order=order)
 
     @insert_docs(Euclidean.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
-    def expmap_transp(self, v, *more, u, t=1.0):
-        return self.manifold.expmap_transp(self, u, *more, u=v, t=t)
+    def expmap_transp(self, v, *more, u):
+        return self.manifold.expmap_transp(self, u, *more, u=v)
 
     def dist(self, other, p=2):
         """
