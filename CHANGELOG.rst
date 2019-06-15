@@ -25,6 +25,7 @@ Maintenance
 
 Deprecations
 ------------
+* remove ``t`` argument from everywhere (#76)
 
 Bug Fixes
 ---------
