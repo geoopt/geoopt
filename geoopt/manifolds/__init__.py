@@ -3,11 +3,7 @@ from .euclidean import Euclidean, R
 from .stiefel import Stiefel, EuclideanStiefel, CanonicalStiefel
 from .sphere import (
     Sphere,
-    SphereSubspaceComplementIntersection,
-    SphereSubspaceIntersection,
     SphereExact,
-    SphereSubspaceComplementIntersectionExact,
-    SphereSubspaceIntersectionExact,
 )
 from .poincare import PoincareBall
 from . import poincare

@@ -6,11 +6,7 @@ import geoopt.linalg.batch_linalg
 
 __all__ = [
     "Sphere",
-    "SphereSubspaceIntersection",
-    "SphereSubspaceComplementIntersection",
-    "SphereExact",
-    "SphereSubspaceIntersectionExact",
-    "SphereSubspaceComplementIntersectionExact",
+    "SphereExact"
 ]
 
 
@@ -21,28 +17,70 @@ class Sphere(Manifold):
     .. math::
 
         \|x\|=1
-    """
+        x \in \mathbb{span}(U)
 
+    where :math:`U` can be parametrized with compliment space or intersection.
+
+    Parameters
+    ----------
+    intersection : tensor
+        shape ``(..., dim, K)``, subspace to intersect with
+    complement : tensor
+        shape ``(..., dim, K)``, subspace to compliment
+    """
     ndim = 1
     name = "Sphere"
     reversible = False
 
+    def __init__(self, intersection=None, complement=None):
+        super().__init__()
+        if intersection is not None and complement is not None:
+            raise TypeError("Can't initialize with both intersection and compliment arguments, please specify only one")
+        elif intersection is not None:
+            self._configure_manifold_intersection(intersection)
+        elif complement is not None:
+            self._configure_manifold_complement(complement)
+        else:
+            self._configure_manifold_no_constraints()
+        if self.projector is not None and (geoopt.linalg.batch_linalg.matrix_rank(self.projector) == 1).any():
+            raise ValueError(
+                "Manifold only consists of isolated points when "
+                "subspace is 1-dimensional."
+            )
+
     def _check_shape(self, x, name):
-        dim_is_ok = x.dim() >= 1
-        if not dim_is_ok:
-            return False, "Not enough dimensions for `{}`".format(name)
-        return True, None
+        ok = x.dim() >= 1
+        if not ok:
+            ok, reason = False, "Not enough dimensions for `{}`".format(name)
+        else:
+            ok, reason = True, None
+        if ok and self.projector is not None:
+            ok = x.shape[-1] == self.projector.shape[-2]
+            if not ok:
+                reason = "The leftmost shape of `span` does not match `x`: {}, {}".format(
+                    x.shape[-1], self.projector.shape[-1]
+                )
+            elif x.dim() < (self.projector.dim() - 1):
+                reason = "`x` should have at least {} dimensions but has {}".format(
+                    self.projector.dim() - 1, x.dim()
+                )
+            else:
+                reason = None
+        return ok, reason
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         norm = x.norm(dim=-1)
         ok = torch.allclose(norm, norm.new((1,)).fill_(1), atol=atol, rtol=rtol)
         if not ok:
             return False, "`norm(x) != 1` with atol={}, rtol={}".format(atol, rtol)
+        ok = torch.allclose(self._project_on_subspace(x), x, atol=atol, rtol=rtol)
+        if not ok:
+            return False, "`x` is not in the subspace of the manifold with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
     def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         inner = self._inner(None, x, u, keepdim=True)
-        ok = torch.allclose(inner, inner.new((1,)).fill_(0), atol=atol, rtol=rtol)
+        ok = torch.allclose(inner, inner.new_zeros((1,)), atol=atol, rtol=rtol)
         if not ok:
             return False, "`<x, u> != 0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
@@ -51,10 +89,12 @@ class Sphere(Manifold):
         return (u * v).sum(-1, keepdim=keepdim)
 
     def _projx(self, x):
+        x = self._project_on_subspace(x)
         return x / x.norm(dim=-1, keepdim=True)
 
     def _proju(self, x, u):
-        return u - (x * u).sum(dim=-1, keepdim=True) * x
+        u = u - (x * u).sum(dim=-1, keepdim=True) * x
+        return self._project_on_subspace(u)
 
     def _expmap(self, x, u):
         norm_u = u.norm(dim=-1, keepdim=True)
@@ -105,99 +145,27 @@ class Sphere(Manifold):
     def _egrad2rgrad(self, x, u):
         return self._proju(x, u)
 
+    def _configure_manifold_complement(self, complement):
+        Q, _ = geoopt.linalg.batch_linalg.qr(complement)
+        P = -Q @ Q.transpose(-1, -2)
+        P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
+        self.register_buffer("projector", P)
+
+    def _configure_manifold_intersection(self, intersection):
+        Q, _ = geoopt.linalg.batch_linalg.qr(intersection)
+        self.register_buffer("projector", Q @ Q.transpose(-1, -2))
+
+    def _configure_manifold_no_constraints(self):
+        self.register_buffer("projector", None)
+
+    def _project_on_subspace(self, x):
+        if self.projector is not None:
+            return x @ self.projector.transpose(-1, -2)
+        else:
+            return x
+
 
 class SphereExact(Sphere):
     _retr_transp = Sphere._expmap_transp
     _transp_follow_retr = Sphere._transp_follow_expmap
     _retr = Sphere._expmap
-
-
-class SphereSubspaceIntersection(Sphere):
-    r"""
-    Sphere manifold induced by the following constraint
-
-    .. math::
-
-        \|x\|=1\\
-        x \in \mathbb{span}(U)
-
-    Parameters
-    ----------
-    span : matrix
-        the subspace to intersect with.  Shape: (..., dim, numplanes)
-    """
-
-    name = "SphereSubspace"
-
-    def __init__(self, span):
-        super().__init__()
-        self._configure_manifold(span)
-        if (geoopt.linalg.batch_linalg.matrix_rank(self._projector) == 1).any():
-            raise ValueError(
-                "Manifold only consists of isolated points when "
-                "subspace is 1-dimensional."
-            )
-
-    def _check_shape(self, x, name):
-        ok, reason = super()._check_shape(x, name)
-        if ok:
-
-            ok = x.shape[-1] == self._projector.shape[-2]
-            if not ok:
-                reason = "The leftmost shape of `span` does not match `x`: {}, {}".format(
-                    x.shape[-1], self._projector.shape[-1]
-                )
-            elif x.dim() < (self._projector.dim() - 1):
-                reason = "`x` should have at least {} dimensions but has {}".format(
-                    self._projector.dim() - 1, x.dim()
-                )
-            else:
-                reason = None
-        return ok, reason
-
-    def _configure_manifold(self, span):
-        Q, _ = geoopt.linalg.batch_linalg.qr(span)
-        self.register_buffer("_projector", Q @ Q.transpose(-1, -2))
-
-    def _project_on_subspace(self, x):
-        return x @ self._projector.transpose(-1, -2)
-
-    def _proju(self, x, u):
-        u = super()._proju(x, u)
-        return self._project_on_subspace(u)
-
-    def _projx(self, x):
-        x = self._project_on_subspace(x)
-        return super()._projx(x)
-
-
-class SphereSubspaceIntersectionExact(SphereExact, SphereSubspaceIntersection):
-    pass
-
-
-class SphereSubspaceComplementIntersection(SphereSubspaceIntersection):
-    r"""
-    Sphere manifold induced by the following constraint
-
-    .. math::
-
-        \|x\|=1\\
-        x \in \mathbb{span}(U)
-
-    Parameters
-    ----------
-    span : matrix
-        the subspace to compliment (being orthogonal to). Shape: (..., dim, numplanes)
-    """
-
-    def _configure_manifold(self, span):
-        Q, _ = geoopt.linalg.batch_linalg.qr(span)
-        P = -Q @ Q.transpose(-1, -2)
-        P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
-        self.register_buffer("_projector", P)
-
-
-class SphereSubspaceComplementIntersectionExact(
-    SphereExact, SphereSubspaceComplementIntersection
-):
-    pass

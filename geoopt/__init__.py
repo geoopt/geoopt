@@ -10,11 +10,7 @@ from .manifolds import (
     Euclidean,
     R,
     Sphere,
-    SphereSubspaceIntersection,
-    SphereSubspaceComplementIntersection,
     SphereExact,
-    SphereSubspaceComplementIntersectionExact,
-    SphereSubspaceIntersectionExact,
     PoincareBall,
 )
 

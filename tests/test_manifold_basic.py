@@ -3,12 +3,12 @@ import numpy as np
 import torch
 import collections
 import pytest
+import itertools
 
 
-@pytest.fixture("module", params=[1, 2, 3, 4, 5], autouse=True)
-def seed(request):
-    torch.manual_seed(request.param)
-    yield
+@pytest.fixture
+def seed():
+    yield from [1, 2, 3, 4, 5]
 
 
 manifold_shapes = {
@@ -18,116 +18,162 @@ manifold_shapes = {
     geoopt.manifolds.Euclidean: (10,),
     geoopt.manifolds.R: (10,),
     geoopt.manifolds.Sphere: (10,),
-    geoopt.manifolds.SphereSubspaceIntersection: (10,),
-    geoopt.manifolds.SphereSubspaceComplementIntersection: (10,),
     geoopt.manifolds.SphereExact: (10,),
-    geoopt.manifolds.SphereSubspaceIntersectionExact: (10,),
-    geoopt.manifolds.SphereSubspaceComplementIntersectionExact: (10,),
 }
 
 
 UnaryCase = collections.namedtuple("UnaryCase", "shape,x,ex,v,ev,manifold")
 
 
+def canonical_stiefel_case():
+    shape = manifold_shapes[geoopt.manifolds.CanonicalStiefel]
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    u, _, v = torch.svd(ex)
+    x = u @ v.t()
+    v = ev - x @ ev.t() @ x
+    manifold = geoopt.manifolds.CanonicalStiefel()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    return case
+
+
+def euclidean_stiefel_case():
+    shape = manifold_shapes[geoopt.manifolds.EuclideanStiefel]
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    u, _, v = torch.svd(ex)
+    x = u @ v.t()
+    nonsym = x.t() @ ev
+    v = ev - x @ (nonsym + nonsym.t()) / 2
+
+    manifold = geoopt.manifolds.CanonicalStiefel()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+    manifold = geoopt.manifolds.CanonicalStiefelExact()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def r_case():
+    shape = manifold_shapes[geoopt.manifolds.R]
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    x = ex.clone()
+    v = ev.clone()
+    manifold = geoopt.R()
+
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def euclidean_case():
+    shape = manifold_shapes[geoopt.manifolds.Euclidean]
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    x = ex.clone()
+    v = ev.clone()
+    manifold = geoopt.Euclidean()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def poincare_case():
+    shape = manifold_shapes[geoopt.manifolds.PoincareBall]
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    x = ex.clone()
+    v = ev.clone()
+    manifold = geoopt.PoincareBall()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+    manifold = geoopt.PoincareBallExact()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def sphere_subspace_case():
+    shape = manifold_shapes[geoopt.manifolds.Sphere]
+    subspace = torch.rand(shape[-1], 2)
+
+    Q, _ = geoopt.linalg.batch_linalg.qr(subspace)
+    P = Q @ Q.t()
+
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    x = (ex @ P.t()) / torch.norm(ex @ P.t())
+    v = (ev - (x @ ev) * x) @ P.t()
+
+    manifold = geoopt.Sphere(intersection=subspace)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+    manifold = geoopt.SphereExact(intersection=subspace)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def sphere_compliment_case():
+    shape = manifold_shapes[geoopt.manifolds.Sphere]
+    complement = torch.rand(shape[-1], 1)
+
+    Q, _ = geoopt.linalg.batch_linalg.qr(complement)
+    P = -Q @ Q.transpose(-1, -2)
+    P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
+
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    x = (ex @ P.t()) / torch.norm(ex @ P.t())
+    v = (ev - (x @ ev) * x) @ P.t()
+
+    manifold = geoopt.Sphere(complement=complement)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+    manifold = geoopt.SphereExact(complement=complement)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def sphere_case():
+    shape = manifold_shapes[geoopt.manifolds.Sphere]
+    ex = torch.randn(*shape)
+    ev = torch.randn(*shape)
+    x = ex / torch.norm(ex)
+    v = ev - (x @ ev) * x
+
+    manifold = geoopt.Sphere()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+    manifold = geoopt.SphereExact()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
 @pytest.fixture(
     "module",
-    params=[
-        # geoopt.manifolds.EuclideanStiefel,
-        # geoopt.manifolds.CanonicalStiefel,
-        # geoopt.manifolds.PoincareBall,
-        geoopt.manifolds.Euclidean,
-        geoopt.manifolds.Sphere,
-        geoopt.manifolds.SphereSubspaceIntersection,
-        geoopt.manifolds.SphereSubspaceComplementIntersection,
-        geoopt.manifolds.SphereExact,
-        geoopt.manifolds.SphereSubspaceIntersectionExact,
-        geoopt.manifolds.SphereSubspaceComplementIntersectionExact,
-        geoopt.R,
-    ],
+    params=itertools.chain(
+        euclidean_case(),
+        sphere_case(),
+        sphere_compliment_case(),
+        sphere_subspace_case(),
+        # euclidean_stiefel_case(),
+        # canonical_stiefel_case(),
+        # poincare_case(),
+    ),
 )
 def unary_case(request):
-    Manifold = request.param
-    shape = manifold_shapes[Manifold]
-    try:
-        if issubclass(Manifold, geoopt.manifolds.CanonicalStiefel):
-            ex = torch.randn(*shape)
-            ev = torch.randn(*shape)
-            u, _, v = torch.svd(ex)
-            x = u @ v.t()
-            v = ev - x @ ev.t() @ x
-
-            manifold = Manifold()
-        elif issubclass(Manifold, geoopt.manifolds.EuclideanStiefel):
-            ex = torch.randn(*shape)
-            ev = torch.randn(*shape)
-            u, _, v = torch.svd(ex)
-            x = u @ v.t()
-            nonsym = x.t() @ ev
-            v = ev - x @ (nonsym + nonsym.t()) / 2
-
-            manifold = Manifold()
-        elif issubclass(Manifold, (geoopt.manifolds.Euclidean, geoopt.manifolds.R)):
-            ex = torch.randn(*shape)
-            ev = torch.randn(*shape)
-            x = ex.clone()
-            v = ev.clone()
-            manifold = Manifold()
-        elif issubclass(Manifold, geoopt.manifolds.PoincareBall):
-            ex = torch.randn(*shape) / 3
-            ev = torch.randn(*shape) / 3
-            x = torch.tanh(torch.norm(ex)) * ex / torch.norm(ex)
-            ex = x.clone()
-            v = ev.clone()
-
-            manifold = Manifold()
-        elif issubclass(
-            Manifold,
-            (
-                geoopt.SphereSubspaceComplementIntersection,
-                geoopt.SphereSubspaceComplementIntersectionExact,
-            ),
-        ):
-            complement = torch.rand(shape[-1], 1)
-
-            Q, _ = geoopt.linalg.batch_linalg.qr(complement)
-            P = -Q @ Q.transpose(-1, -2)
-            P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
-
-            ex = torch.randn(*shape)
-            ev = torch.randn(*shape)
-            x = (ex @ P.t()) / torch.norm(ex @ P.t())
-            v = (ev - (x @ ev) * x) @ P.t()
-
-            manifold = Manifold(complement)
-        elif issubclass(
-            Manifold,
-            (geoopt.SphereSubspaceIntersection, geoopt.SphereSubspaceIntersectionExact),
-        ):
-            subspace = torch.rand(shape[-1], 1)
-
-            Q, _ = geoopt.linalg.batch_linalg.qr(subspace)
-            P = Q @ Q.t()
-
-            ex = torch.randn(*shape)
-            ev = torch.randn(*shape)
-            x = (ex @ P.t()) / torch.norm(ex @ P.t())
-            v = (ev - (x @ ev) * x) @ P.t()
-
-            manifold = Manifold(subspace)
-        elif issubclass(Manifold, (geoopt.manifolds.Sphere, geoopt.SphereExact)):
-            ex = torch.randn(*shape)
-            ev = torch.randn(*shape)
-            x = ex / torch.norm(ex)
-            v = ev - (x @ ev) * x
-
-            manifold = Manifold()
-        else:
-            raise NotImplementedError
-        x = geoopt.ManifoldTensor(x, manifold=manifold)
-        case = UnaryCase(shape, x, ex, v, ev, manifold)
-        return case
-    except ValueError:
-        pytest.skip("not supported retraction order for {}".format(Manifold))
+    return request.param
 
 
 def test_projection_identity(unary_case):
