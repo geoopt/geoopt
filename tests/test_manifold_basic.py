@@ -85,9 +85,10 @@ def euclidean_case():
 
 def poincare_case():
     shape = manifold_shapes[geoopt.manifolds.PoincareBall]
-    ex = torch.randn(*shape)
-    ev = torch.randn(*shape)
-    x = ex.clone()
+    ex = torch.randn(*shape) / 3
+    ev = torch.randn(*shape) / 3
+    x = torch.tanh(torch.norm(ex)) * ex / torch.norm(ex)
+    ex = x.clone()
     v = ev.clone()
     manifold = geoopt.PoincareBall()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
@@ -170,8 +171,9 @@ def sphere_case():
         sphere_subspace_case(),
         euclidean_stiefel_case(),
         canonical_stiefel_case(),
-        # poincare_case(),
+        poincare_case(),
     ),
+    ids=lambda case: case.manifold.__class__.__name__
 )
 def unary_case(request):
     return request.param

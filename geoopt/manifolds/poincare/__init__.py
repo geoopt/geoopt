@@ -2,7 +2,7 @@ import torch.nn
 from . import math
 from ..base import Manifold
 
-__all__ = ["PoincareBall"]
+__all__ = ["PoincareBall", "PoincareBallExact"]
 
 
 class PoincareBall(Manifold):
@@ -21,7 +21,6 @@ class PoincareBall(Manifold):
 
     ndim = 1
     reversible = False
-    _default_order = 1
     name = "Poincare ball"
 
     def __init__(self, c=1.0):
@@ -36,7 +35,7 @@ class PoincareBall(Manifold):
             reason = None
         return ok, reason
 
-    def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         px = math.project(x, c=self.c)
         ok = torch.allclose(x, px, atol=atol, rtol=rtol)
         if not ok:
@@ -45,10 +44,10 @@ class PoincareBall(Manifold):
             reason = None
         return ok, reason
 
-    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         return True, None
 
-    def _dist(self, x, y, keepdim):
+    def _dist(self, x, y, *, keepdim=False):
         return math.dist(x, y, c=self.c, keepdim=keepdim)
 
     def _egrad2rgrad(self, x, u):
@@ -59,15 +58,15 @@ class PoincareBall(Manifold):
         approx = x + u
         return math.project(approx, c=self.c)
 
-    _retr_transp_default_preference = "2y"
-
     def _projx(self, x):
         return math.project(x, c=self.c)
 
     def _proju(self, x, u):
         return u
 
-    def _inner(self, x, u, v, keepdim):
+    def _inner(self, x, u, v=None, *, keepdim=False):
+        if v is None:
+            v = u
         return math.inner(x, u, v, c=self.c, keepdim=keepdim)
 
     def _expmap(self, x, u):
@@ -76,27 +75,40 @@ class PoincareBall(Manifold):
     def _logmap(self, x, y):
         return math.logmap(x, y, c=self.c)
 
-    def _transp2y(self, x, v, *more, y):
+    def _transp(self, x, y, v, *more):
         if not more:
             return math.parallel_transport(x, y, v, c=self.c)
         else:
-            n = len(more) + 1
             vecs = torch.stack((v,) + more, dim=0)
             transp = math.parallel_transport(x, y, vecs, c=self.c)
-            return tuple(transp[i] for i in range(n))
+            return transp.unbind(0)
 
-    def _transp_follow(self, x, v, *more, u):
+    def _transp_follow_retr(self, x, u, v, *more):
         y = self._retr(x, u)
-        return self._transp2y(x, v, *more, y=y)
+        return self._transp(x, y, v, *more)
 
-    def _expmap_transp(self, x, v, *more, u):
+    def _transp_follow_expmap(self, x, u, v, *more):
         y = self._expmap(x, u)
-        vs = self._transp2y(x, v, *more, y=y)
+        return self._transp(x, y, v, *more)
+
+    def _expmap_transp(self, x, u, v, *more):
+        y = self._expmap(x, u)
+        vs = self._transp(x, y, v, *more)
         if more:
             return (y,) + vs
         else:
             return y, vs
 
-    def _transp_follow_expmap(self, x, v, *more, u):
-        y = self._expmap(x, u)
-        return self._transp2y(x, v, *more, y=y)
+    def _retr_transp(self, x, u, v, *more):
+        y = self._retr(x, u)
+        vs = self._transp(x, y, v, *more)
+        if more:
+            return (y,) + vs
+        else:
+            return y, vs
+
+
+class PoincareBallExact(PoincareBall):
+    _retr_transp = PoincareBall._expmap_transp
+    _transp_follow_retr = PoincareBall._transp_follow_expmap
+    _retr = PoincareBall._expmap
