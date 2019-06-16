@@ -170,13 +170,13 @@ class Manifold(torch.nn.Module, metaclass=ManifoldMeta):
         Transforms euclidean grad to Riemannian gradient.
     * ``_inner(x, u, v)`` required
         Computes inner product :math:`\langle u, v\rangle_x`
-    * ``_retr(x, u, t)`` required
+    * ``_retr(x, u)`` required
         Performs retraction map for :math:`x` with direction :math:`u`
-    * ``_transp_follow(x, v, *more, u, t)`` required
+    * ``_transp_follow(x, v, *more, u)`` required
         Performs vector transport for :math:`v` from :math:`x` with direction :math:`u`
-    * ``_transp2y(x, v, *more, u, t)`` desired
+    * ``_transp2y(x, v, *more, u)`` desired
         Performs vector transport for :math:`v` with from :math:`x` to :math:`y`
-    * ``_retr_transp(x, v, *more, u, t)`` desired
+    * ``_retr_transp(x, v, *more, u)`` desired
         Combines retraction and vector transport
     * ``__eq__(other)`` if needed
         Checks if manifolds are the same
