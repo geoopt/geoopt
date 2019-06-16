@@ -6,9 +6,10 @@ import pytest
 import itertools
 
 
-@pytest.fixture
-def seed():
-    yield from [1, 2, 3, 4, 5]
+@pytest.fixture(autouse=True, params=[1, 2, 3, 4, 5])
+def seed(request):
+    torch.manual_seed(request.param)
+    yield
 
 
 manifold_shapes = {
@@ -47,11 +48,11 @@ def euclidean_stiefel_case():
     nonsym = x.t() @ ev
     v = ev - x @ (nonsym + nonsym.t()) / 2
 
-    manifold = geoopt.manifolds.CanonicalStiefel()
+    manifold = geoopt.manifolds.EuclideanStiefelExact()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
-    manifold = geoopt.manifolds.CanonicalStiefelExact()
+    manifold = geoopt.manifolds.EuclideanStiefelExact()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
@@ -167,7 +168,7 @@ def sphere_case():
         sphere_case(),
         sphere_compliment_case(),
         sphere_subspace_case(),
-        # euclidean_stiefel_case(),
+        euclidean_stiefel_case(),
         canonical_stiefel_case(),
         # poincare_case(),
     ),

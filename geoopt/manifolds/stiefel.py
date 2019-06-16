@@ -5,7 +5,7 @@ from ..utils import strip_tuple
 from .base import Manifold
 
 
-__all__ = ["Stiefel", "EuclideanStiefel", "CanonicalStiefel"]
+__all__ = ["Stiefel", "EuclideanStiefel", "CanonicalStiefel", "EuclideanStiefelExact"]
 
 
 _stiefel_doc = r"""
@@ -166,17 +166,16 @@ class EuclideanStiefel(Stiefel):
     def _proju(self, x, u):
         return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
-    def _transp_follow(self, x, v, *more, u):
-        y = self._retr(x, u)
-        return self._transp2y(x, v, *more, y=y)
+    _egrad2rgrad = _proju
 
-    def _transp2y(self, x, v, *more, y):
-        if not more:
-            return self._proju(y, v)
+    def _transp(self, x, y, v, *more, strip=True):
+        result = tuple(self._proju(y, _v) for _v in (v,) + more)
+        if strip:
+            return strip_tuple(result)
         else:
-            return tuple(self._proju(y, v_) for v_ in (v,) + more)
+            return result
 
-    def _retr_transp(self, x, v, *more, u):
+    def _retr_transp(self, x, u, v, *more):
         y = self._retr(x, u)
         vs = self._transp2y(x, v, *more, y=y)
         if more:
@@ -184,7 +183,7 @@ class EuclideanStiefel(Stiefel):
         else:
             return y, vs
 
-    def _inner(self, x, u, v, keepdim):
+    def _inner(self, x, u, v=None, *, keepdim=False):
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
     def _retr(self, x, u):
@@ -204,14 +203,21 @@ class EuclideanStiefel(Stiefel):
         y = torch.cat((x, u), dim=-1) @ w @ z
         return y
 
-    def _expmap_transp(self, x, v, *more, u):
+    def _expmap_transp(self, x, u, v, *more):
         y = self._expmap(x, u)
-        vs = self._transp2y(x, v, *more, y=y)
-        if more:
-            return (y,) + vs
-        else:
-            return y, vs
+        vs = self._transp(x, y, v, *more, strip=False)
+        return (y,) + vs
 
-    def _transp_follow_expmap(self, x, v, *more, u):
+    def _transp_follow_expmap(self, x, u, v, *more):
         y = self._expmap(x, u)
-        return self._transp2y(x, v, *more, y=y)
+        return self._transp(x, y, v, *more)
+
+    def _transp_follow_retr(self, x, u, v, *more):
+        y = self._retr(x, u)
+        return self._transp(x, y, v, *more)
+
+
+class EuclideanStiefelExact(EuclideanStiefel):
+    _retr_transp = EuclideanStiefel._expmap_transp
+    _transp_follow_retr = EuclideanStiefel._transp_follow_expmap
+    _retr = EuclideanStiefel._expmap
