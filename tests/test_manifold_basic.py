@@ -310,7 +310,7 @@ def test_reversibility(unary_case):
     if unary_case.manifold.reversible:
         torch.manual_seed(43)
         pX = torch.stack([unary_case.x] * 4)
-        U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
+        U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype) / 3
         U = unary_case.manifold.proju(pX, U)
         Z, Q = unary_case.manifold.retr_transp(pX, U, U)
         X1, U1 = unary_case.manifold.retr_transp(Z, -Q, Q)

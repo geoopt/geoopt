@@ -109,6 +109,7 @@ class PoincareBall(Manifold):
 
 
 class PoincareBallExact(PoincareBall):
+    reversible = True
     _retr_transp = PoincareBall._expmap_transp
     _transp_follow_retr = PoincareBall._transp_follow_expmap
     _retr = PoincareBall._expmap
