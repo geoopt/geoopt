@@ -1,6 +1,7 @@
 import torch
 
-from geoopt import linalg
+from .. import linalg
+from ..utils import strip_tuple
 from .base import Manifold
 
 
@@ -54,7 +55,7 @@ class Stiefel(Manifold):
             )
         return True, None
 
-    def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         xtx = x.transpose(-1, -2) @ x
         # less memory usage for substract diagonal
         xtx[..., torch.arange(x.shape[-1]), torch.arange(x.shape[-1])] -= 1
@@ -63,15 +64,12 @@ class Stiefel(Manifold):
             return False, "`X^T X != I` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         diff = u.transpose(-1, -2) @ x + x.transpose(-1, -2) @ u
         ok = torch.allclose(diff, diff.new((1,)).fill_(0), atol=atol, rtol=rtol)
         if not ok:
             return False, "`u^T x + x^T u !=0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
-
-    def _amat(self, x, u):
-        return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
     def _projx(self, x):
         U, _, V = linalg.batch_linalg.svd(x)
@@ -89,7 +87,11 @@ class CanonicalStiefel(Stiefel):
     name = "Stiefel(canonical)"
     reversible = True
 
-    def _inner(self, x, u, v, keepdim):
+    @staticmethod
+    def _amat(x, u):
+        return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
+
+    def _inner(self, x, u, v=None, *, keepdim=False):
         # <u, v>_x = tr(u^T(I-1/2xx^T)v)
         # = tr(u^T(v-1/2xx^Tv))
         # = tr(u^Tv-1/2u^Txx^Tv)
@@ -105,9 +107,6 @@ class CanonicalStiefel(Stiefel):
         return (u * v).sum([-1, -2], keepdim=keepdim) - 0.5 * (xtv * xtu).sum(
             [-1, -2], keepdim=keepdim
         )
-
-    # we do faster on inner without autofill
-    _inner_autofill = False
 
     def _transp_follow_one(self, x, v, *, u):
         a = self._amat(x, u)
@@ -125,13 +124,12 @@ class CanonicalStiefel(Stiefel):
         qvs = self._transp_follow_one(x, vs, u=u).view(x.shape[:-1] + (-1, x.shape[-1]))
         return qvs.unbind(-2)
 
-    def _transp_follow(self, x, v, *more, u):
-        if more:
-            return self._transp_follow_many(x, v, *more, u=u)
-        else:
-            return self._transp_follow_one(x, v, u=u)
+    def _transp_follow_retr(self, x, u, v, *more):
+        return strip_tuple(self._transp_follow_many(x, v, *more, u=u))
 
-    def _retr_transp(self, x, v, *more, u):
+    _transp_follow_expmap = _transp_follow_retr
+
+    def _retr_transp(self, x, u, v, *more):
         """
         An optimized retr_transp for Stiefel Manifold
         """
@@ -141,11 +139,17 @@ class CanonicalStiefel(Stiefel):
         )
         return qxvs.unbind(-2)
 
+    _expmap_transp = _retr_transp
+
     def _proju(self, x, u):
         return u - x @ u.transpose(-1, -2) @ x
 
+    _egrad2rgrad = _proju
+
     def _retr(self, x, u):
         return self._transp_follow_one(x, x, u=u)
+
+    _expmap = _retr
 
 
 class EuclideanStiefel(Stiefel):

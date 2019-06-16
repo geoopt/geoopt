@@ -35,7 +35,7 @@ def canonical_stiefel_case():
     manifold = geoopt.manifolds.CanonicalStiefel()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
-    return case
+    yield case
 
 
 def euclidean_stiefel_case():
@@ -168,7 +168,7 @@ def sphere_case():
         sphere_compliment_case(),
         sphere_subspace_case(),
         # euclidean_stiefel_case(),
-        # canonical_stiefel_case(),
+        canonical_stiefel_case(),
         # poincare_case(),
     ),
 )

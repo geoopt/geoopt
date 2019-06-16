@@ -4,10 +4,7 @@ from .base import Manifold
 from ..utils import strip_tuple
 import geoopt.linalg.batch_linalg
 
-__all__ = [
-    "Sphere",
-    "SphereExact"
-]
+__all__ = ["Sphere", "SphereExact"]
 
 
 class Sphere(Manifold):
@@ -35,14 +32,19 @@ class Sphere(Manifold):
     def __init__(self, intersection=None, complement=None):
         super().__init__()
         if intersection is not None and complement is not None:
-            raise TypeError("Can't initialize with both intersection and compliment arguments, please specify only one")
+            raise TypeError(
+                "Can't initialize with both intersection and compliment arguments, please specify only one"
+            )
         elif intersection is not None:
             self._configure_manifold_intersection(intersection)
         elif complement is not None:
             self._configure_manifold_complement(complement)
         else:
             self._configure_manifold_no_constraints()
-        if self.projector is not None and (geoopt.linalg.batch_linalg.matrix_rank(self.projector) == 1).any():
+        if (
+            self.projector is not None
+            and (geoopt.linalg.batch_linalg.matrix_rank(self.projector) == 1).any()
+        ):
             raise ValueError(
                 "Manifold only consists of isolated points when "
                 "subspace is 1-dimensional."
@@ -75,7 +77,12 @@ class Sphere(Manifold):
             return False, "`norm(x) != 1` with atol={}, rtol={}".format(atol, rtol)
         ok = torch.allclose(self._project_on_subspace(x), x, atol=atol, rtol=rtol)
         if not ok:
-            return False, "`x` is not in the subspace of the manifold with atol={}, rtol={}".format(atol, rtol)
+            return (
+                False,
+                "`x` is not in the subspace of the manifold with atol={}, rtol={}".format(
+                    atol, rtol
+                ),
+            )
         return True, None
 
     def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
