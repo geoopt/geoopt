@@ -6,6 +6,8 @@ import geoopt.linalg.batch_linalg
 
 __all__ = ["Sphere", "SphereExact"]
 
+EPS = {torch.float32: 1e-4, torch.float64: 1e-8}
+
 
 class Sphere(Manifold):
     r"""
@@ -107,7 +109,7 @@ class Sphere(Manifold):
         norm_u = u.norm(dim=-1, keepdim=True)
         exp = x * torch.cos(norm_u) + u * torch.sin(norm_u) / norm_u
         retr = self._projx(x + u)
-        cond = norm_u > 1e-3
+        cond = norm_u > EPS[norm_u.dtype]
         return torch.where(cond, exp, retr)
 
     def _retr(self, x, u):
@@ -142,7 +144,7 @@ class Sphere(Manifold):
         u = self._proju(x, y - x)
         dist = self._dist(x, y, keepdim=True)
         # If the two points are "far apart", correct the norm.
-        cond = dist.gt(1e-6)
+        cond = dist.gt(EPS[dist.dtype])
         return torch.where(cond, u * dist / u.norm(dim=-1, keepdim=True), u)
 
     def _dist(self, x, y, *, keepdim=False):

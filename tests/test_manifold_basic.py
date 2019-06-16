@@ -333,6 +333,6 @@ def test_logmap_many(unary_case):
         Uh = unary_case.manifold.logmap(pX, Y)
         Yh = unary_case.manifold.expmap(pX, Uh)
 
-        np.testing.assert_allclose(Yh, Y, atol=1e-7, rtol=1e-7)
+        np.testing.assert_allclose(Yh, Y, atol=1e-6, rtol=1e-6)
     except NotImplementedError:
         pytest.skip("logmap was not implemented")
