@@ -16,7 +16,8 @@ import pytest
 def test_rsgd_stiefel(params):
     stiefel = geoopt.manifolds.Stiefel()
     torch.manual_seed(42)
-    X = geoopt.ManifoldParameter(torch.randn(20, 10), manifold=stiefel).proj_()
+    with torch.no_grad():
+        X = geoopt.ManifoldParameter(torch.randn(20, 10), manifold=stiefel).proj_()
     Xstar = torch.randn(20, 10)
     Xstar.set_(stiefel.projx(Xstar))
 
@@ -46,7 +47,8 @@ def test_init_manifold():
     rn = geoopt.manifolds.Euclidean()
     x0 = torch.randn(10, 10)
     x1 = torch.randn(10, 10)
-    p0 = geoopt.ManifoldParameter(x0, manifold=stiefel).proj_()
+    with torch.no_grad():
+        p0 = geoopt.ManifoldParameter(x0, manifold=stiefel).proj_()
     p1 = geoopt.ManifoldParameter(x1, manifold=rn)
     p0.grad = torch.zeros_like(p0)
     p1.grad = torch.zeros_like(p1)

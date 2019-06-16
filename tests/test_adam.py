@@ -8,7 +8,8 @@ import pytest
 def test_adam_stiefel(params):
     stiefel = geoopt.manifolds.Stiefel()
     torch.manual_seed(42)
-    X = geoopt.ManifoldParameter(torch.randn(20, 10), manifold=stiefel).proj_()
+    with torch.no_grad():
+        X = geoopt.ManifoldParameter(torch.randn(20, 10), manifold=stiefel).proj_()
     Xstar = torch.randn(20, 10)
     Xstar.set_(stiefel.projx(Xstar))
 

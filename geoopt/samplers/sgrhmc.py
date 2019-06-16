@@ -55,11 +55,11 @@ class SGRHMC(Sampler):
 
                 r = v / epsilon
                 H_old += 0.5 * (r * r).sum().item()
-
+        logp = float("nan")
         for i in range(self.n_steps + 1):
             logp = closure()
             logp.backward()
-
+            logp = logp.item()
             with torch.no_grad():
                 for group in self.param_groups:
                     for p in group["params"]:
@@ -75,7 +75,7 @@ class SGRHMC(Sampler):
 
                         v = self.state[p]["v"]
 
-                        p_, v_ = retr_transp(p, v, u=v)
+                        p_, v_ = retr_transp(p, v, v)
                         copy_or_set_(p, p_)
                         v.set_(v_)
 
@@ -90,7 +90,7 @@ class SGRHMC(Sampler):
 
         if not self.burnin:
             self.steps += 1
-            self.log_probs.append(logp.item())
+            self.log_probs.append(logp)
 
     def stabilize(self):
         """Stabilize parameters if they are off-manifold due to numerical reasons

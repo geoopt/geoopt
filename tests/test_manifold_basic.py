@@ -173,7 +173,7 @@ def sphere_case():
         canonical_stiefel_case(),
         poincare_case(),
     ),
-    ids=lambda case: case.manifold.__class__.__name__
+    ids=lambda case: case.manifold.__class__.__name__,
 )
 def unary_case(request):
     return request.param
@@ -324,14 +324,15 @@ def test_reversibility(unary_case):
 def test_logmap_many(unary_case):
     try:
         torch.manual_seed(43)
-        pX = torch.stack([unary_case.x] * 4)
-        U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
-        U = unary_case.manifold.proju(pX, U)
+        unary_case.manifold.double()
+        pX = torch.stack([unary_case.x] * 4).double()
+        U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype).double()
+        U = unary_case.manifold.proju(pX, U).double()
 
         Y = unary_case.manifold.expmap(pX, U)
         Uh = unary_case.manifold.logmap(pX, Y)
         Yh = unary_case.manifold.expmap(pX, Uh)
 
-        np.testing.assert_allclose(Yh, Y, atol=1e-6)
+        np.testing.assert_allclose(Yh, Y, atol=1e-7, rtol=1e-7)
     except NotImplementedError:
         pytest.skip("logmap was not implemented")

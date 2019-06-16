@@ -39,7 +39,7 @@ class RHMC(Sampler):
         retr_transp = manifold.retr_transp
 
         r.add_(epsilon * egrad2rgrad(p, p.grad))
-        p_, r_ = retr_transp(p, r, u=r * epsilon)
+        p_, r_ = retr_transp(p, r * epsilon, r)
         copy_or_set_(p, p_)
         r.set_(r_)
 
