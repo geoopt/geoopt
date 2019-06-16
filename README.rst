@@ -58,7 +58,7 @@ points on a certain manifold
 -  ``.expmap(u)`` – exponential map following vector ``u`` (if expmap is not available in closed form, best approximation is used)
 -  ``.transp(v, *more, u)`` – transport vector ``v`` (and possibly
    more vectors) with direction ``u``
--  ``.retr_transp(v, *more, u, t=1.)`` – transport ``self``, vector ``v``
+-  ``.retr_transp(v, *more, u)`` – transport ``self``, vector ``v``
    (and possibly more vectors) with direction ``u``
    (returns are plain tensors)
 
