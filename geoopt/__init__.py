@@ -8,6 +8,7 @@ from .tensor import ManifoldParameter, ManifoldTensor
 from .manifolds import (
     Stiefel,
     Euclidean,
+    R,
     Sphere,
     SphereSubspaceIntersection,
     SphereSubspaceComplementIntersection,

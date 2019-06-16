@@ -1,6 +1,5 @@
 import torch.nn
-from .manifolds import Euclidean
-from .docutils import insert_docs
+from .manifolds import R
 from .utils import copy_or_set_
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
@@ -15,7 +14,7 @@ class ManifoldTensor(torch.Tensor):
         A manifold for the tensor, (default: :class:`geoopt.Euclidean`)
     """
 
-    def __new__(cls, *args, manifold=Euclidean(), requires_grad=False, **kwargs):
+    def __new__(cls, *args, manifold=R(), requires_grad=False, **kwargs):
         if len(args) == 1 and isinstance(args[0], torch.Tensor):
             data = args[0].data
         else:
@@ -28,7 +27,6 @@ class ManifoldTensor(torch.Tensor):
         instance.manifold = manifold
         return instance
 
-    @torch.no_grad()
     def proj_(self):
         """
         Inplace projection to the manifold
@@ -39,60 +37,6 @@ class ManifoldTensor(torch.Tensor):
             same instance
         """
         return copy_or_set_(self, self.manifold.projx(self))
-
-    @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
-    def retr(self, u, *, order=None):
-        return self.manifold.retr(self, u=u, order=order)
-
-    @insert_docs(Euclidean.expmap.__doc__, r"\s+x : .+\n.+", "")
-    def expmap(self, u):
-        return self.manifold.expmap(self, u=u)
-
-    @insert_docs(Euclidean.inner.__doc__, r"\s+x : .+\n.+", "")
-    def inner(self, u, v=None):
-        return self.manifold.inner(self, u=u, v=v)
-
-    @insert_docs(Euclidean.proju.__doc__, r"\s+x : .+\n.+", "")
-    def proju(self, u):
-        return self.manifold.proju(self, u)
-
-    @insert_docs(Euclidean.transp.__doc__, r"\s+x : .+\n.+", "")
-    def transp(self, v, *more, u=None, y=None, order=None):
-        return self.manifold.transp(self, v, *more, u=u, y=y, order=order)
-
-    @insert_docs(Euclidean.retr_transp.__doc__, r"\s+x : .+\n.+", "")
-    def retr_transp(self, v, *more, u, order=None):
-        return self.manifold.retr_transp(self, u, *more, u=v, order=order)
-
-    @insert_docs(Euclidean.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
-    def expmap_transp(self, v, *more, u):
-        return self.manifold.expmap_transp(self, u, *more, u=v)
-
-    def dist(self, other, p=2):
-        """
-        Return euclidean  or geodesic distance between points on the manifold. Allows broadcasting
-
-        Parameters
-        ----------
-        other : tensor
-        p : str|int
-            The norm to use. The default behaviour is not changed and is just euclidean distance.
-            To compute geodesic distance, :attr:`p` should be set to ``"g"``
-
-        Returns
-        -------
-        scalar
-
-
-        """
-        if p == "g":
-            return self.manifold.dist(self, other)
-        else:
-            return super().dist(other)
-
-    @insert_docs(Euclidean.logmap.__doc__, r"\s+x : .+\n.+", "")
-    def logmap(self, y):
-        return self.manifold.logmap(self, y)
 
     def __repr__(self):
         return "Tensor on {} containing:\n".format(
@@ -128,7 +72,7 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
         if data is None:
             data = ManifoldTensor(manifold=manifold)
         elif not isinstance(data, ManifoldTensor):
-            data = ManifoldTensor(data, manifold=manifold or Euclidean())
+            data = ManifoldTensor(data, manifold=manifold or R())
         else:
             if manifold is not None and data.manifold != manifold:
                 raise ValueError(

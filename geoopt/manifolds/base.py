@@ -383,7 +383,7 @@ class Manifold(torch.nn.Module):
         tensor or tuple of tensors
             transported tensor(s)
         """
-        raise self._transp_follow_retr(x, u, v, *more)
+        return self._transp_follow_retr(x, u, v, *more)
 
     def transp_follow_expmap(self, x, u, v, *more):
         """
@@ -409,6 +409,32 @@ class Manifold(torch.nn.Module):
             transported tensor(s)
         """
         return self._transp_follow_expmap(x, u, v, *more)
+
+    def transp(self, x, y, v, *more):
+        """
+        Perform vector transport from point :math:`x` for vector :math:`v` following a
+        and exponential (best possible retraction) map using vector :math:`u`
+
+        Either :math:`y` or :math:`u` should present but not both
+
+        Parameters
+        ----------
+        x : tensor
+            start point on the manifold
+        y : tensor
+            target point on the manifold
+        v : tensor
+            tangent vector at point :math:`x`
+
+        more : tensors
+           other tangent vectors at point :math:`x` to be transported
+
+        Returns
+        -------
+        tensor or tuple of tensors
+           transported tensor(s)
+        """
+        return self._transp(x, y, v, *more)
 
     def inner(self, x, u, v=None, *, keepdim=False):
         """
@@ -718,6 +744,14 @@ class Manifold(torch.nn.Module):
         Developer Guide
 
         Private implementation for logarithmic map. May be empty
+        """
+        raise NotImplementedError
+
+    def _transp(self, x, y, v, *more):
+        """
+        Developer Guide
+
+        Private implementation for vector transport. May be empty
         """
         raise NotImplementedError
 

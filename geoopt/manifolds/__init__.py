@@ -1,5 +1,5 @@
 from .base import Manifold
-from .euclidean import Euclidean
+from .euclidean import Euclidean, R
 from .stiefel import Stiefel, EuclideanStiefel, CanonicalStiefel
 from .sphere import (
     Sphere,
