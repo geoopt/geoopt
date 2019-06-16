@@ -4,7 +4,7 @@ import torch.nn
 __all__ = ["Manifold"]
 
 
-class Manifold(torch.nn.Module):
+class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     name = None
     ndim = None
     reversible = None

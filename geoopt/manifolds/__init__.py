@@ -5,6 +5,9 @@ from .sphere import (
     Sphere,
     SphereSubspaceComplementIntersection,
     SphereSubspaceIntersection,
+    SphereExact,
+    SphereSubspaceComplementIntersectionExact,
+    SphereSubspaceIntersectionExact,
 )
 from .poincare import PoincareBall
 from . import poincare

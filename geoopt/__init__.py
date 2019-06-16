@@ -12,6 +12,9 @@ from .manifolds import (
     Sphere,
     SphereSubspaceIntersection,
     SphereSubspaceComplementIntersection,
+    SphereExact,
+    SphereSubspaceComplementIntersectionExact,
+    SphereSubspaceIntersectionExact,
     PoincareBall,
 )
 

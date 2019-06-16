@@ -16,10 +16,13 @@ manifold_shapes = {
     geoopt.manifolds.EuclideanStiefel: (10, 5),
     geoopt.manifolds.CanonicalStiefel: (10, 5),
     geoopt.manifolds.Euclidean: (10,),
-    geoopt.manifolds.R: (10, ),
+    geoopt.manifolds.R: (10,),
     geoopt.manifolds.Sphere: (10,),
     geoopt.manifolds.SphereSubspaceIntersection: (10,),
     geoopt.manifolds.SphereSubspaceComplementIntersection: (10,),
+    geoopt.manifolds.SphereExact: (10,),
+    geoopt.manifolds.SphereSubspaceIntersectionExact: (10,),
+    geoopt.manifolds.SphereSubspaceComplementIntersectionExact: (10,),
 }
 
 
@@ -29,13 +32,16 @@ UnaryCase = collections.namedtuple("UnaryCase", "shape,x,ex,v,ev,manifold")
 @pytest.fixture(
     "module",
     params=[
-        #geoopt.manifolds.EuclideanStiefel,
-        #geoopt.manifolds.CanonicalStiefel,
-        #geoopt.manifolds.PoincareBall,
-        #geoopt.manifolds.Euclidean,
-        #geoopt.manifolds.Sphere,
-        #geoopt.manifolds.SphereSubspaceIntersection,
-        #geoopt.manifolds.SphereSubspaceComplementIntersection,
+        # geoopt.manifolds.EuclideanStiefel,
+        # geoopt.manifolds.CanonicalStiefel,
+        # geoopt.manifolds.PoincareBall,
+        geoopt.manifolds.Euclidean,
+        geoopt.manifolds.Sphere,
+        geoopt.manifolds.SphereSubspaceIntersection,
+        geoopt.manifolds.SphereSubspaceComplementIntersection,
+        geoopt.manifolds.SphereExact,
+        geoopt.manifolds.SphereSubspaceIntersectionExact,
+        geoopt.manifolds.SphereSubspaceComplementIntersectionExact,
         geoopt.R,
     ],
 )
@@ -74,7 +80,13 @@ def unary_case(request):
             v = ev.clone()
 
             manifold = Manifold()
-        elif issubclass(Manifold, geoopt.SphereSubspaceComplementIntersection):
+        elif issubclass(
+            Manifold,
+            (
+                geoopt.SphereSubspaceComplementIntersection,
+                geoopt.SphereSubspaceComplementIntersectionExact,
+            ),
+        ):
             complement = torch.rand(shape[-1], 1)
 
             Q, _ = geoopt.linalg.batch_linalg.qr(complement)
@@ -87,7 +99,10 @@ def unary_case(request):
             v = (ev - (x @ ev) * x) @ P.t()
 
             manifold = Manifold(complement)
-        elif issubclass(Manifold, geoopt.SphereSubspaceIntersection):
+        elif issubclass(
+            Manifold,
+            (geoopt.SphereSubspaceIntersection, geoopt.SphereSubspaceIntersectionExact),
+        ):
             subspace = torch.rand(shape[-1], 1)
 
             Q, _ = geoopt.linalg.batch_linalg.qr(subspace)
@@ -99,7 +114,7 @@ def unary_case(request):
             v = (ev - (x @ ev) * x) @ P.t()
 
             manifold = Manifold(subspace)
-        elif issubclass(Manifold, geoopt.manifolds.Sphere):
+        elif issubclass(Manifold, (geoopt.manifolds.Sphere, geoopt.SphereExact)):
             ex = torch.randn(*shape)
             ev = torch.randn(*shape)
             x = ex / torch.norm(ex)
