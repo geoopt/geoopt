@@ -5,47 +5,9 @@ __all__ = ["Manifold"]
 
 
 class Manifold(torch.nn.Module):
-    r"""
-    Base class for Manifolds
-
-    Every subclass should provide its :attr:`name`, :attr:`ndim`,
-    indicate if it is :attr:`reversible`
-    and implement the following:
-
-    * ``_check_point(x, ...)`` required
-        Checks point has valid dims, shapes, etc
-    * ``_check_point_on_manifold(x)`` required
-        Checks point lies on manifold
-    * ``_check_vector_on_tangent(x, u)`` required
-        Checks vector lies on tangent space to :math:`x`
-    * ``_projx(x)`` required
-        Projects :math:`x` on manifold
-    * ``_proju(x, u)`` required
-        Projects :math:`u` on tangent space at point :math:`x`, usually the same as ``_egrad2rgrad``
-    * ``_egrad2rgrad(u)`` if differs from ``_proju(x, u)``
-        Transforms euclidean grad to Riemannian gradient.
-    * ``_inner(x, u, v)`` required
-        Computes inner product :math:`\langle u, v\rangle_x`
-    * ``_retr(x, u, t)`` required
-        Performs retraction map for :math:`x` with direction :math:`u`
-    * ``_transp_follow(x, v, *more, u, t)`` required
-        Performs vector transport for :math:`v` from :math:`x` with direction :math:`u`
-    * ``_transp2y(x, v, *more, u, t)`` desired
-        Performs vector transport for :math:`v` with from :math:`x` to :math:`y`
-    * ``_retr_transp(x, v, *more, u, t)`` desired
-        Combines retraction and vector transport
-    * ``__eq__(other)`` if needed
-        Checks if manifolds are the same
-
-    Notes
-    -----
-    Public documentation, private implementation design is used.
-    Some more about design info is in :class:`geoopt.manifolds.base.ManifoldMeta`.
-    """
     name = None
     ndim = None
     reversible = None
-    _default_order = 1
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -54,67 +16,7 @@ class Manifold(torch.nn.Module):
         # this removes all warnings about implementing abstract methods
         raise TypeError("Manifold is not callable")
 
-    # noinspection PyAttributeOutsideInit
-    def set_default_order(self, order):
-        """
-        Set the default order of approximation. This might be useful to specify retraction being used in optimizers
-
-        Parameters
-        ----------
-        order : int|None
-            default order of retraction approximation (None stays for Manifold default value)
-
-        Returns
-        -------
-        Manifold
-            returns same instance
-        """
-        if order is None:
-            order = type(self)._default_order
-        if (
-            order not in self._retr_transport_funcs
-            or order not in self._retr_funcs
-            or order not in self._transport_follow_funcs
-        ):
-            possible_orders = (
-                set(self._retr_transport_funcs)
-                & set(self._retr_funcs)
-                & set(self._transport_follow_funcs)
-            )
-            raise ValueError(
-                "new default order should be one of {}".format(possible_orders)
-            )
-        self._retr_transport_funcs = self._retr_transport_funcs.copy()
-        self._retr_transport_funcs[None] = self._retr_transport_funcs[order]
-        self._retr_funcs = self._retr_funcs.copy()
-        self._retr_funcs[None] = self._retr_funcs[order]
-        self._transport_follow_funcs = self._transport_follow_funcs.copy()
-        self._transport_follow_funcs[None] = self._transport_follow_funcs[order]
-        self._retr_funcs[None] = self._retr_funcs[order]
-        self._default_order = order
-        return self
-
-    def reset_default_order(self):
-        """
-        Reset the default order of approximation. The new order will
-        be the initial default approximation order for the manifold.
-
-        Returns
-        -------
-        Manifold
-            returns same instance
-        """
-        return self.set_default_order(None)
-
-    @property
-    def default_order(self):
-        return self._default_order
-
-    @default_order.setter
-    def default_order(self, order):
-        self.set_default_order(order)
-
-    def check_point(self, x, explain=False):
+    def check_point(self, x, *, explain=False):
         """
         Check if point is valid to be used with the manifold
 
@@ -129,6 +31,10 @@ class Manifold(torch.nn.Module):
         -------
         bool
             boolean indicating if tensor is valid and reason of failure if False
+
+        Notes
+        -----
+        This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
         ok, reason = self._check_shape(x, "x")
         if explain:
@@ -145,6 +51,10 @@ class Manifold(torch.nn.Module):
         ----------
         x : tensor
             point on the manifold
+
+        Notes
+        -----
+        This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
 
         ok, reason = self._check_shape(x, "x")
@@ -154,7 +64,7 @@ class Manifold(torch.nn.Module):
                 "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
-    def check_vector(self, u, explain=False):
+    def check_vector(self, u, *, explain=False):
         """
         Check if point is valid to be used with the manifold
 
@@ -169,6 +79,10 @@ class Manifold(torch.nn.Module):
         -------
         bool
             boolean indicating if tensor is valid and reason of failure if False
+
+        Notes
+        -----
+        This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
         ok, reason = self._check_shape(u, "u")
         if explain:
@@ -185,6 +99,10 @@ class Manifold(torch.nn.Module):
         ----------
         u : tensor
             vector on the tangent plane
+
+        Notes
+        -----
+        This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
 
         ok, reason = self._check_shape(u, "u")
@@ -194,7 +112,7 @@ class Manifold(torch.nn.Module):
                 "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
-    def check_point_on_manifold(self, x, explain=False, atol=1e-5, rtol=1e-5):
+    def check_point_on_manifold(self, x, *, explain=False, atol=1e-5, rtol=1e-5):
         """
         Check if point :math:`x` is lying on the manifold
 
@@ -213,6 +131,10 @@ class Manifold(torch.nn.Module):
         -------
         bool
             boolean indicating if tensor is valid and reason of failure if False
+
+        Notes
+        -----
+        This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
         ok, reason = self._check_shape(x, "x")
         if ok:
@@ -222,7 +144,7 @@ class Manifold(torch.nn.Module):
         else:
             return ok
 
-    def assert_check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
+    def assert_check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         """
         Check if point is lying on the manifold and
         raise an error with informative message on failure
@@ -244,7 +166,9 @@ class Manifold(torch.nn.Module):
                 "not lying on {} manifold.\nerror: {}".format(self.name, reason)
             )
 
-    def check_vector_on_tangent(self, x, u, explain=False, atol=1e-5, rtol=1e-5):
+    def check_vector_on_tangent(
+        self, x, u, *, ok_point=False, explain=False, atol=1e-5, rtol=1e-5
+    ):
         """
         Check if u :math:`u` is lying on the tangent space to x
 
@@ -260,17 +184,23 @@ class Manifold(torch.nn.Module):
             relative tolerance as in :func:`numpy.allclose`
         explain: bool
             return an additional information on check
+        ok_point: bool
+            is a check for point required?
 
         Returns
         -------
         bool
             boolean indicating if tensor is valid and reason of failure if False
         """
-        ok, reason = self._check_shape(x, "x")
-        if ok:
-            ok, reason = self._check_shape(u, "u")
-        if ok:
-            ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
+        if not ok_point:
+            ok, reason = self._check_shape(x, "x")
+            if ok:
+                ok, reason = self._check_shape(u, "u")
+            if ok:
+                ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
+        else:
+            ok = True
+            reason = None
         if ok:
             ok, reason = self._check_vector_on_tangent(x, u, atol=atol, rtol=rtol)
         if explain:
@@ -278,7 +208,9 @@ class Manifold(torch.nn.Module):
         else:
             return ok
 
-    def assert_check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+    def assert_check_vector_on_tangent(
+        self, x, u, *, ok_point=False, atol=1e-5, rtol=1e-5
+    ):
         """
         Check if u :math:`u` is lying on the tangent space to x and raise an error on fail
 
@@ -292,12 +224,18 @@ class Manifold(torch.nn.Module):
             absolute tolerance as in :func:`numpy.allclose`
         rtol: float
             relative tolerance as in :func:`numpy.allclose`
+        ok_point: bool
+            is a check for point required?
         """
-        ok, reason = self._check_shape(x, "x")
-        if ok:
-            ok, reason = self._check_shape(u, "u")
-        if ok:
-            ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
+        if not ok_point:
+            ok, reason = self._check_shape(x, "x")
+            if ok:
+                ok, reason = self._check_shape(u, "u")
+            if ok:
+                ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
+        else:
+            ok = True
+            reason = None
         if ok:
             ok, reason = self._check_vector_on_tangent(x, u, atol=atol, rtol=rtol)
         if not ok:
@@ -308,7 +246,7 @@ class Manifold(torch.nn.Module):
                 )
             )
 
-    def dist(self, x, y, keepdim=False):
+    def dist(self, x, y, *, keepdim=False):
         """
         Compute distance between 2 points on the manifold that is the shortest path along geodesics
 
@@ -328,7 +266,7 @@ class Manifold(torch.nn.Module):
         """
         return self._dist(x, y, keepdim=keepdim)
 
-    def retr(self, x, u, *, order=None):
+    def retr(self, x, u):
         """
         Perform a retraction from point :math:`x` with
         given direction :math:`u`
@@ -339,16 +277,13 @@ class Manifold(torch.nn.Module):
             point on the manifold
         u : tensor
             tangent vector at point :math:`x`
-        order : int
-            order of retraction approximation, by default uses the simplest that is usually a first order approximation.
-            Possible choices depend on a concrete manifold and -1 stays for exponential map
 
         Returns
         -------
         tensor
             transported point
         """
-        return self._retr_funcs[order](self, x, u)
+        return self._retr(x, u)
 
     def expmap(self, x, u):
         """
@@ -372,7 +307,7 @@ class Manifold(torch.nn.Module):
         By default, no error is raised if exponential map is not implemented. If so,
         the best approximation to exponential map is applied instead.
         """
-        return self._retr_funcs[-1](self, x=x, u=u)
+        return self._expmap(x, u)
 
     def logmap(self, x, y):
         r"""
@@ -397,7 +332,7 @@ class Manifold(torch.nn.Module):
         """
         return self._logmap(x, y)
 
-    def expmap_transp(self, x, v, *more, u):
+    def expmap_transp(self, x, u, v, *more):
         """
         Perform an exponential map from point :math:`x` with
         given direction :math:`u`
@@ -406,12 +341,12 @@ class Manifold(torch.nn.Module):
         ----------
         x : tensor
             point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
         v : tensor
             tangent vector at point :math:`x` to be transported
         more : tensors
             other tangent vectors at point :math:`x` to be transported
-        u : tensor
-            tangent vector at point :math:`x`
 
         Returns
         -------
@@ -423,14 +358,12 @@ class Manifold(torch.nn.Module):
         By default, no error is raised if exponential map is not implemented. If so,
         the best approximation to exponential map is applied instead.
         """
-        return self._retr_transport_funcs[-1](self, x, v, *more, u=u)
+        raise self._expmap_transp(x, u, v, *more)
 
-    def transp(self, x, v, *more, u=None, y=None, order=None):
+    def transp_follow_retr(self, x, u, v, *more):
         """
-        Perform vector transport from point :math:`x` for vector :math:`v` using one of the following:
-
-        1. Go by direction :math:`u`
-        2. Use target point :math:`y` directly
+        Perform vector transport from point :math:`x` for vector :math:`v` following a
+        retraction map using vector :math:`u`
 
         Either :math:`y` or :math:`u` should present but not both
 
@@ -438,34 +371,46 @@ class Manifold(torch.nn.Module):
         ----------
         x : tensor
             point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
         v : tensor
             tangent vector at point :math:`x` to be transported
         more : tensors
             other tangent vectors at point :math:`x` to be transported
-        u : tensor
-            tangent vector at point :math:`x` (required if :math:`y` is not provided)
-        y : tensor
-            the target point for vector transport  (required if :math:`u` is not provided)
-        order : int
-            order of retraction approximation, by default uses the simplest that is usually a first order approximation.
-            Possible choices depend on a concrete manifold and -1 stays for exponential map.
-            This argument is used only if :math:`u` is provided
 
         Returns
         -------
         tensor or tuple of tensors
             transported tensor(s)
         """
-        if y is not None and u is not None:
-            raise TypeError("transp() accepts either y or u only, not both")
-        if y is not None:
-            return self._transp2y(x, v, *more, y=y)
-        elif u is not None:
-            return self._transport_follow_funcs[order](self, x, v, *more, u=u)
-        else:
-            raise TypeError("transp() requires either y or u")
+        raise self._transp_follow_retr(x, u, v, *more)
 
-    def inner(self, x, u, v=None, keepdim=False):
+    def transp_follow_expmap(self, x, u, v, *more):
+        """
+        Perform vector transport from point :math:`x` for vector :math:`v` following a
+        and exponential (best possible retraction) map using vector :math:`u`
+
+        Either :math:`y` or :math:`u` should present but not both
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
+        v : tensor
+            tangent vector at point :math:`x` to be transported
+        more : tensors
+            other tangent vectors at point :math:`x` to be transported
+
+        Returns
+        -------
+        tensor or tuple of tensors
+            transported tensor(s)
+        """
+        return self._transp_follow_expmap(x, u, v, *more)
+
+    def inner(self, x, u, v=None, *, keepdim=False):
         """
         Inner product for tangent vectors at point :math:`x`
 
@@ -485,12 +430,27 @@ class Manifold(torch.nn.Module):
         scalar
             inner product (broadcasted)
         """
-        if v is None and self._inner_autofill:
-            v = u
         return self._inner(x, u, v, keepdim=keepdim)
 
-    # dev: autofill None parameter or propagate None?
-    _inner_autofill = True
+    def norm(self, x, u, *, keepdim=False):
+        """
+        Norm of a tangent vector at point :math:`x`
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
+        keepdim : bool
+            keep the last dim?
+
+        Returns
+        -------
+        scalar
+            inner product (broadcasted)
+        """
+        raise self._norm(x, u, keepdim=keepdim)
 
     def proju(self, x, u):
         """
@@ -544,7 +504,7 @@ class Manifold(torch.nn.Module):
         """
         return self._projx(x)
 
-    def retr_transp(self, x, v, *more, u, order=None):
+    def retr_transp(self, x, u, v, *more):
         """
         Perform a retraction + vector transport at once
 
@@ -571,10 +531,11 @@ class Manifold(torch.nn.Module):
         -----
         Sometimes this is a far more optimal way to preform retraction + vector transport
         """
-        return self._retr_transport_funcs[order](self, x, v, *more, u=u)
+        return self._retr_transp(x, u, v, *more)
 
     # private implementation, public documentation design
 
+    @abc.abstractmethod
     def _check_shape(self, x, name):
         """
         Developer Guide
@@ -599,7 +560,8 @@ class Manifold(torch.nn.Module):
         # return True, None
         raise NotImplementedError
 
-    def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
+    @abc.abstractmethod
+    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         """
         Developer Guide
 
@@ -627,7 +589,8 @@ class Manifold(torch.nn.Module):
         # return True, None
         raise NotImplementedError
 
-    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+    @abc.abstractmethod
+    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         """
         Developer Guide
 
@@ -635,7 +598,7 @@ class Manifold(torch.nn.Module):
         a given point lies in the tangent space at x
         of the manifold. It should return a boolean
         indicating whether the test was passed
-        and a reason of failure if check is not passed. 
+        and a reason of failure if check is not passed.
         You can assume assert_check_point is already
         passed beforehand
 
@@ -656,34 +619,45 @@ class Manifold(torch.nn.Module):
         # return True, None
         raise NotImplementedError
 
-    def _retr_transp(self, x, v, *more, u):
+    @abc.abstractmethod
+    def _transp_follow_expmap(self, x, u, v, *more):
         """
         Developer Guide
 
-        Naive implementation for retraction and
-        transporting many vectors at once.
+        Private implementation for vector transport following an exponential map. Should allow broadcasting.
+        If not existent, should fall back to the best implemented analog with retraction.
         """
+        raise NotImplementedError
 
-        y = self._retr(x, u)
-        if self._retr_transp_default_preference == "follow":
-            if more:
-                out = (y,) + self._transp_follow(x, v, *more, u=u)
-            else:
-                out = (y, self._transp_follow(x, v, *more, u=u))
-        else:
-            if more:
-                out = (y,) + self._transp2y(x, v, *more, y=y)
-            else:
-                out = (y, self._transp2y(x, v, *more, y=y))
-        return out
+    @abc.abstractmethod
+    def _transp_follow_retr(self, x, u, v, *more):
+        """
+        Developer Guide
 
-    """
-    To make ``retr_transp`` work in case of ``_transp2y`` is much more efficient than 
-    ``_transp_follow`` there is a class attribute ``_retr_transp_default_preference`` to indicate this. 
-    The attribute should be present in the class definition if differs from default provided in `Manifold`.
-    Its values should be in {'follow', '2y'}, default is 'follow'
-    """
-    _retr_transp_default_preference = "follow"
+        Private implementation for vector transport following an exponential map. Should allow broadcasting.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _retr_transp(self, x, u, v, *more):
+        """
+        Developer Guide
+
+        Private implementation for vector transport combined with retraction map. Should allow broadcasting.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _expmap_transp(self, x, u, v, *more):
+        """
+        Developer Guide
+
+        Private implementation for vector transport combined with an exponential map. Should allow broadcasting.
+        """
+        raise NotImplementedError
+
+    def _dist(self, x, y, *, keepdim=False):
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _retr(self, x, u):
@@ -695,13 +669,21 @@ class Manifold(torch.nn.Module):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _inner(self, x, u, v, keepdim):
+    def _inner(self, x, u, v=None, *, keepdim=False):
         """
         Developer Guide
 
         Private implementation for inner product. Should allow broadcasting.
         """
         raise NotImplementedError
+
+    def _norm(self, x, u, *, keepdim=False):
+        """
+        Developer Guide
+
+        Private implementation for vector norm. Should allow broadcasting.
+        """
+        return self._inner(x, u, u, keepdim=keepdim)
 
     @abc.abstractmethod
     def _proju(self, x, u):
@@ -721,6 +703,7 @@ class Manifold(torch.nn.Module):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def _egrad2rgrad(self, x, u):
         """
         Developer Guide
@@ -728,7 +711,24 @@ class Manifold(torch.nn.Module):
         Private implementation for gradient transformation, may do things efficiently in some cases.
         Should allow broadcasting.
         """
-        return self._proju(x, u)
+        raise NotImplementedError
+
+    def _logmap(self, x, y):
+        """
+        Developer Guide
+
+        Private implementation for logarithmic map. May be empty
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _expmap(self, x, u):
+        """
+        Developer Guide
+
+        Private implementation for exponential map. If does not exist, should fall back to best possible retraction map.
+        """
+        raise NotImplementedError
 
     def extra_repr(self):
         return ""
