@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
-from geoopt.manifolds import Euclidean
+from geoopt.manifolds import R
 from geoopt.samplers.base import Sampler
 from ..utils import copy_or_set_
 
@@ -33,7 +33,7 @@ class RHMC(Sampler):
         if isinstance(p, (ManifoldParameter, ManifoldTensor)):
             manifold = p.manifold
         else:
-            manifold = Euclidean()
+            manifold = R()
 
         egrad2rgrad = manifold.egrad2rgrad
         retr_transp = manifold.retr_transp
@@ -67,7 +67,7 @@ class RHMC(Sampler):
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
-                        manifold = Euclidean()
+                        manifold = R()
 
                     egrad2rgrad = manifold.egrad2rgrad
                     state = self.state[p]
@@ -116,7 +116,7 @@ class RHMC(Sampler):
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
-                        manifold = Euclidean()
+                        manifold = R()
 
                     egrad2rgrad = manifold.egrad2rgrad
 

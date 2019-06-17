@@ -10,7 +10,7 @@ class R(Manifold):
     Simple Euclidean manifold
     """
 
-    name = "Euclidean"
+    name = "R"
     ndim = 0
     reversible = True
 
@@ -66,6 +66,7 @@ class R(Manifold):
 
 class Euclidean(R):
     ndim = 1
+    name = "Euclidean"
 
     def _check_shape(self, x, name):
         dim_is_ok = x.dim() >= 1

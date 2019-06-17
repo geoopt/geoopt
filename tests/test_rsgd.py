@@ -44,7 +44,7 @@ def test_rsgd_stiefel(params):
 def test_init_manifold():
     torch.manual_seed(42)
     stiefel = geoopt.manifolds.Stiefel()
-    rn = geoopt.manifolds.Euclidean()
+    rn = geoopt.manifolds.R()
     x0 = torch.randn(10, 10)
     x1 = torch.randn(10, 10)
     with torch.no_grad():
