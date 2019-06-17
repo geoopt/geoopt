@@ -16,7 +16,7 @@ manifold_shapes = {
     geoopt.manifolds.PoincareBall: (3,),
     geoopt.manifolds.EuclideanStiefel: (10, 5),
     geoopt.manifolds.CanonicalStiefel: (10, 5),
-    geoopt.manifolds.Euclidean: (10,),
+    geoopt.manifolds.R: (10,),
     geoopt.manifolds.R: (10,),
     geoopt.manifolds.Sphere: (10,),
     geoopt.manifolds.SphereExact: (10,),
@@ -72,12 +72,12 @@ def r_case():
 
 
 def euclidean_case():
-    shape = manifold_shapes[geoopt.manifolds.Euclidean]
+    shape = manifold_shapes[geoopt.manifolds.R]
     ex = torch.randn(*shape)
     ev = torch.randn(*shape)
     x = ex.clone()
     v = ev.clone()
-    manifold = geoopt.Euclidean()
+    manifold = geoopt.R()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case

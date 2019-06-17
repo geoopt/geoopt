@@ -3,7 +3,7 @@ import torch.optim
 from .mixin import OptimMixin
 from .tracing import create_traced_update
 from ..tensor import ManifoldParameter, ManifoldTensor
-from ..manifolds import Euclidean
+from ..manifolds import R
 from ..utils import copy_or_set_
 
 
@@ -69,7 +69,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
-                        manifold = Euclidean()
+                        manifold = R()
 
                     if p.grad.is_sparse:
                         raise RuntimeError(
