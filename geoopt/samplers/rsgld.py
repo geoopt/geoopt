@@ -51,7 +51,7 @@ class RSGLD(Sampler):
                     n = torch.randn_like(p).mul_(math.sqrt(epsilon))
                     r = egrad2rgrad(p, 0.5 * epsilon * p.grad + n)
                     # use copy only for user facing point
-                    copy_or_set_(p, retr(p, r, 1.0))
+                    copy_or_set_(p, retr(p, r))
                     p.grad.zero_()
 
         if not self.burnin:

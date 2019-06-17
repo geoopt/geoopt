@@ -165,13 +165,13 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                 grad = momentum_buffer
             # we have all the things projected
             new_point, new_momentum_buffer = manifold.retr_transp(
-                point, momentum_buffer, u=grad, t=-lr
+                point, momentum_buffer, u=-lr * grad
             )
             momentum_buffer.set_(new_momentum_buffer)
             # use copy only for user facing point
             copy_or_set_(point, new_point)
         else:
-            new_point = manifold.retr(point, grad, -lr)
+            new_point = manifold.retr(point, -lr * grad)
             copy_or_set_(point, new_point)
 
     def stabilize_group(self, group):
