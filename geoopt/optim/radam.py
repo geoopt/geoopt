@@ -188,7 +188,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         direction = exp_avg / denom
         # transport the exponential averaging to the new point
         new_point, exp_avg_new = manifold.retr_transp(
-            point, exp_avg, u=direction, t=-step_size
+            point, exp_avg, u=-step_size * direction
         )
         # use copy only for user facing point
         copy_or_set_(point, new_point)

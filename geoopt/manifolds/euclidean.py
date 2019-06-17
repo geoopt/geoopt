@@ -21,8 +21,8 @@ class Euclidean(Manifold):
     def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
         return True, None
 
-    def _retr(self, x, u, t):
-        return x + t * u
+    def _retr(self, x, u):
+        return x + u
 
     def _inner(self, x, u, v, keepdim):
         return u * v
@@ -33,7 +33,7 @@ class Euclidean(Manifold):
     def _projx(self, x):
         return x
 
-    def _transp_follow(self, x, v, *more, u, t):
+    def _transp_follow(self, x, v, *more, u):
         if not more:
             return v
         else:

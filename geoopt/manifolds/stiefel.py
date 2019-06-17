@@ -109,38 +109,34 @@ class CanonicalStiefel(Stiefel):
     # we do faster on inner without autofill
     _inner_autofill = False
 
-    def _transp_follow_one(self, x, v, *, u, t):
+    def _transp_follow_one(self, x, v, *, u):
         a = self._amat(x, u)
-        rhs = v + t / 2 * a @ v
-        lhs = -t / 2 * a
+        rhs = v + 1 / 2 * a @ v
+        lhs = -1 / 2 * a
         lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
         qv, _ = torch.solve(rhs, lhs)
         return qv
 
-    def _transp_follow_many(self, x, *vs, u, t):
+    def _transp_follow_many(self, x, *vs, u):
         """
         An optimized transp_many for Stiefel Manifold
         """
-        n = len(vs)
         vs = torch.cat(vs, -1)
-        qvs = self._transp_follow_one(x, vs, u=u, t=t).view(
-            x.shape[:-1] + (-1, x.shape[-1])
-        )
+        qvs = self._transp_follow_one(x, vs, u=u).view(x.shape[:-1] + (-1, x.shape[-1]))
         return qvs.unbind(-2)
 
-    def _transp_follow(self, x, v, *more, u, t):
+    def _transp_follow(self, x, v, *more, u):
         if more:
-            return self._transp_follow_many(x, v, *more, u=u, t=t)
+            return self._transp_follow_many(x, v, *more, u=u)
         else:
-            return self._transp_follow_one(x, v, u=u, t=t)
+            return self._transp_follow_one(x, v, u=u)
 
-    def _retr_transp(self, x, v, *more, u, t):
+    def _retr_transp(self, x, v, *more, u):
         """
         An optimized retr_transp for Stiefel Manifold
         """
-        n = 2 + len(more)
         xvs = torch.cat((x, v) + more, -1)
-        qxvs = self._transp_follow_one(x, xvs, u=u, t=t).view(
+        qxvs = self._transp_follow_one(x, xvs, u=u).view(
             x.shape[:-1] + (-1, x.shape[-1])
         )
         return qxvs.unbind(-2)
@@ -148,8 +144,8 @@ class CanonicalStiefel(Stiefel):
     def _proju(self, x, u):
         return u - x @ u.transpose(-1, -2) @ x
 
-    def _retr(self, x, u, t):
-        return self._transp_follow_one(x, x, u=u, t=t)
+    def _retr(self, x, u):
+        return self._transp_follow_one(x, x, u=u)
 
 
 class EuclideanStiefel(Stiefel):
@@ -166,8 +162,8 @@ class EuclideanStiefel(Stiefel):
     def _proju(self, x, u):
         return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
-    def _transp_follow(self, x, v, *more, u, t):
-        y = self._retr(x, u, t)
+    def _transp_follow(self, x, v, *more, u):
+        y = self._retr(x, u)
         return self._transp2y(x, v, *more, y=y)
 
     def _transp2y(self, x, v, *more, y):
@@ -176,8 +172,8 @@ class EuclideanStiefel(Stiefel):
         else:
             return tuple(self._proju(y, v_) for v_ in (v,) + more)
 
-    def _retr_transp(self, x, v, *more, u, t):
-        y = self._retr(x, u, t)
+    def _retr_transp(self, x, v, *more, u):
+        y = self._retr(x, u)
         vs = self._transp2y(x, v, *more, y=y)
         if more:
             return (y,) + vs
@@ -187,14 +183,13 @@ class EuclideanStiefel(Stiefel):
     def _inner(self, x, u, v, keepdim):
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
-    def _retr(self, x, u, t):
-        q, r = linalg.batch_linalg.qr(x + u * t)
+    def _retr(self, x, u):
+        q, r = linalg.batch_linalg.qr(x + u)
         unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
 
-    def _expmap(self, x, u, t):
-        u = u * t
+    def _expmap(self, x, u):
         xtu = x.transpose(-1, -2) @ u
         utu = u.transpose(-1, -2) @ u
         eye = torch.zeros_like(utu)
@@ -205,14 +200,14 @@ class EuclideanStiefel(Stiefel):
         y = torch.cat((x, u), dim=-1) @ w @ z
         return y
 
-    def _expmap_transp(self, x, v, *more, u, t):
-        y = self._expmap(x, u, t)
+    def _expmap_transp(self, x, v, *more, u):
+        y = self._expmap(x, u)
         vs = self._transp2y(x, v, *more, y=y)
         if more:
             return (y,) + vs
         else:
             return y, vs
 
-    def _transp_follow_expmap(self, x, v, *more, u, t):
-        y = self._expmap(x, u, t)
+    def _transp_follow_expmap(self, x, v, *more, u):
+        y = self._expmap(x, u)
         return self._transp2y(x, v, *more, y=y)

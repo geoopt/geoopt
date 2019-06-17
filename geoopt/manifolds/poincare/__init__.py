@@ -1,4 +1,4 @@
-import torch
+import torch.nn
 from . import math
 from ..base import Manifold
 
@@ -54,9 +54,9 @@ class PoincareBall(Manifold):
     def _egrad2rgrad(self, x, u):
         return math.egrad2rgrad(x, u, c=self.c)
 
-    def _retr(self, x, u, t):
+    def _retr(self, x, u):
         # always assume u is scaled properly
-        approx = x + u * t
+        approx = x + u
         return math.project(approx, c=self.c)
 
     _retr_transp_default_preference = "2y"
@@ -70,8 +70,8 @@ class PoincareBall(Manifold):
     def _inner(self, x, u, v, keepdim):
         return math.inner(x, u, v, c=self.c, keepdim=keepdim)
 
-    def _expmap(self, x, u, t):
-        return math.project(math.expmap(x, u * t, c=self.c), c=self.c)
+    def _expmap(self, x, u):
+        return math.project(math.expmap(x, u, c=self.c), c=self.c)
 
     def _logmap(self, x, y):
         return math.logmap(x, y, c=self.c)
@@ -85,18 +85,18 @@ class PoincareBall(Manifold):
             transp = math.parallel_transport(x, y, vecs, c=self.c)
             return tuple(transp[i] for i in range(n))
 
-    def _transp_follow(self, x, v, *more, u, t):
-        y = self._retr(x, u, t)
+    def _transp_follow(self, x, v, *more, u):
+        y = self._retr(x, u)
         return self._transp2y(x, v, *more, y=y)
 
-    def _expmap_transp(self, x, v, *more, u, t):
-        y = self._expmap(x, u, t)
+    def _expmap_transp(self, x, v, *more, u):
+        y = self._expmap(x, u)
         vs = self._transp2y(x, v, *more, y=y)
         if more:
             return (y,) + vs
         else:
             return y, vs
 
-    def _transp_follow_expmap(self, x, v, *more, u, t):
-        y = self._expmap(x, u, t)
+    def _transp_follow_expmap(self, x, v, *more, u):
+        y = self._expmap(x, u)
         return self._transp2y(x, v, *more, y=y)

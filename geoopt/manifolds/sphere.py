@@ -53,19 +53,18 @@ class Sphere(Manifold):
     def _proju(self, x, u):
         return u - (x * u).sum(dim=-1, keepdim=True) * x
 
-    def _expmap(self, x, u, t):
-        ut = u * t
-        norm_ut = ut.norm(dim=-1, keepdim=True)
-        exp = x * torch.cos(norm_ut) + ut * torch.sin(norm_ut) / norm_ut
-        retr = self._projx(x + ut)
-        cond = norm_ut > 1e-3
+    def _expmap(self, x, u):
+        norm_u = u.norm(dim=-1, keepdim=True)
+        exp = x * torch.cos(norm_u) + u * torch.sin(norm_u) / norm_u
+        retr = self._projx(x + u)
+        cond = norm_u > 1e-3
         return torch.where(cond, exp, retr)
 
-    def _retr(self, x, u, t):
-        return self._projx(x + u * t)
+    def _retr(self, x, u):
+        return self._projx(x + u)
 
-    def _transp_follow(self, x, v, *more, u, t):
-        y = self._retr(x, u, t)
+    def _transp_follow(self, x, v, *more, u):
+        y = self._retr(x, u)
         return self._transp2y(x, v, *more, y=y)
 
     def _transp2y(self, x, v, *more, y):
@@ -74,12 +73,12 @@ class Sphere(Manifold):
         else:
             return self._proju(y, v)
 
-    def _transp_follow_expmap(self, x, v, *more, u, t):
-        y = self._expmap(x, u, t)
+    def _transp_follow_expmap(self, x, v, *more, u):
+        y = self._expmap(x, u)
         return self._transp2y(x, v, *more, y=y)
 
-    def _expmap_transp(self, x, v, *more, u, t):
-        y = self._expmap(x, u, t)
+    def _expmap_transp(self, x, v, *more, u):
+        y = self._expmap(x, u)
         vs = self._transp2y(x, v, *more, y=y)
         if more:
             return (y,) + vs

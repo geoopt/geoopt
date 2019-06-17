@@ -54,14 +54,12 @@ points on a certain manifold
 -  ``.inner(u, v=None)`` – inner product at this point for two
    **tangent** vectors at this point. The passed vectors are not
    projected, they are assumed to be already projected.
--  ``.retr(u, t=1.)`` – retraction map following vector ``u`` for time
-   ``t``
--  ``.expmap(u, t=1.)`` – exponential map following vector ``u`` for time
-   ``t`` (if expmap is not available in closed form, best approximation is used)
--  ``.transp(v, *more, u, t=1.)`` – transport vector ``v`` (and possibly
-   more vectors) with direction ``u`` for time ``t``
--  ``.retr_transp(v, *more, u, t=1.)`` – transport ``self``, vector ``v``
-   (and possibly more vectors) with direction ``u`` for time ``t``
+-  ``.retr(u)`` – retraction map following vector ``u``
+-  ``.expmap(u)`` – exponential map following vector ``u`` (if expmap is not available in closed form, best approximation is used)
+-  ``.transp(v, *more, u)`` – transport vector ``v`` (and possibly
+   more vectors) with direction ``u``
+-  ``.retr_transp(v, *more, u)`` – transport ``self``, vector ``v``
+   (and possibly more vectors) with direction ``u``
    (returns are plain tensors)
 
 Manifolds
