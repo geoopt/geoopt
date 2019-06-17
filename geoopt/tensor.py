@@ -68,12 +68,12 @@ class ManifoldTensor(torch.Tensor):
         return self.manifold.expmap_transp(self, u, v, *more)
 
     @insert_docs(Manifold.transp_follow_expmap.__doc__, r"\s+x : .+\n.+", "")
-    def transp_follow_expmap(self, x, u, v, *more):
-        return self.manifold.transp_follow_expmap(self, x, u, v, *more)
+    def transp_follow_expmap(self, u, v, *more):
+        return self.manifold.transp_follow_expmap(self, u, v, *more)
 
     @insert_docs(Manifold.transp_follow_retr.__doc__, r"\s+x : .+\n.+", "")
-    def transp_follow_retr(self, x, u, v, *more):
-        return self.manifold.transp_follow_retr(self, x, u, v, *more)
+    def transp_follow_retr(self, u, v, *more):
+        return self.manifold.transp_follow_retr(self, u, v, *more)
 
     def dist(self, other, p=2):
         """
