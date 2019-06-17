@@ -205,7 +205,6 @@ def test_vector_projection_via_assert(unary_case):
 
 
 def test_broadcast_projx(unary_case):
-    torch.manual_seed(43)
     X = torch.stack([unary_case.ex] * 4)
     pX = unary_case.manifold.projx(X)
     unary_case.manifold.assert_check_point_on_manifold(pX)
@@ -217,7 +216,6 @@ def test_broadcast_projx(unary_case):
 
 
 def test_broadcast_proju(unary_case):
-    torch.manual_seed(43)
     pX = torch.stack([unary_case.x] * 4)
     U = torch.stack([unary_case.v] * 4)
     pU = unary_case.manifold.proju(pX, U)
@@ -230,7 +228,6 @@ def test_broadcast_proju(unary_case):
 
 
 def test_broadcast_retr(unary_case):
-    torch.manual_seed(43)
     pX = torch.stack([unary_case.x] * 4)
     U = torch.stack([unary_case.v] * 4)
     pU = unary_case.manifold.proju(pX, U)
@@ -244,7 +241,6 @@ def test_broadcast_retr(unary_case):
 
 
 def test_broadcast_transp(unary_case):
-    torch.manual_seed(43)
     pX = torch.stack([unary_case.x] * 4)
     U = torch.stack([unary_case.v] * 4)
     V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
@@ -261,7 +257,6 @@ def test_broadcast_transp(unary_case):
 
 
 def test_broadcast_transp_many(unary_case):
-    torch.manual_seed(43)
     pX = torch.stack([unary_case.x] * 4)
     U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
@@ -283,7 +278,6 @@ def test_broadcast_transp_many(unary_case):
 
 
 def test_broadcast_retr_transp_many(unary_case):
-    torch.manual_seed(43)
     pX = torch.stack([unary_case.x] * 4)
     U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
     V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
@@ -308,9 +302,9 @@ def test_broadcast_retr_transp_many(unary_case):
 
 def test_reversibility(unary_case):
     if unary_case.manifold.reversible:
-        torch.manual_seed(43)
-        pX = torch.stack([unary_case.x] * 4)
-        U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype) / 3
+        unary_case.manifold.double()
+        pX = torch.stack([unary_case.x] * 4).double()
+        U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype).double() / 3
         U = unary_case.manifold.proju(pX, U)
         Z, Q = unary_case.manifold.retr_transp(pX, U, U)
         X1, U1 = unary_case.manifold.retr_transp(Z, -Q, Q)
@@ -323,7 +317,6 @@ def test_reversibility(unary_case):
 
 def test_logmap_many(unary_case):
     try:
-        torch.manual_seed(43)
         unary_case.manifold.double()
         pX = torch.stack([unary_case.x] * 4).double()
         U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype).double()
