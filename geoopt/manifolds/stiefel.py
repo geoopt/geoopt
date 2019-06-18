@@ -224,4 +224,3 @@ class EuclideanStiefelExact(EuclideanStiefel):
 
     def extra_repr(self):
         return "exact"
-
