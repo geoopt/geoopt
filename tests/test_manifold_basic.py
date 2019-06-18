@@ -8,10 +8,16 @@ import itertools
 
 @pytest.fixture(autouse=True, params=[1, 2, 3, 4, 5])
 def seed(request):
-    torch.set_default_dtype(torch.float64)
     torch.manual_seed(request.param)
     yield
-    torch.set_default_dtype(torch.float32)
+
+
+@pytest.fixture(autouse=True, params=[torch.float64], ids=lambda t: str(t))
+def use_floatX(request):
+    dtype_old = torch.get_default_dtype()
+    torch.set_default_dtype(request.param)
+    yield request.param
+    torch.set_default_dtype(dtype_old)
 
 
 manifold_shapes = {
@@ -29,6 +35,7 @@ UnaryCase = collections.namedtuple("UnaryCase", "shape,x,ex,v,ev,manifold")
 
 
 def canonical_stiefel_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.CanonicalStiefel]
     ex = torch.randn(*shape)
     ev = torch.randn(*shape)
@@ -42,9 +49,10 @@ def canonical_stiefel_case():
 
 
 def euclidean_stiefel_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.EuclideanStiefel]
-    ex = torch.randn(*shape)
-    ev = torch.randn(*shape)
+    ex = torch.randn(*shape, dtype=torch.float64)
+    ev = torch.randn(*shape, dtype=torch.float64)
     u, _, v = torch.svd(ex)
     x = u @ v.t()
     nonsym = x.t() @ ev
@@ -61,9 +69,10 @@ def euclidean_stiefel_case():
 
 
 def r_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.R]
-    ex = torch.randn(*shape)
-    ev = torch.randn(*shape)
+    ex = torch.randn(*shape, dtype=torch.float64)
+    ev = torch.randn(*shape, dtype=torch.float64)
     x = ex.clone()
     v = ev.clone()
     manifold = geoopt.R()
@@ -74,9 +83,10 @@ def r_case():
 
 
 def euclidean_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.R]
-    ex = torch.randn(*shape)
-    ev = torch.randn(*shape)
+    ex = torch.randn(*shape, dtype=torch.float64)
+    ev = torch.randn(*shape, dtype=torch.float64)
     x = ex.clone()
     v = ev.clone()
     manifold = geoopt.R()
@@ -86,31 +96,33 @@ def euclidean_case():
 
 
 def poincare_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.PoincareBall]
-    ex = torch.randn(*shape) / 3
-    ev = torch.randn(*shape) / 3
+    ex = torch.randn(*shape, dtype=torch.float64) / 3
+    ev = torch.randn(*shape, dtype=torch.float64) / 3
     x = torch.tanh(torch.norm(ex)) * ex / torch.norm(ex)
     ex = x.clone()
     v = ev.clone()
-    manifold = geoopt.PoincareBall()
+    manifold = geoopt.PoincareBall().to(dtype=torch.float64)
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
-    manifold = geoopt.PoincareBallExact()
+    manifold = geoopt.PoincareBallExact().to(dtype=torch.float64)
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
 
 
 def sphere_subspace_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.Sphere]
-    subspace = torch.rand(shape[-1], 2)
+    subspace = torch.rand(shape[-1], 2, dtype=torch.float64)
 
     Q, _ = geoopt.linalg.batch_linalg.qr(subspace)
     P = Q @ Q.t()
 
-    ex = torch.randn(*shape)
-    ev = torch.randn(*shape)
+    ex = torch.randn(*shape, dtype=torch.float64)
+    ev = torch.randn(*shape, dtype=torch.float64)
     x = (ex @ P.t()) / torch.norm(ex @ P.t())
     v = (ev - (x @ ev) * x) @ P.t()
 
@@ -125,15 +137,16 @@ def sphere_subspace_case():
 
 
 def sphere_compliment_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.Sphere]
-    complement = torch.rand(shape[-1], 1)
+    complement = torch.rand(shape[-1], 1, dtype=torch.float64)
 
     Q, _ = geoopt.linalg.batch_linalg.qr(complement)
     P = -Q @ Q.transpose(-1, -2)
     P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
 
-    ex = torch.randn(*shape)
-    ev = torch.randn(*shape)
+    ex = torch.randn(*shape, dtype=torch.float64)
+    ev = torch.randn(*shape, dtype=torch.float64)
     x = (ex @ P.t()) / torch.norm(ex @ P.t())
     v = (ev - (x @ ev) * x) @ P.t()
 
@@ -148,9 +161,10 @@ def sphere_compliment_case():
 
 
 def sphere_case():
+    torch.manual_seed(42)
     shape = manifold_shapes[geoopt.manifolds.Sphere]
-    ex = torch.randn(*shape)
-    ev = torch.randn(*shape)
+    ex = torch.randn(*shape, dtype=torch.float64)
+    ev = torch.randn(*shape, dtype=torch.float64)
     x = ex / torch.norm(ex)
     v = ev - (x @ ev) * x
 
@@ -313,7 +327,9 @@ def test_reversibility(unary_case):
         np.testing.assert_allclose(X1, pX, atol=1e-5)
         np.testing.assert_allclose(U1, U, atol=1e-5)
     else:
-        pytest.skip("The manifold {} is not supposed to be checked")
+        pytest.skip(
+            "The manifold {} is not supposed to be checked".format(unary_case.manifold)
+        )
 
 
 def test_logmap_many(unary_case):
@@ -328,4 +344,4 @@ def test_logmap_many(unary_case):
 
         np.testing.assert_allclose(Yh, Y, atol=1e-6, rtol=1e-6)
     except NotImplementedError:
-        pytest.skip("logmap was not implemented")
+        pytest.skip("logmap was not implemented for {}".format(unary_case.manifold))

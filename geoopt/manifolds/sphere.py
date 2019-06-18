@@ -178,3 +178,6 @@ class SphereExact(Sphere):
     _retr_transp = Sphere._expmap_transp
     _transp_follow_retr = Sphere._transp_follow_expmap
     _retr = Sphere._expmap
+
+    def extra_repr(self):
+        return "exact"

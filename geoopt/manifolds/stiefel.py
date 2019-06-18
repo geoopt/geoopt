@@ -221,3 +221,7 @@ class EuclideanStiefelExact(EuclideanStiefel):
     _retr_transp = EuclideanStiefel._expmap_transp
     _transp_follow_retr = EuclideanStiefel._transp_follow_expmap
     _retr = EuclideanStiefel._expmap
+
+    def extra_repr(self):
+        return "exact"
+
