@@ -58,7 +58,7 @@ def euclidean_stiefel_case():
     nonsym = x.t() @ ev
     v = ev - x @ (nonsym + nonsym.t()) / 2
 
-    manifold = geoopt.manifolds.EuclideanStiefelExact()
+    manifold = geoopt.manifolds.EuclideanStiefel()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
