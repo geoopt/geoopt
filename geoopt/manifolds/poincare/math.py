@@ -1273,6 +1273,33 @@ def _parallel_transport0(y, v, c, dim: int = -1):
     return v * (1 - c * y.pow(2).sum(dim=dim, keepdim=True)).clamp_min(MIN_NORM)
 
 
+def parallel_transport0back(x, v, *, c=1.0, dim: int = -1):
+    r"""
+    Special case parallel transport with last point at zero that
+    can be computed more efficiently and numerically stable
+
+    Parameters
+    ----------
+    x : tensor
+        target point
+    v : tensor
+        vector to be transported
+    c : float|tensor
+        ball negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+    """
+    return _parallel_transport0back(x, v, c=c, dim=dim)
+
+
+def _parallel_transport0back(x, v, c, dim: int = -1):
+    return v / (1 - c * x.pow(2).sum(dim=dim, keepdim=True)).clamp_min(MIN_NORM)
+
+
 def egrad2rgrad(x, grad, *, c=1.0, dim=-1):
     r"""
     Translate Euclidean gradient to Riemannian gradient on tangent space of :math:`x`
