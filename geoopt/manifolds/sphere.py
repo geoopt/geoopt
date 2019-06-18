@@ -1,7 +1,7 @@
 import torch
 
 from .base import Manifold
-from ..utils import strip_tuple
+from ..utils import strip_tuple, make_tuple
 import geoopt.linalg.batch_linalg
 
 __all__ = ["Sphere", "SphereExact"]
@@ -139,14 +139,12 @@ class Sphere(Manifold):
     def expmap_transp(self, x, u, v, *more):
         y = self.expmap(x, u)
         vs = self.transp(x, y, v, *more)
-        return (y,) + vs
+        return (y,) + make_tuple(vs)
 
     def retr_transp(self, x, u, v, *more):
         y = self.retr(x, u)
         vs = self.transp(x, y, v, *more)
-        if not isinstance(vs, tuple):
-            vs = (vs,)
-        return (y,) + vs
+        return (y,) + make_tuple(vs)
 
     def logmap(self, x, y):
         u = self.proju(x, y - x)

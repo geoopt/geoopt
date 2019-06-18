@@ -1,7 +1,7 @@
 import torch
 
 from .. import linalg
-from ..utils import strip_tuple
+from ..utils import strip_tuple, make_tuple
 from .base import Manifold
 
 
@@ -179,10 +179,7 @@ class EuclideanStiefel(Stiefel):
     def retr_transp(self, x, u, v, *more):
         y = self.retr(x, u)
         vs = self.transp(x, y, v, *more)
-        if more:
-            return (y,) + vs
-        else:
-            return y, vs
+        return (y,) + make_tuple(vs)
 
     def inner(self, x, u, v=None, *, keepdim=False):
         return (u * v).sum([-1, -2], keepdim=keepdim)
@@ -207,9 +204,7 @@ class EuclideanStiefel(Stiefel):
     def expmap_transp(self, x, u, v, *more):
         y = self.expmap(x, u)
         vs = self.transp(x, y, v, *more)
-        if not isinstance(vs, tuple):
-            vs = (vs,)
-        return (y,) + vs
+        return (y,) + make_tuple(vs)
 
     def transp_follow_expmap(self, x, u, v, *more):
         y = self.expmap(x, u)

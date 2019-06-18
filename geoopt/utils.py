@@ -29,3 +29,10 @@ def strip_tuple(tup):
         return tup[0]
     else:
         return tup
+
+
+def make_tuple(obj):
+    if not isinstance(obj, tuple):
+        return obj,
+    else:
+        return obj

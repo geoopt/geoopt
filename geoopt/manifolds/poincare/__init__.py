@@ -1,5 +1,6 @@
 import torch.nn
 from . import math
+from ...utils import make_tuple
 from ..base import Manifold
 
 __all__ = ["PoincareBall", "PoincareBallExact"]
@@ -103,18 +104,12 @@ class PoincareBall(Manifold):
     def expmap_transp(self, x, u, v, *more):
         y = self.expmap(x, u)
         vs = self.transp(x, y, v, *more)
-        if more:
-            return (y,) + vs
-        else:
-            return y, vs
+        return (y,) + make_tuple(vs)
 
     def retr_transp(self, x, u, v, *more):
         y = self.retr(x, u)
         vs = self.transp(x, y, v, *more)
-        if more:
-            return (y,) + vs
-        else:
-            return y, vs
+        return (y,) + make_tuple(vs)
 
 
 class PoincareBallExact(PoincareBall):
