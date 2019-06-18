@@ -8,8 +8,10 @@ import itertools
 
 @pytest.fixture(autouse=True, params=[1, 2, 3, 4, 5])
 def seed(request):
+    torch.set_default_dtype(torch.float64)
     torch.manual_seed(request.param)
     yield
+    torch.set_default_dtype(torch.float32)
 
 
 manifold_shapes = {
@@ -17,7 +19,7 @@ manifold_shapes = {
     geoopt.manifolds.EuclideanStiefel: (10, 5),
     geoopt.manifolds.CanonicalStiefel: (10, 5),
     geoopt.manifolds.R: (10,),
-    geoopt.manifolds.R: (10,),
+    geoopt.manifolds.Euclidean: (10,),
     geoopt.manifolds.Sphere: (10,),
     geoopt.manifolds.SphereExact: (10,),
 }
@@ -302,9 +304,8 @@ def test_broadcast_retr_transp_many(unary_case):
 
 def test_reversibility(unary_case):
     if unary_case.manifold.reversible:
-        unary_case.manifold.double()
-        pX = torch.stack([unary_case.x] * 4).double()
-        U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype).double() / 3
+        pX = torch.stack([unary_case.x] * 4)
+        U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype) / 3
         U = unary_case.manifold.proju(pX, U)
         Z, Q = unary_case.manifold.retr_transp(pX, U, U)
         X1, U1 = unary_case.manifold.retr_transp(Z, -Q, Q)
@@ -317,10 +318,9 @@ def test_reversibility(unary_case):
 
 def test_logmap_many(unary_case):
     try:
-        unary_case.manifold.double()
-        pX = torch.stack([unary_case.x] * 4).double()
-        U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype).double()
-        U = unary_case.manifold.proju(pX, U).double()
+        pX = torch.stack([unary_case.x] * 4)
+        U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
+        U = unary_case.manifold.proju(pX, U)
 
         Y = unary_case.manifold.expmap(pX, U)
         Uh = unary_case.manifold.logmap(pX, Y)
