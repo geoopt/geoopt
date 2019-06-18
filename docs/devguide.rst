@@ -10,9 +10,3 @@ The common base class for all manifolds is :class:`geoopt.manifolds.base.Manifol
     :private-members:
     :members:
     :noindex:
-
-Metaclass
----------
-
-.. autoclass:: geoopt.manifolds.base.ManifoldMeta
-

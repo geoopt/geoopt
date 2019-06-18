@@ -6,6 +6,7 @@ geoopt v0.1.0 (unreleased)
 Breaking Changes
 ----------------
 * better public api, refactored developer api a lot (#40). See the corresponding PR for more details
+* refactored internal design, caused another api change (#77)
 * Removed ``t`` argument from everywhere (#76). The argument just scaled tangent vectors but
 appeared to be very problematic in maintenance
 
