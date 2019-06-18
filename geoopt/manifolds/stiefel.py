@@ -177,7 +177,7 @@ class EuclideanStiefel(Stiefel):
 
     def _retr_transp(self, x, u, v, *more):
         y = self._retr(x, u)
-        vs = self._transp2y(x, v, *more, y=y)
+        vs = self._transp(x, y, v, *more)
         if more:
             return (y,) + vs
         else:
