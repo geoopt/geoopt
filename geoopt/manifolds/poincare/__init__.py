@@ -1,12 +1,11 @@
 import torch.nn
 from . import math
+from ...utils import make_tuple
 from ..base import Manifold
 
-__all__ = ["PoincareBall"]
+__all__ = ["PoincareBall", "PoincareBallExact"]
 
-
-class PoincareBall(Manifold):
-    """
+_poincare_ball_doc = r"""
     Poincare ball model, see more in :doc:`/extended/poincare`
 
     Parameters
@@ -17,11 +16,21 @@ class PoincareBall(Manifold):
     Notes
     -----
     It is extremely recommended to work with this manifold in double precision
-    """
+"""
+
+
+class PoincareBall(Manifold):
+    __doc__ = r"""{}
+ 
+    See Also
+    --------
+    :class:`PoincareBallExact`
+    """.format(
+        _poincare_ball_doc
+    )
 
     ndim = 1
     reversible = False
-    _default_order = 1
     name = "Poincare ball"
 
     def __init__(self, c=1.0):
@@ -36,7 +45,7 @@ class PoincareBall(Manifold):
             reason = None
         return ok, reason
 
-    def _check_point_on_manifold(self, x, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         px = math.project(x, c=self.c)
         ok = torch.allclose(x, px, atol=atol, rtol=rtol)
         if not ok:
@@ -45,58 +54,80 @@ class PoincareBall(Manifold):
             reason = None
         return ok, reason
 
-    def _check_vector_on_tangent(self, x, u, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         return True, None
 
-    def _dist(self, x, y, keepdim):
+    def dist(self, x, y, *, keepdim=False):
         return math.dist(x, y, c=self.c, keepdim=keepdim)
 
-    def _egrad2rgrad(self, x, u):
+    def egrad2rgrad(self, x, u):
         return math.egrad2rgrad(x, u, c=self.c)
 
-    def _retr(self, x, u):
+    def retr(self, x, u):
         # always assume u is scaled properly
         approx = x + u
         return math.project(approx, c=self.c)
 
-    _retr_transp_default_preference = "2y"
-
-    def _projx(self, x):
+    def projx(self, x):
         return math.project(x, c=self.c)
 
-    def _proju(self, x, u):
+    def proju(self, x, u):
         return u
 
-    def _inner(self, x, u, v, keepdim):
+    def inner(self, x, u, v=None, *, keepdim=False):
+        if v is None:
+            v = u
         return math.inner(x, u, v, c=self.c, keepdim=keepdim)
 
-    def _expmap(self, x, u):
+    def expmap(self, x, u):
         return math.project(math.expmap(x, u, c=self.c), c=self.c)
 
-    def _logmap(self, x, y):
+    def logmap(self, x, y):
         return math.logmap(x, y, c=self.c)
 
-    def _transp2y(self, x, v, *more, y):
+    def transp(self, x, y, v, *more):
         if not more:
             return math.parallel_transport(x, y, v, c=self.c)
         else:
-            n = len(more) + 1
             vecs = torch.stack((v,) + more, dim=0)
             transp = math.parallel_transport(x, y, vecs, c=self.c)
-            return tuple(transp[i] for i in range(n))
+            return transp.unbind(0)
 
-    def _transp_follow(self, x, v, *more, u):
-        y = self._retr(x, u)
-        return self._transp2y(x, v, *more, y=y)
+    def transp_follow_retr(self, x, u, v, *more):
+        y = self.retr(x, u)
+        return self.transp(x, y, v, *more)
 
-    def _expmap_transp(self, x, v, *more, u):
-        y = self._expmap(x, u)
-        vs = self._transp2y(x, v, *more, y=y)
-        if more:
-            return (y,) + vs
-        else:
-            return y, vs
+    def transp_follow_expmap(self, x, u, v, *more):
+        y = self.expmap(x, u)
+        return self.transp(x, y, v, *more)
 
-    def _transp_follow_expmap(self, x, v, *more, u):
-        y = self._expmap(x, u)
-        return self._transp2y(x, v, *more, y=y)
+    def expmap_transp(self, x, u, v, *more):
+        y = self.expmap(x, u)
+        vs = self.transp(x, y, v, *more)
+        return (y,) + make_tuple(vs)
+
+    def retr_transp(self, x, u, v, *more):
+        y = self.retr(x, u)
+        vs = self.transp(x, y, v, *more)
+        return (y,) + make_tuple(vs)
+
+
+class PoincareBallExact(PoincareBall):
+    __doc__ = r"""{}
+
+    The implementation of retraction is an exact exponential map, this retraction will be used in optimization
+    
+    See Also
+    --------
+    :class:`PoincareBall`
+    """.format(
+        _poincare_ball_doc
+    )
+
+    reversible = True
+    retr_transp = PoincareBall.expmap_transp
+    transp_follow_retr = PoincareBall.transp_follow_expmap
+    retr = PoincareBall.expmap
+
+    def extra_repr(self):
+        return "exact"

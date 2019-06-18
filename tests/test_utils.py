@@ -78,7 +78,7 @@ def test_pickle2():
 def test_pickle3():
     t = torch.ones(10)
     span = torch.randn(10, 2)
-    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    sub_sphere = geoopt.manifolds.Sphere(intersection=span)
     p = geoopt.ManifoldParameter(t, manifold=sub_sphere)
     with tempfile.TemporaryDirectory() as path:
         torch.save(p, os.path.join(path, "tens.t7"))
@@ -89,27 +89,26 @@ def test_pickle3():
     assert p.requires_grad == p1.requires_grad
     np.testing.assert_allclose(p.detach(), p1.detach())
     assert isinstance(p.manifold, type(p1.manifold))
-    np.testing.assert_allclose(p.manifold._projector, p1.manifold._projector)
+    np.testing.assert_allclose(p.manifold.projector, p1.manifold.projector)
 
 
 def test_manifold_to_smth():
     span = torch.randn(10, 2)
-    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    sub_sphere = geoopt.manifolds.Sphere(intersection=span)
     sub_sphere.to(torch.float64)
-    assert sub_sphere._projector.dtype == torch.float64
+    assert sub_sphere.projector.dtype == torch.float64
 
 
 def test_manifold_is_submodule():
     span = torch.randn(10, 2)
-    sub_sphere = geoopt.manifolds.SphereSubspaceIntersection(span)
+    sub_sphere = geoopt.manifolds.Sphere(intersection=span)
     sub_sphere.to(torch.float64)
     container = torch.nn.ModuleDict({"sphere": sub_sphere})
     container.to(torch.float64)
-    assert sub_sphere._projector.dtype == torch.float64
+    assert sub_sphere.projector.dtype == torch.float64
 
 
 def test_manifold_is_submodule_poincare():
-    print(torch.get_default_dtype())
     c = torch.tensor(1.0)
     ball = geoopt.manifolds.PoincareBall(c)
     assert ball.c.dtype == torch.float32

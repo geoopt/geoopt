@@ -1,5 +1,5 @@
 import torch.optim.optimizer
-from ..manifolds import Euclidean
+from ..manifolds import R
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin
 from .tracing import create_traced_update
@@ -98,7 +98,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                         if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                             manifold = p.manifold
                         else:
-                            manifold = Euclidean()
+                            manifold = R()
 
                         if group["use_momentum"]:
                             state["traced_step"] = create_traced_update(
@@ -165,7 +165,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                 grad = momentum_buffer
             # we have all the things projected
             new_point, new_momentum_buffer = manifold.retr_transp(
-                point, momentum_buffer, u=-lr * grad
+                point, -lr * grad, momentum_buffer
             )
             momentum_buffer.set_(new_momentum_buffer)
             # use copy only for user facing point

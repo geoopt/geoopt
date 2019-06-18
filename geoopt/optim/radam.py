@@ -3,7 +3,7 @@ import torch.optim
 from .mixin import OptimMixin
 from .tracing import create_traced_update
 from ..tensor import ManifoldParameter, ManifoldTensor
-from ..manifolds import Euclidean
+from ..manifolds import R
 from ..utils import copy_or_set_
 
 
@@ -69,7 +69,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
-                        manifold = Euclidean()
+                        manifold = R()
 
                     if p.grad.is_sparse:
                         raise RuntimeError(
@@ -188,7 +188,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         direction = exp_avg / denom
         # transport the exponential averaging to the new point
         new_point, exp_avg_new = manifold.retr_transp(
-            point, exp_avg, u=-step_size * direction
+            point, -step_size * direction, exp_avg
         )
         # use copy only for user facing point
         copy_or_set_(point, new_point)

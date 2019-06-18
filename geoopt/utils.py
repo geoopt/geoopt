@@ -22,3 +22,17 @@ def copy_or_set_(dest, source):
         return dest.copy_(source)
     else:
         return dest.set_(source)
+
+
+def strip_tuple(tup):
+    if len(tup) == 1:
+        return tup[0]
+    else:
+        return tup
+
+
+def make_tuple(obj):
+    if not isinstance(obj, tuple):
+        return (obj,)
+    else:
+        return obj

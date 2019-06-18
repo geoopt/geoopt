@@ -1,5 +1,5 @@
 import torch.nn
-from .manifolds import Euclidean
+from .manifolds import R, Manifold
 from .docutils import insert_docs
 from .utils import copy_or_set_
 
@@ -15,7 +15,7 @@ class ManifoldTensor(torch.Tensor):
         A manifold for the tensor, (default: :class:`geoopt.Euclidean`)
     """
 
-    def __new__(cls, *args, manifold=Euclidean(), requires_grad=False, **kwargs):
+    def __new__(cls, *args, manifold=R(), requires_grad=False, **kwargs):
         if len(args) == 1 and isinstance(args[0], torch.Tensor):
             data = args[0].data
         else:
@@ -28,7 +28,6 @@ class ManifoldTensor(torch.Tensor):
         instance.manifold = manifold
         return instance
 
-    @torch.no_grad()
     def proj_(self):
         """
         Inplace projection to the manifold
@@ -40,33 +39,41 @@ class ManifoldTensor(torch.Tensor):
         """
         return copy_or_set_(self, self.manifold.projx(self))
 
-    @insert_docs(Euclidean.retr.__doc__, r"\s+x : .+\n.+", "")
-    def retr(self, u, *, order=None):
-        return self.manifold.retr(self, u=u, order=order)
+    @insert_docs(Manifold.retr.__doc__, r"\s+x : .+\n.+", "")
+    def retr(self, u):
+        return self.manifold.retr(self, u=u)
 
-    @insert_docs(Euclidean.expmap.__doc__, r"\s+x : .+\n.+", "")
+    @insert_docs(Manifold.expmap.__doc__, r"\s+x : .+\n.+", "")
     def expmap(self, u):
         return self.manifold.expmap(self, u=u)
 
-    @insert_docs(Euclidean.inner.__doc__, r"\s+x : .+\n.+", "")
+    @insert_docs(Manifold.inner.__doc__, r"\s+x : .+\n.+", "")
     def inner(self, u, v=None):
         return self.manifold.inner(self, u=u, v=v)
 
-    @insert_docs(Euclidean.proju.__doc__, r"\s+x : .+\n.+", "")
+    @insert_docs(Manifold.proju.__doc__, r"\s+x : .+\n.+", "")
     def proju(self, u):
         return self.manifold.proju(self, u)
 
-    @insert_docs(Euclidean.transp.__doc__, r"\s+x : .+\n.+", "")
-    def transp(self, v, *more, u=None, y=None, order=None):
-        return self.manifold.transp(self, v, *more, u=u, y=y, order=order)
+    @insert_docs(Manifold.transp.__doc__, r"\s+x : .+\n.+", "")
+    def transp(self, y, v, *more):
+        return self.manifold.transp(self, y, v, *more)
 
-    @insert_docs(Euclidean.retr_transp.__doc__, r"\s+x : .+\n.+", "")
-    def retr_transp(self, v, *more, u, order=None):
-        return self.manifold.retr_transp(self, u, *more, u=v, order=order)
+    @insert_docs(Manifold.retr_transp.__doc__, r"\s+x : .+\n.+", "")
+    def retr_transp(self, u, v, *more):
+        return self.manifold.retr_transp(self, u, v, *more)
 
-    @insert_docs(Euclidean.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
-    def expmap_transp(self, v, *more, u):
-        return self.manifold.expmap_transp(self, u, *more, u=v)
+    @insert_docs(Manifold.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
+    def expmap_transp(self, u, v, *more):
+        return self.manifold.expmap_transp(self, u, v, *more)
+
+    @insert_docs(Manifold.transp_follow_expmap.__doc__, r"\s+x : .+\n.+", "")
+    def transp_follow_expmap(self, u, v, *more):
+        return self.manifold.transp_follow_expmap(self, u, v, *more)
+
+    @insert_docs(Manifold.transp_follow_retr.__doc__, r"\s+x : .+\n.+", "")
+    def transp_follow_retr(self, u, v, *more):
+        return self.manifold.transp_follow_retr(self, u, v, *more)
 
     def dist(self, other, p=2):
         """
@@ -90,7 +97,7 @@ class ManifoldTensor(torch.Tensor):
         else:
             return super().dist(other)
 
-    @insert_docs(Euclidean.logmap.__doc__, r"\s+x : .+\n.+", "")
+    @insert_docs(Manifold.logmap.__doc__, r"\s+x : .+\n.+", "")
     def logmap(self, y):
         return self.manifold.logmap(self, y)
 
@@ -128,7 +135,7 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
         if data is None:
             data = ManifoldTensor(manifold=manifold)
         elif not isinstance(data, ManifoldTensor):
-            data = ManifoldTensor(data, manifold=manifold or Euclidean())
+            data = ManifoldTensor(data, manifold=manifold or R())
         else:
             if manifold is not None and data.manifold != manifold:
                 raise ValueError(

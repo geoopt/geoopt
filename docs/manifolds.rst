@@ -4,11 +4,9 @@ Manifolds
 .. currentmodule:: geoopt.manifolds
 
 
-All manifolds share same API. In order not to duplicate the same information, the complete public API is provided only for :class:`geoopt.manifolds.Manifold` in the end of this file.
+All manifolds share same API. Some manifols may have several implementations of retraction operation, every implementation has a corresponding class.
 
 .. automodule:: geoopt.manifolds
-    :members: Euclidean, Stiefel, Sphere, SphereSubspaceComplementIntersection, SphereSubspaceIntersection, PoincareBall
+    :members: Euclidean, Stiefel, CanonicalStiefel, EuclideanStiefel, EuclideanStiefelExact, Sphere, SphereExact, PoincareBall, PoincareBallExact
 
-.. autoclass:: geoopt.manifolds.base.Manifold
-    :members:
 

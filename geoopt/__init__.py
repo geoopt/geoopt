@@ -7,11 +7,15 @@ from . import linalg
 from .tensor import ManifoldParameter, ManifoldTensor
 from .manifolds import (
     Stiefel,
+    EuclideanStiefelExact,
+    CanonicalStiefel,
+    EuclideanStiefel,
     Euclidean,
+    R,
     Sphere,
-    SphereSubspaceIntersection,
-    SphereSubspaceComplementIntersection,
+    SphereExact,
     PoincareBall,
+    PoincareBallExact,
 )
 
 __version__ = "0.0.1"
