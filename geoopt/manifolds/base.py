@@ -9,12 +9,10 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     ndim = None
     reversible = None
 
+    forward = NotImplemented
+
     def __init__(self, **kwargs):
         super().__init__()
-
-    def forward(self, *input):
-        # this removes all warnings about implementing abstract methods
-        raise TypeError("Manifold is not callable")
 
     def check_point(self, x, *, explain=False):
         """
@@ -264,8 +262,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         scalar
             distance between two points
         """
-        return self._dist(x, y, keepdim=keepdim)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def retr(self, x, u):
         """
         Perform a retraction from point :math:`x` with
@@ -283,8 +282,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor
             transported point
         """
-        return self._retr(x, u)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def expmap(self, x, u):
         """
         Perform an exponential map from point :math:`x` with
@@ -307,7 +307,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         By default, no error is raised if exponential map is not implemented. If so,
         the best approximation to exponential map is applied instead.
         """
-        return self._expmap(x, u)
+        raise NotImplementedError
 
     def logmap(self, x, y):
         r"""
@@ -330,8 +330,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor
             tangent vector
         """
-        return self._logmap(x, y)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def expmap_transp(self, x, u, v, *more):
         """
         Perform an exponential map from point :math:`x` with
@@ -358,8 +359,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         By default, no error is raised if exponential map is not implemented. If so,
         the best approximation to exponential map is applied instead.
         """
-        raise self._expmap_transp(x, u, v, *more)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def transp_follow_retr(self, x, u, v, *more):
         """
         Perform vector transport from point :math:`x` for vector :math:`v` following a
@@ -383,8 +385,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor or tuple of tensors
             transported tensor(s)
         """
-        return self._transp_follow_retr(x, u, v, *more)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def transp_follow_expmap(self, x, u, v, *more):
         """
         Perform vector transport from point :math:`x` for vector :math:`v` following a
@@ -408,7 +411,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor or tuple of tensors
             transported tensor(s)
         """
-        return self._transp_follow_expmap(x, u, v, *more)
+        raise NotImplementedError
 
     def transp(self, x, y, v, *more):
         """
@@ -434,8 +437,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor or tuple of tensors
            transported tensor(s)
         """
-        return self._transp(x, y, v, *more)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def inner(self, x, u, v=None, *, keepdim=False):
         """
         Inner product for tangent vectors at point :math:`x`
@@ -456,7 +460,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         scalar
             inner product (broadcasted)
         """
-        return self._inner(x, u, v, keepdim=keepdim)
+        raise NotImplementedError
 
     def norm(self, x, u, *, keepdim=False):
         """
@@ -476,8 +480,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         scalar
             inner product (broadcasted)
         """
-        raise self._norm(x, u, keepdim=keepdim)
+        raise self.inner(x, u, keepdim=keepdim) ** 0.5
 
+    @abc.abstractmethod
     def proju(self, x, u):
         """
         Project vector :math:`u` on a tangent space for :math:`x`, usually is the same as :meth:`egrad2rgrad`
@@ -494,8 +499,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor
             projected vector
         """
-        return self._proju(x, u)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def egrad2rgrad(self, x, u):
         """
         Embed euclidean gradient into Riemannian manifold
@@ -512,8 +518,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor
             grad vector in the Riemainnian manifold
         """
-        return self._egrad2rgrad(x, u)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def projx(self, x):
         """
         Project point :math:`x` on the manifold
@@ -528,8 +535,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         tensor
             projected point
         """
-        return self._projx(x)
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def retr_transp(self, x, u, v, *more):
         """
         Perform a retraction + vector transport at once
@@ -557,9 +565,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -----
         Sometimes this is a far more optimal way to preform retraction + vector transport
         """
-        return self._retr_transp(x, u, v, *more)
-
-    # private implementation, public documentation design
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _check_shape(self, x, name):
@@ -643,125 +649,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             check result and the reason of fail if any
         """
         # return True, None
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _transp_follow_expmap(self, x, u, v, *more):
-        """
-        Developer Guide
-
-        Private implementation for vector transport following an exponential map. Should allow broadcasting.
-        If not existent, should fall back to the best implemented analog with retraction.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _transp_follow_retr(self, x, u, v, *more):
-        """
-        Developer Guide
-
-        Private implementation for vector transport following an exponential map. Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _retr_transp(self, x, u, v, *more):
-        """
-        Developer Guide
-
-        Private implementation for vector transport combined with retraction map. Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _expmap_transp(self, x, u, v, *more):
-        """
-        Developer Guide
-
-        Private implementation for vector transport combined with an exponential map. Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    def _dist(self, x, y, *, keepdim=False):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _retr(self, x, u):
-        """
-        Developer Guide
-
-        Private implementation for retraction map. Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _inner(self, x, u, v=None, *, keepdim=False):
-        """
-        Developer Guide
-
-        Private implementation for inner product. Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    def _norm(self, x, u, *, keepdim=False):
-        """
-        Developer Guide
-
-        Private implementation for vector norm. Should allow broadcasting.
-        """
-        return self._inner(x, u, u, keepdim=keepdim)
-
-    @abc.abstractmethod
-    def _proju(self, x, u):
-        """
-        Developer Guide
-
-        Private implementation for vector projection. Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _projx(self, x):
-        """
-        Developer Guide
-
-        Private implementation for point projection. Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _egrad2rgrad(self, x, u):
-        """
-        Developer Guide
-
-        Private implementation for gradient transformation, may do things efficiently in some cases.
-        Should allow broadcasting.
-        """
-        raise NotImplementedError
-
-    def _logmap(self, x, y):
-        """
-        Developer Guide
-
-        Private implementation for logarithmic map. May be empty
-        """
-        raise NotImplementedError
-
-    def _transp(self, x, y, v, *more):
-        """
-        Developer Guide
-
-        Private implementation for vector transport. May be empty
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _expmap(self, x, u):
-        """
-        Developer Guide
-
-        Private implementation for exponential map. If does not exist, should fall back to best possible retraction map.
-        """
         raise NotImplementedError
 
     def extra_repr(self):

@@ -8,14 +8,12 @@ __all__ = ["Sphere", "SphereExact"]
 
 EPS = {torch.float32: 1e-4, torch.float64: 1e-8}
 
-
-class Sphere(Manifold):
-    r"""
+_sphere_doc = r"""
     Sphere manifold induced by the following constraint
 
     .. math::
 
-        \|x\|=1
+        \|x\|=1\\
         x \in \mathbb{span}(U)
 
     where :math:`U` can be parametrized with compliment space or intersection.
@@ -26,7 +24,18 @@ class Sphere(Manifold):
         shape ``(..., dim, K)``, subspace to intersect with
     complement : tensor
         shape ``(..., dim, K)``, subspace to compliment
-    """
+"""
+
+
+class Sphere(Manifold):
+    __doc__ = r"""{}
+    
+    See Also
+    --------
+    :class:`SphereExact`
+    """.format(
+        _sphere_doc
+    )
     ndim = 1
     name = "Sphere"
     reversible = False
@@ -88,71 +97,69 @@ class Sphere(Manifold):
         return True, None
 
     def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
-        inner = self._inner(None, x, u, keepdim=True)
+        inner = self.inner(None, x, u, keepdim=True)
         ok = torch.allclose(inner, inner.new_zeros((1,)), atol=atol, rtol=rtol)
         if not ok:
             return False, "`<x, u> != 0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def _inner(self, x, u, v=None, *, keepdim=False):
+    def inner(self, x, u, v=None, *, keepdim=False):
         return (u * v).sum(-1, keepdim=keepdim)
 
-    def _projx(self, x):
+    def projx(self, x):
         x = self._project_on_subspace(x)
         return x / x.norm(dim=-1, keepdim=True)
 
-    def _proju(self, x, u):
+    def proju(self, x, u):
         u = u - (x * u).sum(dim=-1, keepdim=True) * x
         return self._project_on_subspace(u)
 
-    def _expmap(self, x, u):
+    def expmap(self, x, u):
         norm_u = u.norm(dim=-1, keepdim=True)
         exp = x * torch.cos(norm_u) + u * torch.sin(norm_u) / norm_u
-        retr = self._projx(x + u)
+        retr = self.projx(x + u)
         cond = norm_u > EPS[norm_u.dtype]
         return torch.where(cond, exp, retr)
 
-    def _retr(self, x, u):
-        return self._projx(x + u)
+    def retr(self, x, u):
+        return self.projx(x + u)
 
-    def _transp_follow_retr(self, x, u, v, *more):
-        y = self._retr(x, u)
-        return self._transp(x, y, v, *more)
+    def transp_follow_retr(self, x, u, v, *more):
+        y = self.retr(x, u)
+        return self.transp(x, y, v, *more)
 
-    def _transp(self, x, y, v, *more, strip=True):
-        result = tuple(self._proju(y, _v) for _v in (v,) + more)
-        if strip:
-            return strip_tuple(result)
-        else:
-            return result
+    def transp(self, x, y, v, *more):
+        result = tuple(self.proju(y, _v) for _v in (v,) + more)
+        return strip_tuple(result)
 
-    def _transp_follow_expmap(self, x, u, v, *more):
-        y = self._expmap(x, u)
-        return self._transp(x, y, v, *more)
+    def transp_follow_expmap(self, x, u, v, *more):
+        y = self.expmap(x, u)
+        return self.transp(x, y, v, *more)
 
-    def _expmap_transp(self, x, u, v, *more):
-        y = self._expmap(x, u)
-        vs = self._transp(x, y, v, *more, strip=False)
+    def expmap_transp(self, x, u, v, *more):
+        y = self.expmap(x, u)
+        vs = self.transp(x, y, v, *more)
         return (y,) + vs
 
-    def _retr_transp(self, x, u, v, *more):
-        y = self._retr(x, u)
-        vs = self._transp(x, y, v, *more, strip=False)
+    def retr_transp(self, x, u, v, *more):
+        y = self.retr(x, u)
+        vs = self.transp(x, y, v, *more)
+        if not isinstance(vs, tuple):
+            vs = (vs,)
         return (y,) + vs
 
-    def _logmap(self, x, y):
-        u = self._proju(x, y - x)
-        dist = self._dist(x, y, keepdim=True)
+    def logmap(self, x, y):
+        u = self.proju(x, y - x)
+        dist = self.dist(x, y, keepdim=True)
         # If the two points are "far apart", correct the norm.
         cond = dist.gt(EPS[dist.dtype])
         return torch.where(cond, u * dist / u.norm(dim=-1, keepdim=True), u)
 
-    def _dist(self, x, y, *, keepdim=False):
-        inner = self._inner(None, x, y, keepdim=keepdim).clamp(-1, 1)
+    def dist(self, x, y, *, keepdim=False):
+        inner = self.inner(None, x, y, keepdim=keepdim).clamp(-1, 1)
         return torch.acos(inner)
 
-    def _egrad2rgrad(self, x, u):
-        return self._proju(x, u)
+    egrad2rgrad = proju
 
     def _configure_manifold_complement(self, complement):
         Q, _ = geoopt.linalg.batch_linalg.qr(complement)
@@ -175,9 +182,22 @@ class Sphere(Manifold):
 
 
 class SphereExact(Sphere):
-    _retr_transp = Sphere._expmap_transp
-    _transp_follow_retr = Sphere._transp_follow_expmap
-    _retr = Sphere._expmap
+    __doc__ = r"""{}
+
+    See Also
+    --------
+    :class:`Sphere`
+    
+    Notes
+    -----
+    The implementation of retraction is an exact exponential map, this retraction will be used in optimization
+    """.format(
+        _sphere_doc
+    )
+
+    retr_transp = Sphere.expmap_transp
+    transp_follow_retr = Sphere.transp_follow_expmap
+    retr = Sphere.expmap
 
     def extra_repr(self):
         return "exact"

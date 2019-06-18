@@ -27,6 +27,10 @@ class Stiefel(Manifold):
     ----------
     canonical : bool
         Use canonical inner product instead of euclidean one (defaults to canonical)
+    
+    See Also
+    --------
+    :class:`CanonicalStiefel`, :class:`EuclideanStiefel`, :class:`EuclideanStiefelExact`
     """.format(
         _stiefel_doc
     )
@@ -71,7 +75,7 @@ class Stiefel(Manifold):
             return False, "`u^T x + x^T u !=0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def _projx(self, x):
+    def projx(self, x):
         U, _, V = linalg.batch_linalg.svd(x)
         return torch.einsum("...ik,...jk->...ij", U, V)
 
@@ -91,7 +95,7 @@ class CanonicalStiefel(Stiefel):
     def _amat(x, u):
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
-    def _inner(self, x, u, v=None, *, keepdim=False):
+    def inner(self, x, u, v=None, *, keepdim=False):
         # <u, v>_x = tr(u^T(I-1/2xx^T)v)
         # = tr(u^T(v-1/2xx^Tv))
         # = tr(u^Tv-1/2u^Txx^Tv)
@@ -124,12 +128,12 @@ class CanonicalStiefel(Stiefel):
         qvs = self._transp_follow_one(x, vs, u=u).view(x.shape[:-1] + (-1, x.shape[-1]))
         return qvs.unbind(-2)
 
-    def _transp_follow_retr(self, x, u, v, *more):
+    def transp_follow_retr(self, x, u, v, *more):
         return strip_tuple(self._transp_follow_many(x, v, *more, u=u))
 
-    _transp_follow_expmap = _transp_follow_retr
+    transp_follow_expmap = transp_follow_retr
 
-    def _retr_transp(self, x, u, v, *more):
+    def retr_transp(self, x, u, v, *more):
         """
         An optimized retr_transp for Stiefel Manifold
         """
@@ -139,17 +143,17 @@ class CanonicalStiefel(Stiefel):
         )
         return qxvs.unbind(-2)
 
-    _expmap_transp = _retr_transp
+    expmap_transp = retr_transp
 
-    def _proju(self, x, u):
+    def proju(self, x, u):
         return u - x @ u.transpose(-1, -2) @ x
 
-    _egrad2rgrad = _proju
+    egrad2rgrad = proju
 
-    def _retr(self, x, u):
+    def retr(self, x, u):
         return self._transp_follow_one(x, x, u=u)
 
-    _expmap = _retr
+    expmap = retr
 
 
 class EuclideanStiefel(Stiefel):
@@ -163,36 +167,33 @@ class EuclideanStiefel(Stiefel):
     name = "Stiefel(euclidean)"
     reversible = False
 
-    def _proju(self, x, u):
+    def proju(self, x, u):
         return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
-    _egrad2rgrad = _proju
+    egrad2rgrad = proju
 
-    def _transp(self, x, y, v, *more, strip=True):
-        result = tuple(self._proju(y, _v) for _v in (v,) + more)
-        if strip:
-            return strip_tuple(result)
-        else:
-            return result
+    def transp(self, x, y, v, *more):
+        result = tuple(self.proju(y, _v) for _v in (v,) + more)
+        return strip_tuple(result)
 
-    def _retr_transp(self, x, u, v, *more):
-        y = self._retr(x, u)
-        vs = self._transp(x, y, v, *more)
+    def retr_transp(self, x, u, v, *more):
+        y = self.retr(x, u)
+        vs = self.transp(x, y, v, *more)
         if more:
             return (y,) + vs
         else:
             return y, vs
 
-    def _inner(self, x, u, v=None, *, keepdim=False):
+    def inner(self, x, u, v=None, *, keepdim=False):
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
-    def _retr(self, x, u):
+    def retr(self, x, u):
         q, r = linalg.batch_linalg.qr(x + u)
         unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
 
-    def _expmap(self, x, u):
+    def expmap(self, x, u):
         xtu = x.transpose(-1, -2) @ u
         utu = u.transpose(-1, -2) @ u
         eye = torch.zeros_like(utu)
@@ -203,24 +204,35 @@ class EuclideanStiefel(Stiefel):
         y = torch.cat((x, u), dim=-1) @ w @ z
         return y
 
-    def _expmap_transp(self, x, u, v, *more):
-        y = self._expmap(x, u)
-        vs = self._transp(x, y, v, *more, strip=False)
+    def expmap_transp(self, x, u, v, *more):
+        y = self.expmap(x, u)
+        vs = self.transp(x, y, v, *more)
+        if not isinstance(vs, tuple):
+            vs = (vs,)
         return (y,) + vs
 
-    def _transp_follow_expmap(self, x, u, v, *more):
-        y = self._expmap(x, u)
-        return self._transp(x, y, v, *more)
+    def transp_follow_expmap(self, x, u, v, *more):
+        y = self.expmap(x, u)
+        return self.transp(x, y, v, *more)
 
-    def _transp_follow_retr(self, x, u, v, *more):
-        y = self._retr(x, u)
-        return self._transp(x, y, v, *more)
+    def transp_follow_retr(self, x, u, v, *more):
+        y = self.retr(x, u)
+        return self.transp(x, y, v, *more)
 
 
 class EuclideanStiefelExact(EuclideanStiefel):
-    _retr_transp = EuclideanStiefel._expmap_transp
-    _transp_follow_retr = EuclideanStiefel._transp_follow_expmap
-    _retr = EuclideanStiefel._expmap
+    __doc__ = r"""{}
+    
+    Notes
+    -----
+    The implementation of retraction is an exact exponential map, this retraction will be used in optimization
+    """.format(
+        EuclideanStiefel.__doc__
+    )
+
+    retr_transp = EuclideanStiefel.expmap_transp
+    transp_follow_retr = EuclideanStiefel.transp_follow_expmap
+    retr = EuclideanStiefel.expmap
 
     def extra_repr(self):
         return "exact"
