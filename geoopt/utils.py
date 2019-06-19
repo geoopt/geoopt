@@ -36,13 +36,3 @@ def make_tuple(obj):
         return (obj,)
     else:
         return obj
-
-
-def idx2sign(idx, dim, neg=True):
-    if neg:
-        if idx < 0:
-            return idx
-        else:
-            return (idx + 1) % -(dim + 1)
-    else:
-        return idx % dim
