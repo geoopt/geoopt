@@ -97,11 +97,10 @@ class PoincareBall(Manifold):
         if not more:
             return math.parallel_transport(x, y, v, c=self.c, dim=dim)
         else:
-            vecs = torch.stack((v,) + more, dim=0)
-            transp = math.parallel_transport(
-                x, y, vecs, c=self.c, dim=idx2sign(dim, x.dim())
+            return tuple(
+                math.parallel_transport(x, y, vec, c=self.c, dim=dim)
+                for vec in (v, *more)
             )
-            return transp.unbind(0)
 
     def transp_follow_retr(self, x, u, v, *more, dim=-1):
         y = self.retr(x, u, dim=dim)
