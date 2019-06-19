@@ -1,6 +1,6 @@
 import torch.nn
 from . import math
-from ...utils import make_tuple, idx2sign
+from ...utils import make_tuple
 from ..base import Manifold
 
 __all__ = ["PoincareBall", "PoincareBallExact"]
