@@ -1,5 +1,7 @@
+import torch
 from .base import Manifold
 from ..utils import strip_tuple
+import geoopt
 
 
 __all__ = ["Euclidean", "R"]
@@ -62,6 +64,33 @@ class R(Manifold):
 
     def transp(self, x, y, v, *more):
         return strip_tuple((v, *more))
+
+    def random_normal(self, *size, mean=0.0, std=1.0, device=None, dtype=None):
+        """
+        Method to create a point on the manifold, measure is induced by Normal distribution
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        mean : float|tensor
+            mean value for the Normal distribution
+        std : float|tensor
+            std value for the Normal distribution
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on the manifold
+        """
+        mean = torch.as_tensor(mean, device=device, dtype=dtype)
+        std = torch.as_tensor(std, device=device, dtype=dtype)
+        tens = std.new_empty(*size).normal_() * std + mean
+        return geoopt.ManifoldTensor(tens, manifold=self)
 
 
 class Euclidean(R):

@@ -1,6 +1,7 @@
 import torch
 
 from .base import Manifold
+from ..tensor import ManifoldTensor
 from ..utils import strip_tuple, make_tuple
 import geoopt.linalg.batch_linalg
 
@@ -179,6 +180,45 @@ class Sphere(Manifold):
             return x @ self.projector.transpose(-1, -2)
         else:
             return x
+
+    def random_uniform(self, *size, dtype=None, device=None):
+        """
+        Uniform random measure on Sphere manifold
+
+        Parameters
+        ----------
+        size : shape
+            the desired output shape
+        dtype : torch.dtype
+            desired dtype
+        device : torch.device
+            desired device
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on Sphere manifold
+
+        Notes
+        -----
+        in case of projector on the manifold, dtype and device are set automatically and should be provided.
+        If you provide them, they are checked to match the projector device and dtype
+        """
+        if self.projector is None:
+            tens = torch.randn(*size, device=device, dtype=dtype)
+        else:
+            if device is not None and device != self.projector.device:
+                raise ValueError(
+                    "`device` does not match the projector `device`, set the `device` argument to None"
+                )
+            if dtype is not None and dtype != self.projector.dtype:
+                raise ValueError(
+                    "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
+                )
+            tens = torch.randn(
+                *size, device=self.projector.device, dtype=self.projector.dtype
+            )
+        return ManifoldTensor(self.projx(tens), manifold=self)
 
 
 class SphereExact(Sphere):

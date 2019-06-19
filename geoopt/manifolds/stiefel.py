@@ -1,8 +1,9 @@
 import torch
 
+from .base import Manifold
 from .. import linalg
 from ..utils import strip_tuple, make_tuple
-from .base import Manifold
+from ..tensor import ManifoldTensor
 
 
 __all__ = ["Stiefel", "EuclideanStiefel", "CanonicalStiefel", "EuclideanStiefelExact"]
@@ -78,6 +79,28 @@ class Stiefel(Manifold):
     def projx(self, x):
         U, _, V = linalg.batch_linalg.svd(x)
         return torch.einsum("...ik,...jk->...ij", U, V)
+
+    def random_naive(self, *size, dtype=None, device=None):
+        """
+        Naive approach to get random matrix on stiefel manifold. The measure is
+        non-uniform for this method, but fast to compute
+
+        Parameters
+        ----------
+        size : shape
+            the desired output shape
+        dtype : torch.dtype
+            desired dtype
+        device : torch.device
+            desired device
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on Stiefel manifold
+        """
+        tens = torch.randn(*size, device=device, dtype=dtype)
+        return ManifoldTensor(linalg.qr(tens)[0], manifold=self)
 
 
 class CanonicalStiefel(Stiefel):

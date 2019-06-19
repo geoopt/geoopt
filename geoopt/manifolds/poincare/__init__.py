@@ -1,5 +1,6 @@
 import torch.nn
 from . import math
+from ...tensor import ManifoldTensor
 from ...utils import make_tuple
 from ..base import Manifold
 
@@ -222,6 +223,32 @@ class PoincareBall(Manifold):
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
+
+    def random_normal(self, *size, mean=0, std=1):
+        """
+        Method to create a point on the manifold, measure is induced by Normal distribution on the
+        tangent space of zero
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        mean : float|tensor
+            mean value for the Normal distribution
+        std : float|tensor
+            std value for the Normal distribution
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on the PoincareBall manifold
+
+        Notes
+        -----
+        The device and dtype will match the device and dtype of the Manifold
+        """
+        tens = torch.randn(*size, device=self.c.device, dtype=self.c.dtype) * std + mean
+        return ManifoldTensor(self.expmap0(tens), manifold=self)
 
 
 class PoincareBallExact(PoincareBall):
