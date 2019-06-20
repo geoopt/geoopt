@@ -209,11 +209,19 @@ class PoincareBall(Manifold):
             x, p, a, dim=dim, c=self.c, keepdim=keepdim, signed=signed
         )
 
-    def mobius_fn_apply(self, fn, x, *args, dim=-1, **kwargs):
-        return math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
+    def mobius_fn_apply(self, fn, x, *args, dim=-1, project=True, **kwargs):
+        res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
+        if project:
+            return math.project(res, c=self.c, dim=dim)
+        else:
+            return res
 
-    def mobius_fn_apply_chain(self, x, *fns, dim=-1):
-        return math.mobius_fn_apply_chain(x, *fns, c=self.c, dim=dim)
+    def mobius_fn_apply_chain(self, x, *fns, project=True, dim=-1):
+        res = math.mobius_fn_apply_chain(x, *fns, c=self.c, dim=dim)
+        if project:
+            return math.project(res, c=self.c, dim=dim)
+        else:
+            return res
 
 
 class PoincareBallExact(PoincareBall):
