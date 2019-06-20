@@ -209,6 +209,12 @@ class PoincareBall(Manifold):
             x, p, a, dim=dim, c=self.c, keepdim=keepdim, signed=signed
         )
 
+    def mobius_fn_apply(self, fn, x, *args, dim=-1, **kwargs):
+        return math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
+
+    def mobius_fn_apply_chain(self, x, *fns, dim=-1):
+        return math.mobius_fn_apply_chain(x, *fns, c=self.c, dim=dim)
+
 
 class PoincareBallExact(PoincareBall):
     __doc__ = r"""{}
