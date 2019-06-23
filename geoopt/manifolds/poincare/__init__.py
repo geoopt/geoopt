@@ -37,7 +37,7 @@ class PoincareBall(Manifold):
 
     def __init__(self, c=1.0):
         super().__init__()
-        self.register_buffer("c", torch.as_tensor(c))
+        self.register_buffer("c", torch.as_tensor(c, dtype=torch.get_default_dtype()))
 
     def _check_shape(self, x, name):
         ok = x.dim() > 0
