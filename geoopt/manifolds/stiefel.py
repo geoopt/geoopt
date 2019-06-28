@@ -182,6 +182,8 @@ class EuclideanStiefel(Stiefel):
         return (y,) + make_tuple(vs)
 
     def inner(self, x, u, v=None, *, keepdim=False):
+        if v is None:
+            v = u
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
     def retr(self, x, u):
