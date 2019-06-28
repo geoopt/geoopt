@@ -76,7 +76,7 @@ class Sphere(Manifold):
                     name, shape[-1], self.projector.shape[-1]
                 )
         elif ok:
-            ok = shape[-1] == 1
+            ok = shape[-1] != 1
             if not ok:
                 reason = ("Manifold only consists of isolated points when "
                           "subspace is 1-dimensional.")
