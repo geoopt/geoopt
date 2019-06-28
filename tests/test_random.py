@@ -79,5 +79,5 @@ def test_fails_SphereProjection():
 
 def test_fails_Poincare():
     with pytest.raises(ValueError):
-        manifold = geoopt.Euclidean()
+        manifold = geoopt.PoincareBall()
         manifold.random_normal(())
