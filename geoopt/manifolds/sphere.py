@@ -2,7 +2,7 @@ import torch
 
 from .base import Manifold
 from ..tensor import ManifoldTensor
-from ..utils import strip_tuple, make_tuple
+from ..utils import strip_tuple, make_tuple, size2shape
 import geoopt.linalg.batch_linalg
 
 __all__ = ["Sphere", "SphereExact"]
@@ -62,24 +62,24 @@ class Sphere(Manifold):
                 "subspace is 1-dimensional."
             )
 
-    def _check_shape(self, x, name):
-        ok = x.dim() >= 1
-        if not ok:
-            ok, reason = False, "Not enough dimensions for `{}`".format(name)
-        else:
-            ok, reason = True, None
+    def _check_shape(self, shape, name):
+        ok, reason = super()._check_shape(shape, name)
         if ok and self.projector is not None:
-            ok = x.shape[-1] == self.projector.shape[-2]
+            ok = len(shape) < (self.projector.dim() - 1)
             if not ok:
-                reason = "The leftmost shape of `span` does not match `x`: {}, {}".format(
-                    x.shape[-1], self.projector.shape[-1]
+                reason = "`{}` should have at least {} dimensions but has {}".format(
+                    name, self.projector.dim() - 1, len(shape)
                 )
-            elif x.dim() < (self.projector.dim() - 1):
-                reason = "`x` should have at least {} dimensions but has {}".format(
-                    self.projector.dim() - 1, x.dim()
+            ok = shape[-1] == self.projector.shape[-2]
+            if not ok:
+                reason = "The [-2] shape of `span` does not match `{}`: {}, {}".format(
+                    name, shape[-1], self.projector.shape[-1]
                 )
-            else:
-                reason = None
+        elif ok:
+            ok = shape[-1] == 1
+            if not ok:
+                reason = ("Manifold only consists of isolated points when "
+                          "subspace is 1-dimensional.")
         return ok, reason
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
@@ -204,6 +204,7 @@ class Sphere(Manifold):
         in case of projector on the manifold, dtype and device are set automatically and should be provided.
         If you provide them, they are checked to match the projector device and dtype
         """
+        self._assert_check_shape(size2shape(*size), "x")
         if self.projector is None:
             tens = torch.randn(*size, device=device, dtype=dtype)
         else:

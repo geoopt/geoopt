@@ -1,6 +1,6 @@
 import torch
 from .base import Manifold
-from ..utils import strip_tuple
+from ..utils import strip_tuple, size2shape
 import geoopt
 
 
@@ -15,9 +15,6 @@ class R(Manifold):
     name = "R"
     ndim = 0
     reversible = True
-
-    def _check_shape(self, x, name):
-        return True, None
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         return True, None
@@ -87,6 +84,7 @@ class R(Manifold):
         ManifoldTensor
             random point on the manifold
         """
+        self._assert_check_shape(size2shape(*size), "x")
         mean = torch.as_tensor(mean, device=device, dtype=dtype)
         std = torch.as_tensor(std, device=device, dtype=dtype)
         tens = std.new_empty(*size).normal_() * std + mean
@@ -100,12 +98,6 @@ class Euclidean(R):
 
     ndim = 1
     name = "Euclidean"
-
-    def _check_shape(self, x, name):
-        dim_is_ok = x.dim() >= 1
-        if not dim_is_ok:
-            return False, "Not enough dimensions for `{}`".format(name)
-        return True, None
 
     def inner(self, x, u, v=None, *, keepdim=False):
         if v is None:

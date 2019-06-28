@@ -1,3 +1,4 @@
+import pytest
 import torch
 import geoopt
 
@@ -43,3 +44,40 @@ def test_random_Poincare():
     point = manifold.random_normal(3, 10, 10)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
+
+
+def test_fails_Euclidean():
+    with pytest.raises(ValueError):
+        manifold = geoopt.Euclidean()
+        manifold.random_normal(())
+
+
+def test_fails_Stiefel():
+    with pytest.raises(ValueError):
+        manifold = geoopt.Stiefel()
+        manifold.random_naive(())
+    with pytest.raises(ValueError):
+        manifold = geoopt.Stiefel()
+        manifold.random_naive((5, 10))
+
+
+def test_fails_Sphere():
+    with pytest.raises(ValueError):
+        manifold = geoopt.Sphere()
+        manifold.random_uniform(())
+    with pytest.raises(ValueError):
+        manifold = geoopt.Sphere()
+        manifold.random_uniform(1)
+
+
+def test_fails_SphereProjection():
+    subspace = torch.rand(10, 2, dtype=torch.float64)
+    manifold = geoopt.Sphere(intersection=subspace)
+    with pytest.raises(ValueError):
+        manifold.random_uniform(50)
+
+
+def test_fails_Poincare():
+    with pytest.raises(ValueError):
+        manifold = geoopt.Euclidean()
+        manifold.random_normal(())

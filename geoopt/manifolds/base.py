@@ -34,7 +34,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -----
         This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
-        ok, reason = self._check_shape(x, "x")
+        ok, reason = self._check_shape(x.shape, "x")
         if explain:
             return ok, reason
         else:
@@ -55,7 +55,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
 
-        ok, reason = self._check_shape(x, "x")
+        ok, reason = self._check_shape(x.shape, "x")
         if not ok:
             raise ValueError(
                 "`x` seems to be not valid "
@@ -82,7 +82,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -----
         This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
-        ok, reason = self._check_shape(u, "u")
+        ok, reason = self._check_shape(u.shape, "u")
         if explain:
             return ok, reason
         else:
@@ -103,7 +103,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
 
-        ok, reason = self._check_shape(u, "u")
+        ok, reason = self._check_shape(u.shape, "u")
         if not ok:
             raise ValueError(
                 "`u` seems to be not valid "
@@ -134,7 +134,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -----
         This check is compatible to what optimizer expects, last dimensions are treated as manifold dimensions
         """
-        ok, reason = self._check_shape(x, "x")
+        ok, reason = self._check_shape(x.shape, "x")
         if ok:
             ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
         if explain:
@@ -191,9 +191,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             boolean indicating if tensor is valid and reason of failure if False
         """
         if not ok_point:
-            ok, reason = self._check_shape(x, "x")
+            ok, reason = self._check_shape(x.shape, "x")
             if ok:
-                ok, reason = self._check_shape(u, "u")
+                ok, reason = self._check_shape(u.shape, "u")
             if ok:
                 ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
         else:
@@ -226,9 +226,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             is a check for point required?
         """
         if not ok_point:
-            ok, reason = self._check_shape(x, "x")
+            ok, reason = self._check_shape(x.shape, "x")
             if ok:
-                ok, reason = self._check_shape(u, "u")
+                ok, reason = self._check_shape(u.shape, "u")
             if ok:
                 ok, reason = self._check_point_on_manifold(x, atol=atol, rtol=rtol)
         else:
@@ -567,8 +567,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def _check_shape(self, x, name):
+    def _check_shape(self, shape, name):
         """
         Developer Guide
 
@@ -579,8 +578,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : tensor
-            point on the manifold
+        shape : tuple
+            shape of point on the manifold
         name : str
             name to be present in errors
 
@@ -589,8 +588,35 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         bool, str or None
             check result and the reason of fail if any
         """
-        # return True, None
-        raise NotImplementedError
+        ok = len(shape) >= self.ndim
+        if not ok:
+            reason = "'{}' on the {} requires more than {} dim".format(name, self, self.ndim)
+        else:
+            reason = None
+        return ok, reason
+
+    def _assert_check_shape(self, shape, name):
+        """
+        Developer Guide
+
+        Exhaustive implementation for checking if
+        a given point has valid dimension size,
+        shape, etc. It will raise a ValueError if check is not passed
+
+        Parameters
+        ----------
+        shape : tuple
+            shape of point on the manifold
+        name : str
+            name to be present in errors
+
+        Raises
+        ------
+        ValueError
+        """
+        ok, reason = self._check_shape(shape, name)
+        if not ok:
+            raise ValueError(reason)
 
     @abc.abstractmethod
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):

@@ -2,7 +2,7 @@ import torch
 
 from .base import Manifold
 from .. import linalg
-from ..utils import strip_tuple, make_tuple
+from ..utils import strip_tuple, make_tuple, size2shape
 from ..tensor import ManifoldTensor
 
 
@@ -46,16 +46,16 @@ class Stiefel(Manifold):
         else:
             return super().__new__(cls)
 
-    def _check_shape(self, x, name):
-        dim_is_ok = x.dim() >= 2
-        if not dim_is_ok:
-            return False, "Not enough dimensions for `{}`".format(name)
-        shape_is_ok = x.shape[-1] <= x.shape[-2]
+    def _check_shape(self, shape, name):
+        ok, reason = super()._check_shape(shape, name)
+        if not ok:
+            return False, reason
+        shape_is_ok = shape[-1] <= shape[-2]
         if not shape_is_ok:
             return (
                 False,
                 "`{}` should have shape[-1] <= shape[-2], got {} </= {}".format(
-                    name, x.shape[-1], x.shape[-2]
+                    name, shape[-1], shape[-2]
                 ),
             )
         return True, None
@@ -99,6 +99,7 @@ class Stiefel(Manifold):
         ManifoldTensor
             random point on Stiefel manifold
         """
+        self._assert_check_shape(size2shape(*size), "x")
         tens = torch.randn(*size, device=device, dtype=dtype)
         return ManifoldTensor(linalg.qr(tens)[0], manifold=self)
 
