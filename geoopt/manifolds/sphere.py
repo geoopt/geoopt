@@ -104,6 +104,8 @@ class Sphere(Manifold):
         return True, None
 
     def inner(self, x, u, v=None, *, keepdim=False):
+        if v is None:
+            v = u
         return (u * v).sum(-1, keepdim=keepdim)
 
     def projx(self, x):
