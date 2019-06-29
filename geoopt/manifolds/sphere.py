@@ -78,8 +78,10 @@ class Sphere(Manifold):
         elif ok:
             ok = shape[-1] != 1
             if not ok:
-                reason = ("Manifold only consists of isolated points when "
-                          "subspace is 1-dimensional.")
+                reason = (
+                    "Manifold only consists of isolated points when "
+                    "subspace is 1-dimensional."
+                )
         return ok, reason
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):

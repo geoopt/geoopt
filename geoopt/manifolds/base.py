@@ -590,7 +590,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         ok = len(shape) >= self.ndim
         if not ok:
-            reason = "'{}' on the {} requires more than {} dim".format(name, self, self.ndim)
+            reason = "'{}' on the {} requires more than {} dim".format(
+                name, self, self.ndim
+            )
         else:
             reason = None
         return ok, reason

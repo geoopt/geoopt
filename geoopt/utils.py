@@ -33,7 +33,7 @@ def strip_tuple(tup):
 
 def make_tuple(obj):
     if not isinstance(obj, tuple):
-        return obj,
+        return (obj,)
     else:
         return obj
 
