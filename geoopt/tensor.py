@@ -12,7 +12,7 @@ class ManifoldTensor(torch.Tensor):
     Other Parameters
     ----------------
     manifold : :class:`geoopt.Manifold`
-        A manifold for the tensor, (default: :class:`geoopt.Euclidean`)
+        A manifold for the tensor, (default: :class:`geoopt.R`)
     """
 
     def __new__(cls, *args, manifold=R(), requires_grad=False, **kwargs):
