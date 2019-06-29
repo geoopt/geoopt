@@ -203,7 +203,7 @@ class Sphere(Manifold):
 
         Notes
         -----
-        in case of projector on the manifold, dtype and device are set automatically and should be provided.
+        In case of projector on the manifold, dtype and device are set automatically and shouldn't be provided.
         If you provide them, they are checked to match the projector device and dtype
         """
         self._assert_check_shape(size2shape(*size), "x")
