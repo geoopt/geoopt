@@ -75,6 +75,8 @@ def project(x, *, c=1.0, dim=-1, eps=None):
     tensor
         projected vector on the manifold
     """
+    if isinstance(c, torch.Tensor):
+        c = c.item()
     return _project(x, c, dim, eps)
 
 
@@ -82,7 +84,7 @@ def _project(x, c, dim: int = -1, eps: float = None):
     norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     if eps is None:
         eps = BALL_EPS[x.dtype]
-    maxnorm = (1 - eps) / (c.item() ** 0.5)
+    maxnorm = (1 - eps) / (c ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
