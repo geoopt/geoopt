@@ -82,7 +82,7 @@ def _project(x, c, dim: int = -1, eps: float = None):
     norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     if eps is None:
         eps = BALL_EPS[x.dtype]
-    maxnorm = (1 - eps) / (c ** 0.5)
+    maxnorm = (1 - eps) / (c.item() ** 0.5)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
