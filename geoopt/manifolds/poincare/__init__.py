@@ -1,6 +1,7 @@
 import torch.nn
 from . import math
-from ...utils import make_tuple
+from ...tensor import ManifoldTensor
+from ...utils import make_tuple, size2shape
 from ..base import Manifold
 
 __all__ = ["PoincareBall", "PoincareBallExact"]
@@ -36,15 +37,7 @@ class PoincareBall(Manifold):
 
     def __init__(self, c=1.0):
         super().__init__()
-        self.register_buffer("c", torch.as_tensor(c))
-
-    def _check_shape(self, x, name):
-        ok = x.dim() > 0
-        if not ok:
-            reason = "'{}' on poincare ball requires more that zero dim".format(name)
-        else:
-            reason = None
-        return ok, reason
+        self.register_buffer("c", torch.as_tensor(c, dtype=torch.get_default_dtype()))
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         px = math.project(x, c=self.c)
@@ -222,6 +215,33 @@ class PoincareBall(Manifold):
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
+
+    def random_normal(self, *size, mean=0, std=1):
+        """
+        Method to create a point on the manifold, measure is induced by Normal distribution on the
+        tangent space of zero
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        mean : float|tensor
+            mean value for the Normal distribution
+        std : float|tensor
+            std value for the Normal distribution
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on the PoincareBall manifold
+
+        Notes
+        -----
+        The device and dtype will match the device and dtype of the Manifold
+        """
+        self._assert_check_shape(size2shape(*size), "x")
+        tens = torch.randn(*size, device=self.c.device, dtype=self.c.dtype) * std + mean
+        return ManifoldTensor(self.expmap0(tens), manifold=self)
 
 
 class PoincareBallExact(PoincareBall):

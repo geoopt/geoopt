@@ -1,7 +1,8 @@
 import torch
 
 from .base import Manifold
-from ..utils import strip_tuple, make_tuple
+from ..tensor import ManifoldTensor
+from ..utils import strip_tuple, make_tuple, size2shape
 import geoopt.linalg.batch_linalg
 
 __all__ = ["Sphere", "SphereExact"]
@@ -61,24 +62,26 @@ class Sphere(Manifold):
                 "subspace is 1-dimensional."
             )
 
-    def _check_shape(self, x, name):
-        ok = x.dim() >= 1
-        if not ok:
-            ok, reason = False, "Not enough dimensions for `{}`".format(name)
-        else:
-            ok, reason = True, None
+    def _check_shape(self, shape, name):
+        ok, reason = super()._check_shape(shape, name)
         if ok and self.projector is not None:
-            ok = x.shape[-1] == self.projector.shape[-2]
+            ok = len(shape) < (self.projector.dim() - 1)
             if not ok:
-                reason = "The leftmost shape of `span` does not match `x`: {}, {}".format(
-                    x.shape[-1], self.projector.shape[-1]
+                reason = "`{}` should have at least {} dimensions but has {}".format(
+                    name, self.projector.dim() - 1, len(shape)
                 )
-            elif x.dim() < (self.projector.dim() - 1):
-                reason = "`x` should have at least {} dimensions but has {}".format(
-                    self.projector.dim() - 1, x.dim()
+            ok = shape[-1] == self.projector.shape[-2]
+            if not ok:
+                reason = "The [-2] shape of `span` does not match `{}`: {}, {}".format(
+                    name, shape[-1], self.projector.shape[-1]
                 )
-            else:
-                reason = None
+        elif ok:
+            ok = shape[-1] != 1
+            if not ok:
+                reason = (
+                    "Manifold only consists of isolated points when "
+                    "subspace is 1-dimensional."
+                )
         return ok, reason
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
@@ -179,6 +182,46 @@ class Sphere(Manifold):
             return x @ self.projector.transpose(-1, -2)
         else:
             return x
+
+    def random_uniform(self, *size, dtype=None, device=None):
+        """
+        Uniform random measure on Sphere manifold
+
+        Parameters
+        ----------
+        size : shape
+            the desired output shape
+        dtype : torch.dtype
+            desired dtype
+        device : torch.device
+            desired device
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on Sphere manifold
+
+        Notes
+        -----
+        In case of projector on the manifold, dtype and device are set automatically and shouldn't be provided.
+        If you provide them, they are checked to match the projector device and dtype
+        """
+        self._assert_check_shape(size2shape(*size), "x")
+        if self.projector is None:
+            tens = torch.randn(*size, device=device, dtype=dtype)
+        else:
+            if device is not None and device != self.projector.device:
+                raise ValueError(
+                    "`device` does not match the projector `device`, set the `device` argument to None"
+                )
+            if dtype is not None and dtype != self.projector.dtype:
+                raise ValueError(
+                    "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
+                )
+            tens = torch.randn(
+                *size, device=self.projector.device, dtype=self.projector.dtype
+            )
+        return ManifoldTensor(self.projx(tens), manifold=self)
 
 
 class SphereExact(Sphere):

@@ -1,5 +1,7 @@
+import torch
 from .base import Manifold
-from ..utils import strip_tuple
+from ..utils import strip_tuple, size2shape
+import geoopt
 
 
 __all__ = ["Euclidean", "R"]
@@ -13,9 +15,6 @@ class R(Manifold):
     name = "R"
     ndim = 0
     reversible = True
-
-    def _check_shape(self, x, name):
-        return True, None
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         return True, None
@@ -63,6 +62,34 @@ class R(Manifold):
     def transp(self, x, y, v, *more):
         return strip_tuple((v, *more))
 
+    def random_normal(self, *size, mean=0.0, std=1.0, device=None, dtype=None):
+        """
+        Method to create a point on the manifold, measure is induced by Normal distribution
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        mean : float|tensor
+            mean value for the Normal distribution
+        std : float|tensor
+            std value for the Normal distribution
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on the manifold
+        """
+        self._assert_check_shape(size2shape(*size), "x")
+        mean = torch.as_tensor(mean, device=device, dtype=dtype)
+        std = torch.as_tensor(std, device=device, dtype=dtype)
+        tens = std.new_empty(*size).normal_() * std + mean
+        return geoopt.ManifoldTensor(tens, manifold=self)
+
 
 class Euclidean(R):
     """
@@ -71,12 +98,6 @@ class Euclidean(R):
 
     ndim = 1
     name = "Euclidean"
-
-    def _check_shape(self, x, name):
-        dim_is_ok = x.dim() >= 1
-        if not dim_is_ok:
-            return False, "Not enough dimensions for `{}`".format(name)
-        return True, None
 
     def inner(self, x, u, v=None, *, keepdim=False):
         if v is None:

@@ -36,3 +36,7 @@ def make_tuple(obj):
         return (obj,)
     else:
         return obj
+
+
+def size2shape(*size):
+    return make_tuple(strip_tuple(size))
