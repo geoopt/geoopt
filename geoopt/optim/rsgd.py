@@ -1,10 +1,8 @@
 import torch.optim.optimizer
-import geoopt
 from ..manifolds import R
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin
 from ..utils import copy_or_set_
-from typing import Optional
 
 __all__ = ["RiemannianSGD"]
 
