@@ -1,12 +1,12 @@
 import torch.optim.optimizer
-from ..manifolds import R
+from ..manifolds import Euclidean
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin
 from ..utils import copy_or_set_
 
 __all__ = ["RiemannianSGD"]
 
-_default_manifold = R()
+_default_manifold = Euclidean()
 
 
 class RiemannianSGD(OptimMixin, torch.optim.Optimizer):

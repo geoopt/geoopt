@@ -2,11 +2,11 @@ import torch.optim
 
 from .mixin import OptimMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
-from ..manifolds import R
+from ..manifolds import Euclidean
 from ..utils import copy_or_set_
 
 # in order not to create it at each iteration
-_default_manifold = R()
+_default_manifold = Euclidean()
 
 
 class RiemannianAdam(OptimMixin, torch.optim.Adam):

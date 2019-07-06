@@ -4,17 +4,27 @@ from ..utils import strip_tuple, size2shape
 import geoopt
 
 
-__all__ = ["Euclidean", "R"]
+__all__ = ["Euclidean"]
 
 
-class R(Manifold):
+class Euclidean(Manifold):
     """
     Simple Euclidean manifold, every coordinate is treated as an independent element
+
+    Parameters
+    ----------
+    ndim : int
+        number of trailing dimensions treated as manifold dimensions. All the operations acting on cuch
+        as inner products, etc will respect the :attr:`ndim`.
     """
 
     name = "R"
     ndim = 0
     reversible = True
+
+    def __init__(self, ndim=0):
+        super().__init__()
+        self.ndim = ndim
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         return True, None
@@ -27,9 +37,19 @@ class R(Manifold):
 
     def inner(self, x, u, v=None, *, keepdim=False):
         if v is None:
-            return u.pow(2)
+            inner = u.pow(2)
         else:
-            return u * v
+            inner = u * v
+        if self.ndim > 0:
+            return inner.sum(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
+        else:
+            return inner
+
+    def norm(self, x, u, *, keepdim=False):
+        if self.ndim > 0:
+            return u.norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
+        else:
+            return u.abs()
 
     def proju(self, x, u):
         return u
@@ -46,7 +66,10 @@ class R(Manifold):
         return y - x
 
     def dist(self, x, y, *, keepdim=False):
-        return (x - y).abs()
+        if self.ndim > 0:
+            return (x - y).norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
+        else:
+            return (x - y).abs()
 
     def expmap_transp(self, x, u, v, *more):
         return (x + u, v, *more)
@@ -90,22 +113,5 @@ class R(Manifold):
         tens = std.new_empty(*size).normal_() * std + mean
         return geoopt.ManifoldTensor(tens, manifold=self)
 
-
-class Euclidean(R):
-    """
-    Simple Euclidean manifold, every row is treated as an independent element
-    """
-
-    ndim = 1
-    name = "Euclidean"
-
-    def inner(self, x, u, v=None, *, keepdim=False):
-        if v is None:
-            v = u
-        return (u * v).sum(dim=-1, keepdim=keepdim)
-
-    def norm(self, x, u, *, keepdim=False):
-        return u.norm(dim=-1)
-
-    def dist(self, x, y, *, keepdim=False):
-        return (x - y).norm(dim=-1, keepdim=keepdim)
+    def extra_repr(self):
+        return "ndim={}".format(self.ndim)

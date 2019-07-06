@@ -4,14 +4,14 @@ import geoopt
 
 
 def test_random_R():
-    manifold = geoopt.R()
+    manifold = geoopt.Euclidean()
     point = manifold.random_normal(10, 10)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
 
 
 def test_random_Euclidean():
-    manifold = geoopt.Euclidean()
+    manifold = geoopt.Euclidean(ndim=1)
     point = manifold.random_normal(10, 10)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
@@ -48,7 +48,7 @@ def test_random_Poincare():
 
 def test_fails_Euclidean():
     with pytest.raises(ValueError):
-        manifold = geoopt.Euclidean()
+        manifold = geoopt.Euclidean(ndim=1)
         manifold.random_normal(())
 
 
