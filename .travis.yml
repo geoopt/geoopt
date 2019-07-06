@@ -24,7 +24,7 @@ install:
   - if [[ $COVERAGE ]]; then pip install -r requirements-dev.txt; fi
 
 script:
-  - if [[ $COVERAGE ]]; then make lint docker-test; else make docker-test; fi
+  - make docker-test
 
 after_success:
   - echo $(pwd)

@@ -20,7 +20,7 @@ fi
 if [[ $* == *--test* ]]; then
     echo "Testing Geoopt"
     docker run --rm -it --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)",target=/opt/geoopt/ geoopt:latest \
-        bash -c "pytest --durations=0 -v tests/ ${COVERAGE}"
+        bash -c "make lint && pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}"
         if [[ ${COVERAGE} ]]; then sed -i 's@/opt/geoopt@'${SRC_DIR}'@g' "$(pwd)/.coverage"; fi
 fi
 
