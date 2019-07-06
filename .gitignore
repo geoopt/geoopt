@@ -106,8 +106,7 @@ venv.bak/
 *.cfg
 exman
 .tests
-Makefile
-!docs/Makefile
 cfg/
 data/
 notebooks/
+testing-report.html
