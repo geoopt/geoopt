@@ -9,3 +9,4 @@ sphinx
 seaborn
 pydocstyle
 pytest-html
+pylint
