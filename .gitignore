@@ -104,6 +104,7 @@ venv.bak/
 .mypy_cache/
 .idea/
 *.cfg
+!setup.cfg
 exman
 .tests
 cfg/
