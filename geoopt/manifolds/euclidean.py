@@ -57,11 +57,6 @@ class Euclidean(Manifold):
     def projx(self, x):
         return x
 
-    def transp_follow_expmap(self, x, u, v, *more):
-        return strip_tuple((v, *more))
-
-    transp_follow_retr = transp_follow_expmap
-
     def logmap(self, x, y):
         return y - x
 
@@ -71,19 +66,14 @@ class Euclidean(Manifold):
         else:
             return (x - y).abs()
 
-    def expmap_transp(self, x, u, v, *more):
-        return (x + u, v, *more)
-
-    retr_transp = expmap_transp
-
     def egrad2rgrad(self, x, u):
         return u
 
     def expmap(self, x, u):
         return x + u
 
-    def transp(self, x, y, v, *more):
-        return strip_tuple((v, *more))
+    def transp(self, x, y, v):
+        return v
 
     def random_normal(self, *size, mean=0.0, std=1.0, device=None, dtype=None):
         """
