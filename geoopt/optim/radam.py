@@ -2,11 +2,7 @@ import torch.optim
 
 from .mixin import OptimMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
-from ..manifolds import Euclidean
 from ..utils import copy_or_set_
-
-# in order not to create it at each iteration
-_default_manifold = Euclidean()
 
 
 class RiemannianAdam(OptimMixin, torch.optim.Adam):
@@ -72,7 +68,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:
-                        manifold = _default_manifold
+                        manifold = self._default_manifold
 
                     if grad.is_sparse:
                         raise RuntimeError(

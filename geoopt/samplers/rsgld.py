@@ -3,14 +3,10 @@ import math
 import torch
 
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
-from geoopt.manifolds import Euclidean
 from geoopt.samplers.base import Sampler
 from ..utils import copy_or_set_
 
 __all__ = ["RSGLD"]
-
-
-_default_manifold = Euclidean()
 
 
 class RSGLD(Sampler):
@@ -46,7 +42,7 @@ class RSGLD(Sampler):
                     if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                         manifold = p.manifold
                     else:
-                        manifold = _default_manifold
+                        manifold = self._default_manifold
 
                     egrad2rgrad, retr = manifold.egrad2rgrad, manifold.retr
                     epsilon = group["epsilon"]

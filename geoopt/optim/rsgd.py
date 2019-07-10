@@ -1,12 +1,9 @@
 import torch.optim.optimizer
-from ..manifolds import Euclidean
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin
 from ..utils import copy_or_set_
 
 __all__ = ["RiemannianSGD"]
-
-_default_manifold = Euclidean()
 
 
 class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
@@ -97,7 +94,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:
-                        manifold = _default_manifold
+                        manifold = self._default_manifold
 
                     grad.add_(weight_decay, point)
                     grad = manifold.egrad2rgrad(point, grad)

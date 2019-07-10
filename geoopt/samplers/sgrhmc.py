@@ -3,14 +3,10 @@ import math
 import torch
 
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
-from geoopt.manifolds import Euclidean
 from geoopt.samplers.base import Sampler
 from ..utils import copy_or_set_
 
 __all__ = ["SGRHMC"]
-
-
-_default_manifold = Euclidean()
 
 
 class SGRHMC(Sampler):
@@ -69,7 +65,7 @@ class SGRHMC(Sampler):
                         if isinstance(p, (ManifoldParameter, ManifoldTensor)):
                             manifold = p.manifold
                         else:
-                            manifold = _default_manifold
+                            manifold = self._default_manifold
 
                         egrad2rgrad = manifold.egrad2rgrad
                         retr_transp = manifold.retr_transp
