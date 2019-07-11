@@ -11,7 +11,6 @@ from .manifolds import (
     CanonicalStiefel,
     EuclideanStiefel,
     Euclidean,
-    R,
     Sphere,
     SphereExact,
     PoincareBall,

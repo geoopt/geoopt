@@ -19,6 +19,8 @@ New Features
 * Added dist, logmap implementation (#44)
 * Added Poincare Ball model (#45)
 * Poincare Ball manifold has now new methods (#78)
+* Added ``ndim`` argument to ``Euclidean`` manifold
+
 
 Maintenance
 -----------
