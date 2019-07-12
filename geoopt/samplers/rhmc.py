@@ -148,3 +148,14 @@ class RHMC(Sampler):
                 self.log_probs.append(old_logp)
             else:
                 self.log_probs.append(new_logp)
+
+    @torch.no_grad()
+    def stabilize_group(self, group):
+        for p in group["params"]:
+            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                continue
+            copy_or_set_(p, p.manifold.projx(p))
+            state = self.state[p]
+            if not state:  # due to None grads
+                continue
+            copy_or_set_(state["old_p"], p.manifold.projx(state["old_p"]))
