@@ -91,17 +91,16 @@ class SGRHMC(Sampler):
             self.steps += 1
             self.log_probs.append(logp)
 
-    def stabilize(self):
-        """Stabilize parameters if they are off-manifold due to numerical reasons
-        """
+    @torch.no_grad()
+    def stabilize_group(self, group):
+        for p in group["params"]:
+            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                continue
 
-        for group in self.param_groups:
-            for p in group["params"]:
-                if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                    continue
-
-                manifold = p.manifold
-                v = self.state[p]["v"]
-                copy_or_set_(p, manifold.projx(p))
-                # proj here is ok
-                v.set_(manifold.proju(p, v))
+            manifold = p.manifold
+            copy_or_set_(p, manifold.projx(p))
+            # proj here is ok
+            state = self.state[p]
+            if not state:
+                continue
+            state["v"].set_(manifold.proju(p, state["v"]))

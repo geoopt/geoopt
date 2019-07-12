@@ -57,12 +57,9 @@ class RSGLD(Sampler):
             self.steps += 1
             self.log_probs.append(logp.item())
 
-    def stabilize(self):
-        """Stabilize parameters if they are off-manifold due to numerical reasons
-        """
-        with torch.no_grad():
-            for group in self.param_groups:
-                for p in group["params"]:
-                    if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
-                        continue
-                    copy_or_set_(p, p.manifold.projx(p))
+    @torch.no_grad()
+    def stabilize_group(self, group):
+        for p in group["params"]:
+            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                continue
+            copy_or_set_(p, p.manifold.projx(p))
