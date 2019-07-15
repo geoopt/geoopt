@@ -100,7 +100,7 @@ If you find this project useful in your research, please kindly add this bibtex 
 .. code::
 
     @misc{geoopt,
-        author = {Kochurov Max, Kozlukov Sergey, Karimov Rasul, Yanush Viktor},
+        author = {Max Kochurov and Sergey Kozlukov and Rasul Karimov and Viktor Yanush},
         title = {Geoopt: Adaptive Riemannian optimization in PyTorch},
         year = {2019},
         publisher = {GitHub},
