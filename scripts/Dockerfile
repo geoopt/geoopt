@@ -8,6 +8,8 @@ ARG PYTORCH=pytorch
 # python version
 ARG PYTHON_VERSION=3.6
 # additional requirements
+RUN apt-get update && apt-get install -y git build-essential pandoc vim \
+    && rm -rf /var/lib/apt/lists/*
 COPY $SRC_DIR/requirements-dev.txt /opt/geoopt/requirements-dev.txt
 # install most of the things using conda
 # start with python version and numpy with mkl support, then the rest
