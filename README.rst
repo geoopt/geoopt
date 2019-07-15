@@ -92,6 +92,23 @@ Samplers
 -  ``geoopt.samplers.SGRHMC`` – Stochastic Gradient Riemannian
    Hamiltonian Monte-Carlo
 
+
+Citing Geoopt
+~~~~~~~~~~~~~
+If you find this project useful in your research, please kindly add this bibtex entry in references.
+
+.. code::
+
+    @misc{geoopt,
+        author = {Kochurov Max, Kozlukov Sergey, Karimov Rasul, Yanush Viktor},
+        title = {Geoopt: Adaptive Riemannian optimization in PyTorch},
+        year = {2019},
+        publisher = {GitHub},
+        journal = {GitHub repository},
+        howpublished = {\url{https://github.com/geoopt/geoopt}},
+    }
+
+
 .. _“Riemannian Adaptive Optimization Methods”: https://openreview.net/forum?id=r1eiqi09K7
 .. _documentation: https://geoopt.readthedocs.io/en/latest/manifolds.html
 
