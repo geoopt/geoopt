@@ -82,8 +82,10 @@ class Stiefel(Manifold):
 
     def random_naive(self, *size, dtype=None, device=None):
         """
-        Naive approach to get random matrix on stiefel manifold. The measure is
-        non-uniform for this method, but fast to compute
+        Naive approach to get random matrix on Stiefel manifold.
+
+        A helper function to sample a random point on the Stiefel manifold.
+        The measure is non-uniform for this method, but fast to compute.
 
         Parameters
         ----------
@@ -145,9 +147,7 @@ class CanonicalStiefel(Stiefel):
         return qv
 
     def _transp_follow_many(self, x, *vs, u):
-        """
-        An optimized transp_many for Stiefel Manifold
-        """
+        # An optimized transp_many for Stiefel Manifold
         vs = torch.cat(vs, -1)
         qvs = self._transp_follow_one(x, vs, u=u).view(x.shape[:-1] + (-1, x.shape[-1]))
         return qvs.unbind(-2)
@@ -158,9 +158,7 @@ class CanonicalStiefel(Stiefel):
     transp_follow_expmap = transp_follow_retr
 
     def retr_transp(self, x, u, v, *more):
-        """
-        An optimized retr_transp for Stiefel Manifold
-        """
+        # An optimized retr_transp for Stiefel Manifold
         xvs = torch.cat((x, v) + more, -1)
         qxvs = self._transp_follow_one(x, xvs, u=u).view(
             x.shape[:-1] + (-1, x.shape[-1])

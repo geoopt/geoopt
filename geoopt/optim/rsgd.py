@@ -7,7 +7,8 @@ __all__ = ["RiemannianSGD"]
 
 
 class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
-    r"""Riemannian Stochastic Gradient Descent with the same API as :class:`torch.optim.SGD`
+    r"""
+    Riemannian Stochastic Gradient Descent with the same API as :class:`torch.optim.SGD`.
 
     Parameters
     ----------
@@ -61,14 +62,6 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
         super().__init__(params, defaults, stabilize=stabilize)
 
     def step(self, closure=None):
-        """Performs a single optimization step.
-
-        Arguments
-        ---------
-        closure : callable (optional)
-            A closure that reevaluates the model
-            and returns the loss.
-        """
         loss = None
         if closure is not None:
             loss = closure()

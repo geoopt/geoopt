@@ -185,7 +185,7 @@ class Sphere(Manifold):
 
     def random_uniform(self, *size, dtype=None, device=None):
         """
-        Uniform random measure on Sphere manifold
+        Uniform random measure on Sphere manifold.
 
         Parameters
         ----------

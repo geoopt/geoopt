@@ -3,8 +3,13 @@ __all__ = "copy_or_set_"
 
 def copy_or_set_(dest, source):
     """
-    A workaround to respect strides of :code:`dest` when copying :code:`source`
-    (https://github.com/geoopt/geoopt/issues/70)
+    Copy or inplace set from :code:`source` to :code:`dest`.
+
+    A workaround to respect strides of :code:`dest` when copying :code:`source`.
+    The original issue was raised `here <https://github.com/geoopt/geoopt/issues/70>`_
+    when working with matrix manifolds. Inplace set operation is mode efficient,
+    but the resulting storage might be incompatible after. To avoid the issue we refer to
+    the safe option and use :code:`copy_` if strides do not match.
 
     Parameters
     ----------

@@ -9,7 +9,7 @@ __all__ = ["Euclidean"]
 
 class Euclidean(Manifold):
     """
-    Simple Euclidean manifold, every coordinate is treated as an independent element
+    Simple Euclidean manifold, every coordinate is treated as an independent element.
 
     Parameters
     ----------
@@ -87,7 +87,7 @@ class Euclidean(Manifold):
 
     def random_normal(self, *size, mean=0.0, std=1.0, device=None, dtype=None):
         """
-        Method to create a point on the manifold, measure is induced by Normal distribution
+        Create a point on the manifold, measure is induced by Normal distribution.
 
         Parameters
         ----------

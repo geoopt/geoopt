@@ -10,7 +10,8 @@ __all__ = ["RSGLD"]
 
 
 class RSGLD(Sampler):
-    r"""Riemannian Stochastic Gradient Langevin Dynamics
+    r"""
+    Riemannian Stochastic Gradient Langevin Dynamics.
 
     Parameters
     ----------
@@ -25,14 +26,6 @@ class RSGLD(Sampler):
         super().__init__(params, defaults)
 
     def step(self, closure):
-        """Performs a single sampling step.
-
-        Arguments
-        ---------
-        closure: callable
-            A closure that reevaluates the model
-            and returns the log probability.
-        """
         logp = closure()
         logp.backward()
 
