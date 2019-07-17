@@ -20,12 +20,12 @@ fi
 if [[ $* == *--test* ]]; then
     echo "Testing Geoopt"
     touch "$(pwd)/.coverage"
-    docker run --rm -it --user $(id -u):$(id -g) --mount type=bind,source="$(pwd)/.coverage",target=/opt/geoopt/.coverage geoopt:latest \
+    docker run --rm -it --mount type=bind,source="$(pwd)/.coverage",target=/opt/geoopt/.coverage geoopt:latest \
         bash -c "make lint && pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}"
         if [[ ${COVERAGE} ]]; then sed -i 's@/opt/geoopt@'${SRC_DIR}'@g' "$(pwd)/.coverage"; fi
 fi
 
 if [[ $* == *--bash* ]]; then
     echo "Running Bash"
-    docker run --rm -it --user $(id -u):$(id -g) geoopt:latest bash
+    docker run --rm -it geoopt:latest bash
 fi
