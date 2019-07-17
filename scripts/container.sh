@@ -19,10 +19,33 @@ fi
 
 if [[ $* == *--test* ]]; then
     echo "Testing Geoopt"
-    touch "$(pwd)/.coverage"
-    docker run --rm -it --mount type=bind,source="$(pwd)/.coverage",target=/opt/geoopt/.coverage geoopt:latest \
-        bash -c "make lint && pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}"
-        if [[ ${COVERAGE} ]]; then sed -i 's@/opt/geoopt@'${SRC_DIR}'@g' "$(pwd)/.coverage"; fi
+    # some workarounds for coverage in docker
+    # we want to create a self contained container with library
+    # and run tests inside. Docker does allow only inplace file modifications
+    # but coverage script overrides the file. Therefore we
+    # 1) clean the coverage info
+    if [[ ${COVERAGE} ]]; then
+        rm -f "$(pwd)/.coverage"
+        # 2) create an empty file
+        touch "$(pwd)/.coverage"
+        # 3) run docker linking the created coverage file to the output file inside the container
+        #                      (the created file) -----> (output file)
+        docker run --rm -it -v "$(pwd)/.coverage":/opt/geoopt/.coverage_result geoopt:latest \
+            bash -c "make lint && \
+                     pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE} && \
+                     cat /opt/geoopt/.coverage >> /opt/geoopt/.coverage_result"
+        #                      (coverage info) >> (output file)
+        # 4) as usual we run linting
+        # 5) but finally we append the generated coverage info to the empty output file
+        # 6) paths are wrong so we replace the wrong path with the correct one
+
+        sed -i 's@/opt/geoopt@'${SRC_DIR}'@g' "$(pwd)/.coverage"
+    else
+        docker run --rm -it geoopt:latest \
+        # 4) as usual we run linting
+            bash -c "make lint && \
+                     pytest -v geoopt tests --durations=0 --doctest-modules"
+    fi
 fi
 
 if [[ $* == *--bash* ]]; then
