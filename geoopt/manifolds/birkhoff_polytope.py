@@ -2,7 +2,7 @@ import torch
 
 from .base import Manifold
 from .. import linalg
-from ..utils import  make_tuple
+from ..utils import make_tuple
 
 __all__ = ["BirkhoffPolytope"]
 
@@ -48,14 +48,14 @@ class BirkhoffPolytope(Manifold):
         if not ok:
             return False, reason
 
-        # dim_is_ok = len(shape) == self.ndim
-        #
-        # if not dim_is_ok:
-        #     return False, "dimensions for `{}` not match".format(name)
-        #
-        # return True, None
+        shape_is_ok = shape[-1] == shape[-2]
 
-    def _check_point_on_manifold(self, x, *,  atol=1e-5, rtol=1e-5):
+        if not shape_is_ok:
+            return False, "`{}` should have shape[-1] == shape[-2], got {} != {}".format(name, shape[-1], shape[-2])
+
+        return True, None
+
+    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         row_sum = x.sum(dim=-1)
         col_sum = x.sum(dim=-2)
         row_ok = torch.allclose(row_sum, row_sum.new((1,)).fill_(1), atol=atol, rtol=rtol)
@@ -75,19 +75,19 @@ class BirkhoffPolytope(Manifold):
     def projx(self, x):
         iter = 0
         x_shape = x.shape
-        x = x.reshape(-1, x_shape[-2], x_shape[-1])
-        c = 1.0 / (torch.sum(x, dim=-2, keepdim=True) + self.epsilon)
-        r = 1.0 / (torch.matmul(x, torch.transpose(c, -1, -2)) + self.epsilon)
+        x_reshaped = x.reshape(-1, x_shape[-2], x_shape[-1])
+        c = 1.0 / (torch.sum(x_reshaped, dim=-2, keepdim=True) + self.epsilon)
+        r = 1.0 / (torch.matmul(x_reshaped, torch.transpose(c, -1, -2)) + self.epsilon)
         while iter < self.maxiter:
             iter += 1
-            cinv = torch.matmul(r.permute(0, 2, 1), x)
+            cinv = torch.matmul(r.permute(0, 2, 1), x_reshaped)
             if torch.max(torch.abs(cinv * c - 1)) <= self.tol:
                 break
             c = 1.0 / (cinv + self.epsilon)
-            r = 1.0 / (torch.matmul(x, torch.Tensor.permute(c, 0, 2, 1)) + self.epsilon)
-        x = x * torch.matmul(r, c)
-        x = x.reshape(x_shape)
-        return x
+            r = 1.0 / (torch.matmul(x_reshaped, torch.Tensor.permute(c, 0, 2, 1)) + self.epsilon)
+        return (x_reshaped * torch.matmul(r, c)).reshape(x_shape)
+        # x = x.reshape(x_shape)
+        # return x
 
     def proju(self, x, u):
         # takes batch data
@@ -112,14 +112,15 @@ class BirkhoffPolytope(Manifold):
             dim=1
         )
 
-        inv_B = torch.stack([torch.pinverse(_) for _ in B])
-        zeta = torch.matmul(inv_B, b - A[:, :, 0:1])
+        zeta, _ = torch.solve(B.transpose(1, 2) @ (b - A[:, :, 0:1]), B.transpose(1, 2) @ B)
         alpha = torch.cat([torch.ones(batch_size, 1, 1), zeta[:, 0:n - 1]], dim=1)
         beta = zeta[:, n - 1: 2 * n - 1]
         rgrad = mu - (alpha @ e.transpose(1, 2) + e @ beta.transpose(1, 2)) * x
 
         rgrad = rgrad.reshape(x_shape)
         return rgrad
+
+    egrad2rgrad = proju
 
     def retr(self, x, u):
         K = u / x
@@ -128,9 +129,13 @@ class BirkhoffPolytope(Manifold):
         Y = torch.max(Y, Y.new(1).fill_(1e-12))
         return Y
 
+    expmap = retr
+
     def inner(self, x, u, v=None, *, keepdim=False):
+        if v is None:
+            v = u
         batch_size = x.shape[0]
-        return torch.sum(u * v / x, keepdim=keepdim) / batch_size
+        return torch.sum(u * v / x) / batch_size
 
     def transp(self, x, y, v, *more):
         if not more:
@@ -142,3 +147,11 @@ class BirkhoffPolytope(Manifold):
         y = self.retr(x, u)
         vs = self.transp(x, y, v, *more)
         return (y,) + make_tuple(vs)
+
+    expmap_transp = retr_transp
+
+    def transp_follow_retr(self, x, u, v, *more):
+        pass
+
+    def transp_follow_expmap(self, x, u, v, *more):
+        pass
