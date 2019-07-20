@@ -19,7 +19,7 @@ RUN conda update -n base -c defaults conda && \
     pip install -r /opt/geoopt/requirements-dev.txt
 # set source dir as working dir
 WORKDIR /opt/geoopt
-# copy sorces from local machine
+# copy sources from local machine
 COPY $SRC_DIR /opt/geoopt
 # install the package ignoring deps in setup.py
 RUN pip install --no-deps -e .
