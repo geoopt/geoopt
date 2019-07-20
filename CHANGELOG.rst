@@ -29,6 +29,7 @@ Maintenance
 * Manifolds are Modules (#49)
 * Replace deprecated functions in torch>=1.1.0 (#67)
 * Remove PyManOpt from test requirements (#75)
+* Add pylint, pydoctest, pydocstyle to travis
 
 Bug Fixes
 ---------

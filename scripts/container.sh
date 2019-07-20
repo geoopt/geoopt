@@ -41,8 +41,8 @@ if [[ $* == *--test* ]]; then
 
         sed -i 's@/opt/geoopt@'${SRC_DIR}'@g' "$(pwd)/.coverage"
     else
+        # Run without coverage stuff
         docker run --rm -it geoopt:latest \
-        # 4) as usual we run linting
             bash -c "make lint && \
                      pytest -v geoopt tests --durations=0 --doctest-modules"
     fi
