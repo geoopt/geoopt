@@ -26,6 +26,16 @@ _birkhoff_doc = r"""
     "Probabilistic Permutation Synchronization using the Riemannian Structure of the BirkhoffPolytope Polytope"
     IEEE Conference on Computer Vision and Pattern Recognition, CVPR, 2019
     Link to the paper: https://arxiv.org/abs/1904.05814
+    
+    @inproceedings{birdal2019probabilistic,
+    title={Probabilistic Permutation Synchronization using the Riemannian Structure of the Birkhoff Polytope},
+    author={Birdal, Tolga and Simsekli, Umut},
+    booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
+    pages={11105--11116},
+    year={2019}
+    }
+    
+    This implementation is by Tolga Birdal and Haowen Deng.
 """
 
 
