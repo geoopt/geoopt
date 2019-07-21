@@ -133,35 +133,32 @@ class BirkhoffPolytope(Manifold):
     egrad2rgrad = proju
 
     def retr(self, x, u):
-        K = u / x
-        Y = x * torch.exp(K)
-        Y = self.projx(Y)
-        Y = torch.max(Y, Y.new(1).fill_(1e-12))
-        return Y
+        k = u / x
+        y = x * torch.exp(k)
+        y = self.projx(y)
+        y = torch.max(y, y.new(1).fill_(1e-12))
+        return y
 
     expmap = retr
 
     def inner(self, x, u, v=None, *, keepdim=False):
         if v is None:
             v = u
-        batch_size = x.shape[0]
-        return torch.sum(u * v / x) / batch_size
+        n = x.shape[0]
+        return torch.sum(u * v / x) / n
 
-    def transp(self, x, y, v, *more):
-        if not more:
-            return self.proju(y, v)
-        else:
-            return tuple(self.proju(y, v_) for v_ in (v,) + more)
+    def transp(self, x, y, v):
+        return self.proju(y, v)
 
-    def retr_transp(self, x, u, v, *more):
+    def retr_transp(self, x, u, v):
         y = self.retr(x, u)
-        vs = self.transp(x, y, v, *more)
+        vs = self.transp(x, y, v)
         return (y,) + make_tuple(vs)
 
     expmap_transp = retr_transp
 
-    def transp_follow_retr(self, x, u, v, *more):
+    def transp_follow_retr(self, x, u, v):
         pass
 
-    def transp_follow_expmap(self, x, u, v, *more):
+    def transp_follow_expmap(self, x, u, v):
         pass
