@@ -12,7 +12,6 @@ class OptimMixin(object):
         pass
 
     def stabilize(self):
-        """Stabilize parameters if they are off-manifold due to numerical reasons
-        """
+        """Stabilize parameters if they are off-manifold due to numerical reasons."""
         for group in self.param_groups:
             self.stabilize_group(group)

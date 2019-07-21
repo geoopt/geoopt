@@ -30,7 +30,7 @@ class ManifoldTensor(torch.Tensor):
 
     def proj_(self):
         """
-        Inplace projection to the manifold
+        Inplace projection to the manifold.
 
         Returns
         -------
@@ -77,7 +77,7 @@ class ManifoldTensor(torch.Tensor):
 
     def dist(self, other, p=2):
         """
-        Return euclidean  or geodesic distance between points on the manifold. Allows broadcasting
+        Return euclidean  or geodesic distance between points on the manifold. Allows broadcasting.
 
         Parameters
         ----------
@@ -122,6 +122,7 @@ class ManifoldTensor(torch.Tensor):
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
     """Same as :class:`torch.nn.Parameter` that has information about its manifold.
+
     It should be used within :class:`torch.nn.Module` to be recognized
     in parameter collection.
 

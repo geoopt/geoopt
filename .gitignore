@@ -104,10 +104,10 @@ venv.bak/
 .mypy_cache/
 .idea/
 *.cfg
+!setup.cfg
 exman
 .tests
-Makefile
-!docs/Makefile
 cfg/
 data/
 notebooks/
+testing-report.html

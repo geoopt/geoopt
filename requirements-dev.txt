@@ -7,3 +7,6 @@ twine
 wheel
 sphinx
 seaborn
+pydocstyle
+pytest-html
+pylint
