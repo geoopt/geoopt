@@ -1,6 +1,8 @@
 """
+Poincare manifold utility functions.
+
 Functions for math on Poincare ball model. Most of this is taken from
-a well written paper by Octavian-Eugen Ganea (2018) [1]_
+a well written paper by Octavian-Eugen Ganea (2018) [1]_.
 
 
 .. [1] Octavian-Eugen Ganea et al., Hyperbolic Neural Networks, NIPS 2018
@@ -90,7 +92,7 @@ def _project(x, c, dim: int = -1, eps: float = None):
 
 def lambda_x(x, *, c=1.0, keepdim=False, dim=-1):
     r"""
-    Compute the conformal factor :math:`\lambda^c_x` for a point on the ball
+    Compute the conformal factor :math:`\lambda^c_x` for a point on the ball.
 
     .. math::
 
@@ -121,7 +123,7 @@ def _lambda_x(x, c, keepdim: bool = False, dim: int = -1):
 
 def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
     r"""
-    Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball
+    Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball.
 
     .. math::
 
@@ -158,7 +160,7 @@ def _inner(x, u, v, c, keepdim: bool = False, dim: int = -1):
 
 def norm(x, u, *, c=1.0, keepdim=False, dim=-1):
     r"""
-    Compute vector norm on the tangent space w.r.t Riemannian metric on the Poincare ball
+    Compute vector norm on the tangent space w.r.t Riemannian metric on the Poincare ball.
 
     .. math::
 
@@ -193,7 +195,7 @@ def _norm(x, u, c, keepdim: bool = False, dim: int = -1):
 
 def mobius_add(x, y, *, c=1.0, dim=-1):
     r"""
-    Mobius addition is a special operation in a hyperbolic space.
+    Compute Mobius addition is a special operation in a hyperbolic space.
 
     .. math::
 
@@ -273,7 +275,9 @@ def _mobius_add(x, y, c, dim=-1):
 
 def mobius_sub(x, y, *, c=1.0, dim=-1):
     r"""
-    Mobius substraction that can be represented via Mobius addition as follows:
+    Compute Mobius substraction.
+
+    Mobius substraction can be represented via Mobius addition as follows:
 
     .. math::
 
@@ -304,7 +308,7 @@ def _mobius_sub(x, y, c, dim: int = -1):
 
 def mobius_coadd(x, y, *, c=1.0, dim=-1):
     r"""
-    Mobius coaddition operation
+    Compute Mobius coaddition operation.
 
     Addition operation :math:`\oplus_c` is neither associative, nor commutative. Coaddition, or cooperation in
     Gyrogroup is an associative operation that is defined as follows.
@@ -357,8 +361,10 @@ def _mobius_coadd(x, y, c, dim: int = -1):
 
 
 def mobius_cosub(x, y, *, c=1.0, dim=-1):
-    """
-    Mobius cosubstraction operation
+    r"""
+    Compute Mobius cosubstraction operation.
+
+    Mobius cosubstraction is defined as follows:
 
     .. math::
 
@@ -390,7 +396,7 @@ def _mobius_cosub(x, y, c, dim: int = -1):
 
 def mobius_scalar_mul(r, x, *, c=1.0, dim=-1):
     r"""
-    Left scalar multiplication on the Poincare ball
+    Compute left scalar multiplication on the Poincare ball.
 
     .. math::
 
@@ -450,7 +456,7 @@ def _mobius_scalar_mul(r, x, c, dim: int = -1):
 
 def dist(x, y, *, c=1.0, keepdim=False, dim=-1):
     r"""
-    Distance on the Poincare ball
+    Compute geodesic distance on the Poincare ball.
 
     .. math::
 
@@ -489,7 +495,7 @@ def _dist(x, y, c, keepdim: bool = False, dim: int = -1):
 
 def dist0(x, *, c=1.0, keepdim=False, dim=-1):
     r"""
-    Distance on the Poincare ball to zero
+    Compute geodesic distance on the Poincare ball to zero.
 
     Parameters
     ----------
@@ -518,6 +524,8 @@ def _dist0(x, c, keepdim: bool = False, dim: int = -1):
 
 def geodesic(t, x, y, *, c=1.0, dim=-1):
     r"""
+    Compute geodesic at the time point :math:`t`.
+
     Geodesic (the shortest) path connecting :math:`x` and :math:`y`.
     The path can be treated as and extension of a line segment between
     points but in a Riemannian manifold. In Poincare ball model, the path
@@ -582,6 +590,8 @@ def _geodesic(t, x, y, c, dim: int = -1):
 
 def expmap(x, u, *, c=1.0, dim=-1):
     r"""
+    Compute exponential map on the Poincare ball.
+
     Exponential map for Poincare ball model. This is tightly related with :func:`geodesic`.
     Intuitively Exponential map is a smooth constant travelling from starting point :math:`x` with speed :math:`u`.
 
@@ -634,7 +644,7 @@ def _expmap(x, u, c, dim: int = -1):
 
 def expmap0(u, *, c=1.0, dim=-1):
     r"""
-    Exponential map for Poincare ball model from :math:`0`.
+    Compute exponential map for Poincare ball model from :math:`0`.
 
     .. math::
 
@@ -666,7 +676,7 @@ def _expmap0(u, c, dim: int = -1):
 
 def geodesic_unit(t, x, u, *, c=1.0, dim=-1):
     r"""
-    Unit speed geodesic starting from :math:`x` with direction :math:`u/\|u\|_x`
+    Compute unit speed geodesic at time :math:`t` starting from :math:`x` with direction :math:`u/\|u\|_x`.
 
     .. math::
 
@@ -703,7 +713,7 @@ def _geodesic_unit(t, x, u, c, dim: int = -1):
 
 def logmap(x, y, *, c=1.0, dim=-1):
     r"""
-    Logarithmic map for two points :math:`x` and :math:`y` on the manifold.
+    Compute logarithmic map for two points :math:`x` and :math:`y` on the manifold.
 
     .. math::
 
@@ -747,8 +757,7 @@ def _logmap(x, y, c, dim: int = -1):
 
 def logmap0(y, *, c=1.0, dim=-1):
     r"""
-    Logarithmic map for :math:`y` from :math:`0` on the manifold.
-
+    Compute logarithmic map for :math:`y` from :math:`0` on the manifold.
 
     .. math::
 
@@ -785,7 +794,9 @@ def _logmap0(y, c, dim: int = -1):
 
 def mobius_matvec(m, x, *, c=1.0, dim=-1):
     r"""
-    Generalization for matrix-vector multiplication to hyperbolic space defined as
+    Compute a generalization for matrix-vector multiplication to hyperbolic space.
+
+    Mobius matrix vector operation is defined as follows:
 
     .. math::
 
@@ -836,7 +847,9 @@ def _mobius_matvec(m, x, c, dim: int = -1):
 
 def mobius_pointwise_mul(w, x, *, c=1.0, dim=-1):
     r"""
-    Generalization for point-wise multiplication to hyperbolic space defined as
+    Compute a generalization for point-wise multiplication to hyperbolic space.
+
+    Mobius pointwise multiplication is defined as follows
 
     .. math::
 
@@ -878,7 +891,8 @@ def _mobius_pointwise_mul(w, x, c, dim: int = -1):
 
 def mobius_fn_apply_chain(x, *fns, c=1.0, dim=-1):
     r"""
-    Generalization for functions in hyperbolic space.
+    Compute a generalization for sequential function application in hyperbolic space.
+
     First, hyperbolic vector is mapped to a Euclidean space via
     :math:`\operatorname{Log}^c_0` and nonlinear function is applied in this tangent space.
     The resulting vector is then mapped back with :math:`\operatorname{Exp}^c_0`
@@ -927,7 +941,8 @@ def mobius_fn_apply_chain(x, *fns, c=1.0, dim=-1):
 
 def mobius_fn_apply(fn, x, *args, c=1.0, dim=-1, **kwargs):
     r"""
-    Generalization for functions in hyperbolic space.
+    Compute a generalization for function application in hyperbolic space.
+
     First, hyperbolic vector is mapped to a Euclidean space via
     :math:`\operatorname{Log}^c_0` and nonlinear function is applied in this tangent space.
     The resulting vector is then mapped back with :math:`\operatorname{Exp}^c_0`
@@ -962,7 +977,7 @@ def mobius_fn_apply(fn, x, *args, c=1.0, dim=-1, **kwargs):
 
 def mobiusify(fn):
     r"""
-    Wraps a function so that is works in hyperbolic space. New function will accept additional argument ``c``
+    Wrap a function so that is works in hyperbolic space.
 
     Parameters
     ----------
@@ -973,6 +988,10 @@ def mobiusify(fn):
     -------
     callable
         function working in hyperbolic space
+
+    Notes
+    -----
+    New function will accept additional argument ``c``.
     """
 
     @functools.wraps(fn)
@@ -987,8 +1006,9 @@ def mobiusify(fn):
 
 def dist2plane(x, p, a, *, c=1.0, keepdim=False, signed=False, dim=-1):
     r"""
-    Distance from :math:`x` to a hyperbolic hyperplane in Poincare ball
-    that is orthogonal to :math:`a` and contains :math:`p`.
+    Compute geodesic distance from :math:`x` to a hyperbolic hyperplane in Poincare ball.
+
+    The distance is computed to a plane that is orthogonal to :math:`a` and contains :math:`p`.
 
     .. plot:: plots/extended/poincare/distance2plane.py
 
@@ -1113,7 +1133,9 @@ def _dist2plane(x, a, p, c, keepdim: bool = False, signed: bool = False, dim: in
 
 def gyration(a, b, u, *, c=1.0, dim=-1):
     r"""
-    Gyration is a special operation in hyperbolic geometry.
+    Apply gyration :math:`\operatorname{gyr}[u, v]w`.
+
+    Guration is a special operation in hyperbolic geometry.
     Addition operation :math:`\oplus_c` is not associative (as mentioned in :func:`mobius_add`),
     but gyroassociative which means
 
@@ -1184,6 +1206,8 @@ def _gyration(u, v, w, c, dim: int = -1):
 
 def parallel_transport(x, y, v, *, c=1.0, dim=-1):
     r"""
+    Perform parallel transport on the Poincare ball.
+
     Parallel transport is essential for adaptive algorithms in Riemannian manifolds.
     For Hyperbolic spaces parallel transport is expressed via gyration.
 
@@ -1248,6 +1272,8 @@ def _parallel_transport(x, y, u, c, dim: int = -1):
 
 def parallel_transport0(y, v, *, c=1.0, dim=-1):
     r"""
+    Perform parallel transport from zero point.
+
     Special case parallel transport with starting point at zero that
     can be computed more efficiently and numerically stable
 
@@ -1275,6 +1301,8 @@ def _parallel_transport0(y, v, c, dim: int = -1):
 
 def parallel_transport0back(x, v, *, c=1.0, dim: int = -1):
     r"""
+    Perform parallel transport to the zero point.
+
     Special case parallel transport with last point at zero that
     can be computed more efficiently and numerically stable
 
@@ -1302,7 +1330,7 @@ def _parallel_transport0back(x, v, c, dim: int = -1):
 
 def egrad2rgrad(x, grad, *, c=1.0, dim=-1):
     r"""
-    Translate Euclidean gradient to Riemannian gradient on tangent space of :math:`x`
+    Translate Euclidean gradient to Riemannian gradient on tangent space of :math:`x`.
 
     .. math::
 

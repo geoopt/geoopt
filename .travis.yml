@@ -15,17 +15,16 @@ before_install:
   - docker --version
 
 install:
-  - . ./scripts/container.sh --build
+  - make docker
   # Print conda details
   - docker run --rm geoopt:latest bash -c "conda info -a"
   # Print conda environment details
   - docker run --rm geoopt:latest bash -c "conda list && pip freeze"
   # install coverage if needed
-  - if [[ $COVERAGE ]]; then pip install coveralls black; fi
+  - if [[ $COVERAGE ]]; then pip install -r requirements-dev.txt; fi
 
 script:
-  - if [[ $COVERAGE ]]; then black --check --diff geoopt tests; fi
-  - ./scripts/container.sh --test
+  - make docker-test
 
 after_success:
   - echo $(pwd)

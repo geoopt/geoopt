@@ -1,7 +1,6 @@
-"""
-author: nsde
-maintainer: ferrine
-"""
+# author: @nsde
+# maintainer: @ferrine
+
 
 import torch.jit
 

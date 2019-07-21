@@ -31,3 +31,15 @@ class Sampler(OptimMixin, optim.Optimizer):
             return self.n_rejected / self.steps
         else:
             return 0.0
+
+    def step(self, closure):
+        """
+        Perform a single sampling step.
+
+        Arguments
+        ---------
+        closure: callable
+            A closure that reevaluates the model
+            and returns the log probability.
+        """
+        raise NotImplementedError

@@ -7,7 +7,7 @@ from ..base import Manifold
 __all__ = ["PoincareBall", "PoincareBallExact"]
 
 _poincare_ball_doc = r"""
-    Poincare ball model, see more in :doc:`/extended/poincare`
+    Poincare ball model, see more in :doc:`/extended/poincare`.
 
     Parameters
     ----------
@@ -218,8 +218,7 @@ class PoincareBall(Manifold):
 
     def random_normal(self, *size, mean=0, std=1):
         """
-        Method to create a point on the manifold, measure is induced by Normal distribution on the
-        tangent space of zero
+        Create a point on the manifold, measure is induced by Normal distribution on the tangent space of zero.
 
         Parameters
         ----------
@@ -247,7 +246,7 @@ class PoincareBall(Manifold):
 class PoincareBallExact(PoincareBall):
     __doc__ = r"""{}
 
-    The implementation of retraction is an exact exponential map, this retraction will be used in optimization
+    The implementation of retraction is an exact exponential map, this retraction will be used in optimization.
     
     See Also
     --------
