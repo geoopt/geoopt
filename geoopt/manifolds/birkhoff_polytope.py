@@ -158,7 +158,9 @@ class BirkhoffPolytope(Manifold):
     expmap_transp = retr_transp
 
     def transp_follow_retr(self, x, u, v):
-        pass
+        y = self.retr(x, u)
+        return self.transp(x, y, v)
 
     def transp_follow_expmap(self, x, u, v):
-        pass
+        y = self.expmap(x, u)
+        return self.transp(x, y, v)
