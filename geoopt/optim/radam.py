@@ -88,7 +88,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     grad = manifold.egrad2rgrad(point, grad)
                     exp_avg.mul_(betas[0]).add_(1 - betas[0], grad)
                     exp_avg_sq.mul_(betas[1]).add_(
-                        1 - betas[1], manifold.inner(point, grad, keepdim=True)
+                        1 - betas[1], manifold.inner(grad, grad, keepdim=True)
                     )
                     if amsgrad:
                         max_exp_avg_sq = state["max_exp_avg_sq"]
