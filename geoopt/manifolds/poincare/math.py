@@ -23,7 +23,7 @@ def tanh(x):
 class Artanh(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
-        x = x.clamp(-1 + 1e-15, 1 - 1e-15)
+        x = x.clamp(-1 + 1e-5, 1 - 1e-5)
         ctx.save_for_backward(x)
         dtype = x.dtype
         x = x.double()
