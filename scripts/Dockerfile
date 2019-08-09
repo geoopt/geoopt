@@ -4,7 +4,7 @@ LABEL maintainer="Maxim Kochurov <maxim.v.kochurov@gmail.com>"
 # source files for geoopt
 ARG SRC_DIR
 # pytorch version
-ARG PYTORCH=pytorch
+ARG PYTORCH_CHANNEL=pytorch
 # python version
 ARG PYTHON_VERSION=3.6
 # additional requirements
@@ -15,7 +15,7 @@ COPY $SRC_DIR/requirements-dev.txt /opt/geoopt/requirements-dev.txt
 # start with python version and numpy with mkl support, then the rest
 RUN conda update -n base -c defaults conda && \
     conda install --yes python=${PYTHON_VERSION} pip numpy mkl-service && \
-    conda install --yes ${PYTORCH} -c pytorch && \
+    conda install --yes pytorch -c ${PYTORCH_CHANNEL} && \
     pip install -r /opt/geoopt/requirements-dev.txt
 # set source dir as working dir
 WORKDIR /opt/geoopt

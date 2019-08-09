@@ -3,7 +3,7 @@ set -e
 # prototype is taken from  https://github.com/arviz-devs/arviz/blob/master/scripts/container.sh
 SRC_DIR=${SRC_DIR:-`pwd`}
 COVERAGE=${COVERAGE:-"--cov geoopt"}
-PYTORCH=${PYTORCH:-"pytorch"}
+PYTORCH_CHANNEL=${PYTORCH_CHANNEL:-"pytorch"}
 PYTHON_VERSION=${PYTHON_VERSION:-"3.6"}
 # Build container for use of testing or notebook
 if [[ $* == *--build* ]]; then
@@ -12,7 +12,7 @@ if [[ $* == *--build* ]]; then
         -t geoopt \
         -f ${SRC_DIR}/scripts/Dockerfile \
         --build-arg SRC_DIR=. ${SRC_DIR} \
-        --build-arg PYTORCH=${PYTORCH} \
+        --build-arg PYTORCH_CHANNEL=${PYTORCH_CHANNEL} \
         --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
         --rm
 fi
