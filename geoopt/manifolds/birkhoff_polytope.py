@@ -42,7 +42,9 @@ _birkhoff_doc = r"""
 class BirkhoffPolytope(Manifold):
     __doc__ = r"""
     {}
-    """.format(_birkhoff_doc)
+    """.format(
+        _birkhoff_doc
+    )
     name = "BirkhoffPolytope"
 
     ## batch_size \times n \times n
@@ -61,19 +63,33 @@ class BirkhoffPolytope(Manifold):
         shape_is_ok = shape[-1] == shape[-2]
 
         if not shape_is_ok:
-            return False, "`{}` should have shape[-1] == shape[-2], got {} != {}".format(name, shape[-1], shape[-2])
+            return (
+                False,
+                "`{}` should have shape[-1] == shape[-2], got {} != {}".format(
+                    name, shape[-1], shape[-2]
+                ),
+            )
 
         return True, None
 
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         row_sum = x.sum(dim=-1)
         col_sum = x.sum(dim=-2)
-        row_ok = torch.allclose(row_sum, row_sum.new((1,)).fill_(1), atol=atol, rtol=rtol)
-        col_ok = torch.allclose(col_sum, col_sum.new((1,)).fill_(1), atol=atol, rtol=rtol)
+        row_ok = torch.allclose(
+            row_sum, row_sum.new((1,)).fill_(1), atol=atol, rtol=rtol
+        )
+        col_ok = torch.allclose(
+            col_sum, col_sum.new((1,)).fill_(1), atol=atol, rtol=rtol
+        )
         if row_ok and col_ok:
             return True, None
         else:
-            return False, "illegal doubly stochastic matrix with atol={}, rtol={}".format(atol, rtol)
+            return (
+                False,
+                "illegal doubly stochastic matrix with atol={}, rtol={}".format(
+                    atol, rtol
+                ),
+            )
 
     def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         diff = u.transpose(-1, -2) @ x + x.transpose(-1, -2) @ u
@@ -94,7 +110,10 @@ class BirkhoffPolytope(Manifold):
             if torch.max(torch.abs(cinv * c - 1)) <= self.tol:
                 break
             c = 1.0 / (cinv + self.epsilon)
-            r = 1.0 / (torch.matmul(x_reshaped, torch.Tensor.permute(c, 0, 2, 1)) + self.epsilon)
+            r = 1.0 / (
+                torch.matmul(x_reshaped, torch.Tensor.permute(c, 0, 2, 1))
+                + self.epsilon
+            )
         return (x_reshaped * torch.matmul(r, c)).reshape(x_shape)
         # x = x.reshape(x_shape)
         # return x
@@ -117,14 +136,16 @@ class BirkhoffPolytope(Manifold):
         b = torch.cat(
             [
                 torch.sum(mu, dim=2, keepdim=True),
-                torch.transpose(torch.sum(mu, dim=1, keepdim=True), 1, 2)
+                torch.transpose(torch.sum(mu, dim=1, keepdim=True), 1, 2),
             ],
-            dim=1
+            dim=1,
         )
 
-        zeta, _ = torch.solve(B.transpose(1, 2) @ (b - A[:, :, 0:1]), B.transpose(1, 2) @ B)
-        alpha = torch.cat([torch.ones(batch_size, 1, 1), zeta[:, 0:n - 1]], dim=1)
-        beta = zeta[:, n - 1: 2 * n - 1]
+        zeta, _ = torch.solve(
+            B.transpose(1, 2) @ (b - A[:, :, 0:1]), B.transpose(1, 2) @ B
+        )
+        alpha = torch.cat([torch.ones(batch_size, 1, 1), zeta[:, 0 : n - 1]], dim=1)
+        beta = zeta[:, n - 1 : 2 * n - 1]
         rgrad = mu - (alpha @ e.transpose(1, 2) + e @ beta.transpose(1, 2)) * x
 
         rgrad = rgrad.reshape(x_shape)
