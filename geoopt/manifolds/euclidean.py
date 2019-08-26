@@ -1,6 +1,6 @@
 import torch
 from .base import Manifold
-from ..utils import strip_tuple, size2shape
+from ..utils import size2shape
 import geoopt
 
 

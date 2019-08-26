@@ -257,50 +257,6 @@ def test_broadcast_transp(unary_case):
         np.testing.assert_allclose(q, qq, atol=1e-5)
 
 
-def test_broadcast_transp_many(unary_case):
-    pX = torch.stack([unary_case.x] * 4)
-    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    F = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    pU = unary_case.manifold.proju(pX, U)
-    pV = unary_case.manifold.proju(pX, V)
-    pF = unary_case.manifold.proju(pX, F)
-    Y = unary_case.manifold.retr(pX, pU)
-    Q, P = unary_case.manifold.transp_follow_retr(pX, pU, pV, pF)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, Q)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, P)
-    for y, q, p in zip(Y, Q, P):
-        unary_case.manifold.assert_check_vector_on_tangent(y, q)
-        unary_case.manifold.assert_check_vector_on_tangent(y, p)
-    for px, pu, pv, pf, y, q, p in zip(pX, pU, pV, pF, Y, Q, P):
-        qq, pp = unary_case.manifold.transp_follow_retr(px, pu, pv, pf)
-        np.testing.assert_allclose(q, qq, atol=1e-5)
-        np.testing.assert_allclose(p, pp, atol=1e-5)
-
-
-def test_broadcast_retr_transp_many(unary_case):
-    pX = torch.stack([unary_case.x] * 4)
-    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    F = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    pU = unary_case.manifold.proju(pX, U)
-    pV = unary_case.manifold.proju(pX, V)
-    pF = unary_case.manifold.proju(pX, F)
-    Y = unary_case.manifold.retr(pX, pU)
-    Z, Q, P = unary_case.manifold.retr_transp(pX, pU, pV, pF)
-    np.testing.assert_allclose(Z, Y, atol=1e-5)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, Q)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, P)
-    for y, q, p in zip(Y, Q, P):
-        unary_case.manifold.assert_check_vector_on_tangent(y, q)
-        unary_case.manifold.assert_check_vector_on_tangent(y, p)
-    for px, pu, pv, pf, y, q, p in zip(pX, pU, pV, pF, Y, Q, P):
-        zz, qq, pp = unary_case.manifold.retr_transp(px, pu, pv, pf)
-        np.testing.assert_allclose(zz, y, atol=1e-5)
-        np.testing.assert_allclose(q, qq, atol=1e-5)
-        np.testing.assert_allclose(p, pp, atol=1e-5)
-
-
 def test_reversibility(unary_case):
     if unary_case.manifold.reversible:
         pX = torch.stack([unary_case.x] * 4)
@@ -317,7 +273,7 @@ def test_reversibility(unary_case):
         )
 
 
-def test_logmap_many(unary_case):
+def test_logmap(unary_case):
     try:
         pX = torch.stack([unary_case.x] * 4)
         U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)

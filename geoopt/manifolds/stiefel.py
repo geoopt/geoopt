@@ -2,7 +2,7 @@ import torch
 
 from .base import Manifold
 from .. import linalg
-from ..utils import strip_tuple, make_tuple, size2shape
+from ..utils import size2shape
 from ..tensor import ManifoldTensor
 
 

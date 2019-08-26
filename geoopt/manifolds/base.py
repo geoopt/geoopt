@@ -337,7 +337,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         y = self.expmap(x, u)
         v_transp = self.transp(x, y, v)
-        return (y, v_transp)
+        return y, v_transp
 
     def retr_transp(self, x, u, v):
         """
@@ -366,7 +366,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         y = self.retr(x, u)
         v_transp = self.transp(x, y, v)
-        return (y, v_transp)
+        return y, v_transp
 
     def transp_follow_retr(self, x, u, v):
         r"""
