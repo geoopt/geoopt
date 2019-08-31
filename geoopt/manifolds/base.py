@@ -341,7 +341,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def retr_transp(self, x, u, v):
         """
-        Perform a retraction + vector transport at once
+        Perform a retraction + vector transport at once.
 
         Parameters
         ----------
@@ -392,11 +392,12 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         return self.transp(x, y, v)
 
     def transp_follow_expmap(self, x, u, v):
-        """
-        Perform vector transport from point :math:`x` for vector :math:`v` following a
-        and exponential (best possible retraction) map using vector :math:`u`
+        r"""
+        Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
 
-        Either :math:`y` or :math:`u` should present but not both
+        Here, :math:`\operatorname{Exp}` is the best possible approximation of the true exponential map.
+        There are cases when the exact variant is hard or impossible implement, therefore a
+        fallback, non-exact, implementation is used.
 
         Parameters
         ----------
@@ -416,7 +417,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         return self.transp(x, y, v)
 
     def transp(self, x, y, v):
-        """
+        r"""
         Perform vector transport :math:`\mathfrac{T}_{x\to y}(v)`.
 
         Parameters

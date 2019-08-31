@@ -18,7 +18,7 @@ docker-test:  # Run tests in a Docker image.
 	@printf "Testing in Docker image...\n"
 	${SHELL} ./scripts/container.sh --test
 
-dockstyle-check:  # Check geoopt with pydocstyle
+docstyle-check:  # Check geoopt with pydocstyle
 	@printf "Checking documentation with pydocstyle...\n"
 	pydocstyle geoopt
 	@printf "\033[1;34mPydocstyle passes!\033[0m\n\n"
@@ -39,7 +39,7 @@ black:  # Format code in-place using black.
 test:  # Test code using pytest.
 	pytest -v geoopt tests --doctest-modules --html=testing-report.html --self-contained-html
 
-lint: linter-check codestyle-check dockstyle-check # Lint code using black and pylint (no pydocstyle yet).
+lint: linter-check codestyle-check docstyle-check # Lint code using black and pylint (no pydocstyle yet).
 
 check: lint test # Both lint and test code. Runs `make lint` followed by `make test`.
 

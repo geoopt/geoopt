@@ -152,9 +152,7 @@ class CanonicalStiefel(Stiefel):
     transp_follow_expmap = transp_follow_retr
 
     def retr_transp(self, x, u, v):
-        """
-        An optimized retr_transp for Stiefel Manifold
-        """
+        """Calculate an optimized retr_transp for Stiefel Manifold."""
         xvs = torch.cat((x, v), -1)
         qxvs = self._transp_follow_one(x, xvs, u=u).view(
             x.shape[:-1] + (-1, x.shape[-1])
