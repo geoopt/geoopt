@@ -23,7 +23,7 @@ _poincare_ball_doc = r"""
 # noinspection PyMethodOverriding
 class PoincareBall(Manifold):
     __doc__ = r"""{}
- 
+
     See Also
     --------
     :class:`PoincareBallExact`
@@ -86,32 +86,26 @@ class PoincareBall(Manifold):
     def logmap(self, x, y, *, dim=-1):
         return math.logmap(x, y, c=self.c, dim=dim)
 
-    def transp(self, x, y, v, *more, dim=-1):
-        if not more:
-            return math.parallel_transport(x, y, v, c=self.c, dim=dim)
-        else:
-            return tuple(
-                math.parallel_transport(x, y, vec, c=self.c, dim=dim)
-                for vec in (v, *more)
-            )
+    def transp(self, x, y, v, dim=-1):
+        return math.parallel_transport(x, y, v, c=self.c, dim=dim)
 
-    def transp_follow_retr(self, x, u, v, *more, dim=-1):
+    def transp_follow_retr(self, x, u, v, dim=-1):
         y = self.retr(x, u, dim=dim)
-        return self.transp(x, y, v, *more, dim=dim)
+        return self.transp(x, y, v, dim=dim)
 
-    def transp_follow_expmap(self, x, u, v, *more, dim=-1, project=True):
+    def transp_follow_expmap(self, x, u, v, dim=-1, project=True):
         y = self.expmap(x, u, dim=dim, project=project)
-        return self.transp(x, y, v, *more, dim=dim)
+        return self.transp(x, y, v, dim=dim)
 
-    def expmap_transp(self, x, u, v, *more, dim=-1, project=True):
+    def expmap_transp(self, x, u, v, dim=-1, project=True):
         y = self.expmap(x, u, dim=dim, project=project)
-        vs = self.transp(x, y, v, *more, dim=dim)
-        return (y,) + make_tuple(vs)
+        v_transp = self.transp(x, y, v, dim=dim)
+        return (y, v_transp)
 
-    def retr_transp(self, x, u, v, *more, dim=-1):
+    def retr_transp(self, x, u, v, dim=-1):
         y = self.retr(x, u, dim=dim)
-        vs = self.transp(x, y, v, *more, dim=dim)
-        return (y,) + make_tuple(vs)
+        v_transp = self.transp(x, y, v, dim=dim)
+        return (y, v_transp)
 
     def mobius_add(self, x, y, *, dim=-1, project=True):
         res = math.mobius_add(x, y, c=self.c, dim=dim)
@@ -247,7 +241,7 @@ class PoincareBallExact(PoincareBall):
     __doc__ = r"""{}
 
     The implementation of retraction is an exact exponential map, this retraction will be used in optimization.
-    
+
     See Also
     --------
     :class:`PoincareBall`
