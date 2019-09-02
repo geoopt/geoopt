@@ -296,11 +296,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -------
         tensor
             transported point
-
-        Notes
-        -----
-        By default, no error is raised if exponential map is not implemented. If so,
-        the best approximation to exponential map is applied instead.
         """
         raise NotImplementedError
 
@@ -322,8 +317,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def expmap_transp(self, x, u, v, *more):
+    def expmap_transp(self, x, u, v):
         """
         Perform an exponential map and vector transport from point :math:`x` with given direction :math:`u`.
 
@@ -335,23 +329,46 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             tangent vector at point :math:`x`
         v : tensor
             tangent vector at point :math:`x` to be transported
-        more : tensors
-            other tangent vectors at point :math:`x` to be transported
 
         Returns
         -------
         tensor
             transported point
+        """
+        y = self.expmap(x, u)
+        v_transp = self.transp(x, y, v)
+        return y, v_transp
+
+    def retr_transp(self, x, u, v):
+        """
+        Perform a retraction + vector transport at once.
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        v : tensor
+            tangent vector at point :math:`x` to be transported
+        u : tensor
+            tangent vector at point :math:`x` (required keyword only argument)
+        order : int
+            order of retraction approximation, by default uses the simplest.
+            Possible choices depend on a concrete manifold and -1 stays for exponential map
+
+        Returns
+        -------
+        tuple of tensors
+            transported point and vectors
 
         Notes
         -----
-        By default, no error is raised if exponential map is not implemented. If so,
-        the best approximation to exponential map is applied instead.
+        Sometimes this is a far more optimal way to preform retraction + vector transport
         """
-        raise NotImplementedError
+        y = self.retr(x, u)
+        v_transp = self.transp(x, y, v)
+        return y, v_transp
 
-    @abc.abstractmethod
-    def transp_follow_retr(self, x, u, v, *more):
+    def transp_follow_retr(self, x, u, v):
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{retr}(x, u)}(v)`.
 
@@ -365,20 +382,22 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             tangent vector at point :math:`x`
         v : tensor
             tangent vector at point :math:`x` to be transported
-        more : tensors
-            other tangent vectors at point :math:`x` to be transported
 
         Returns
         -------
-        tensor or tuple of tensors
-            transported tensor(s)
+        tensor
+            transported tensor
         """
-        raise NotImplementedError
+        y = self.retr(x, u)
+        return self.transp(x, y, v)
 
-    @abc.abstractmethod
-    def transp_follow_expmap(self, x, u, v, *more):
+    def transp_follow_expmap(self, x, u, v):
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
+
+        Here, :math:`\operatorname{Exp}` is the best possible approximation of the true exponential map.
+        There are cases when the exact variant is hard or impossible implement, therefore a
+        fallback, non-exact, implementation is used.
 
         Parameters
         ----------
@@ -388,17 +407,16 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             tangent vector at point :math:`x`
         v : tensor
             tangent vector at point :math:`x` to be transported
-        more : tensors
-            other tangent vectors at point :math:`x` to be transported
 
         Returns
         -------
-        tensor or tuple of tensors
-            transported tensor(s)
+        tensor
+            transported tensor
         """
-        raise NotImplementedError
+        y = self.expmap(x, u)
+        return self.transp(x, y, v)
 
-    def transp(self, x, y, v, *more):
+    def transp(self, x, y, v):
         r"""
         Perform vector transport :math:`\mathfrac{T}_{x\to y}(v)`.
 
@@ -410,9 +428,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             target point on the manifold
         v : tensor
             tangent vector at point :math:`x`
-
-        more : tensors
-           other tangent vectors at point :math:`x` to be transported
 
         Returns
         -------
@@ -516,33 +531,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -------
         tensor
             projected point
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def retr_transp(self, x, u, v, *more):
-        """
-        Perform an retraction and vector transport from point :math:`x` with given direction :math:`u`.
-
-        Parameters
-        ----------
-        x : tensor
-            point on the manifold
-        u : tensor
-            tangent vector at point :math:`x`
-        v : tensor
-            tangent vector at point :math:`x` to be transported
-        more : tensors
-            other tangent vector at point :math:`x` to be transported
-
-        Returns
-        -------
-        tuple of tensors
-            transported point and vectors
-
-        Notes
-        -----
-        Sometimes this is a far more optimal way to preform retraction + vector transport
         """
         raise NotImplementedError
 

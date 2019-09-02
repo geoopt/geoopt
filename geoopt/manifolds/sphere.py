@@ -2,7 +2,7 @@ import torch
 
 from .base import Manifold
 from ..tensor import ManifoldTensor
-from ..utils import strip_tuple, make_tuple, size2shape
+from ..utils import size2shape
 import geoopt.linalg.batch_linalg
 
 __all__ = ["Sphere", "SphereExact"]
@@ -30,7 +30,7 @@ _sphere_doc = r"""
 
 class Sphere(Manifold):
     __doc__ = r"""{}
-    
+
     See Also
     --------
     :class:`SphereExact`
@@ -129,27 +129,8 @@ class Sphere(Manifold):
     def retr(self, x, u):
         return self.projx(x + u)
 
-    def transp_follow_retr(self, x, u, v, *more):
-        y = self.retr(x, u)
-        return self.transp(x, y, v, *more)
-
-    def transp(self, x, y, v, *more):
-        result = tuple(self.proju(y, _v) for _v in (v,) + more)
-        return strip_tuple(result)
-
-    def transp_follow_expmap(self, x, u, v, *more):
-        y = self.expmap(x, u)
-        return self.transp(x, y, v, *more)
-
-    def expmap_transp(self, x, u, v, *more):
-        y = self.expmap(x, u)
-        vs = self.transp(x, y, v, *more)
-        return (y,) + make_tuple(vs)
-
-    def retr_transp(self, x, u, v, *more):
-        y = self.retr(x, u)
-        vs = self.transp(x, y, v, *more)
-        return (y,) + make_tuple(vs)
+    def transp(self, x, y, v):
+        return self.proju(y, v)
 
     def logmap(self, x, y):
         u = self.proju(x, y - x)
@@ -230,7 +211,7 @@ class SphereExact(Sphere):
     See Also
     --------
     :class:`Sphere`
-    
+
     Notes
     -----
     The implementation of retraction is an exact exponential map, this retraction will be used in optimization
