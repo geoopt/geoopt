@@ -164,7 +164,6 @@ def sphere_case():
 
 
 @pytest.fixture(
-    "module",
     params=itertools.chain(
         euclidean_case(),
         sphere_case(),
