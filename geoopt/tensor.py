@@ -89,8 +89,6 @@ class ManifoldTensor(torch.Tensor):
         Returns
         -------
         scalar
-
-
         """
         if p == "g":
             return self.manifold.dist(self, other)
@@ -118,6 +116,10 @@ class ManifoldTensor(torch.Tensor):
             dict(),
         )
         return _rebuild_manifold_parameter, proto + (self.manifold,)
+
+    @insert_docs(Manifold.as_point.__doc__, r"\s+tensor : .+\n.+", "")
+    def as_point(self):
+        return self.manifold.as_point(self)
 
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):

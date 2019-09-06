@@ -655,3 +655,18 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             return self.name + "({}) manifold".format(extra)
         else:
             return self.name + " manifold"
+
+    def as_point(self, tensor):
+        """
+        Construct a point on the manifold.
+
+        This method should help to work with product and compound manifolds.
+        Internally all points on the manifold are stored in an intuitive format.
+        However, there might be cases, when this representation is simpler or more efficient to store in
+        a different way that is hard to use in practice.
+
+        Returns
+        -------
+        Union[torch.Tensor|List[torch.Tensor]]
+        """
+        return tensor
