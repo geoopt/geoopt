@@ -12,7 +12,7 @@ class ManifoldTensor(torch.Tensor):
     Other Parameters
     ----------------
     manifold : :class:`geoopt.Manifold`
-        A manifold for the tensor, (default: :class:`geoopt.R`)
+        A manifold for the tensor, (default: :class:`geoopt.Euclidean`)
     """
 
     def __new__(cls, *args, manifold=Euclidean(), requires_grad=False, **kwargs):
@@ -136,7 +136,7 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
         if data is None:
             data = ManifoldTensor(manifold=manifold)
         elif not isinstance(data, ManifoldTensor):
-            data = ManifoldTensor(data, manifold=manifold or R())
+            data = ManifoldTensor(data, manifold=manifold or Euclidean())
         else:
             if manifold is not None and data.manifold != manifold:
                 raise ValueError(
