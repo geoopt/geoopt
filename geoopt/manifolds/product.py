@@ -55,7 +55,9 @@ class ProductManifold(Manifold):
     def reversible(self):
         return all(m.reversible for m in self.manifolds)
 
-    def take_submanifold_value(self, x: torch.Tensor, i: int, reshape=True):
+    def take_submanifold_value(
+        self, x: torch.Tensor, i: int, reshape=True
+    ) -> torch.Tensor:
         """
         Take i'th slice of the ambient tensor and possibly reshape.
 
@@ -70,7 +72,7 @@ class ProductManifold(Manifold):
 
         Returns
         -------
-        tensor
+        torch.Tensor
         """
         slc = self.slices[i]
         part = x.narrow(-1, slc.start, slc.stop - slc.start)
@@ -288,14 +290,14 @@ class ProductManifold(Manifold):
             transformed_tensors.append(transformed)
         return torch.cat(transformed_tensors, -1)
 
-    def unpack_tensor(self, tensor: torch.Tensor):
+    def unpack_tensor(self, tensor: torch.Tensor) -> Tuple[torch.Tensor]:
         parts = []
         for i in range(self.n_manifolds):
             part = self.take_submanifold_value(tensor, i)
             parts.append(part)
         return tuple(parts)
 
-    def pack_point(self, *parts: torch.Tensor):
+    def pack_point(self, *parts: torch.Tensor) -> torch.Tensor:
         flattened = []
         for i in range(self.n_manifolds):
             part = parts[i]
@@ -316,7 +318,7 @@ class ProductManifold(Manifold):
     @classmethod
     def from_point(cls, *parts: "geoopt.ManifoldTensor", batch_dims=0):
         """
-        Construct Product manifold from given points
+        Construct Product manifold from given points.
 
         Parameters
         ----------

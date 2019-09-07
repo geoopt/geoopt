@@ -655,7 +655,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return self.name + " manifold"
 
-    def unpack_tensor(self, tensor: torch.Tensor):
+    def unpack_tensor(self, tensor: torch.Tensor) -> torch.Tensor:
         """
         Construct a point on the manifold.
 
@@ -666,11 +666,25 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Returns
         -------
-        Union[torch.Tensor|List[torch.Tensor]]
+        torch.Tensor
         """
         return tensor
 
-    def pack_point(self, *tensors: torch.Tensor):
+    def pack_point(self, *tensors: torch.Tensor) -> torch.Tensor:
+        """
+        Construct a tensor representation of a manifold point.
+
+        In case of regular manifolds this will return the same tensor. However, for e.g. Product manifold
+        this function will pack all non-batch dimensions.
+
+        Parameters
+        ----------
+        tensors : List[torch.Tensor]
+
+        Returns
+        -------
+        torch.Tensor
+        """
         if len(tensors) != 1:
             raise ValueError("Only one tensor expected")
         return tensors[0]

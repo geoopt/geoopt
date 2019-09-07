@@ -50,7 +50,7 @@ def size2shape(*size):
 
 
 def broadcast_shapes(*shapes: tuple):
-    """Broadcast ignoring consistency checks"""
+    """Apply broadcasting rules to shapes."""
     result = []
     for dims in itertools.zip_longest(*map(reversed, shapes), fillvalue=1):
         dim = 1
