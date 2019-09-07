@@ -2,9 +2,8 @@ import torch.nn
 from typing import Tuple, Union
 import operator
 import functools
-import geoopt
-from .base import Manifold
-from ..utils import size2shape
+import geoopt.utils
+from geoopt.manifolds import Manifold
 
 
 __all__ = ["ProductManifold"]
@@ -37,7 +36,7 @@ class ProductManifold(Manifold):
         manifolds = []
         pos0 = 0
         for i, (manifold, shape) in enumerate(manifolds_with_shape):
-            shape = size2shape(shape)
+            shape = geoopt.utils.size2shape(shape)
             ok, reason = manifold._check_shape(shape, str("{}'th shape".format(i)))
             if not ok:
                 raise ValueError(reason)
