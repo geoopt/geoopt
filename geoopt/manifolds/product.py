@@ -65,9 +65,9 @@ class ProductManifold(Manifold):
         tensor
         """
         slc = self.slices[i]
-        part = x.narrow(-1, slc.start, slc.stop)
+        part = x.narrow(-1, slc.start, slc.stop - slc.start)
         if reshape:
-            part = part.reshape(*part.shape[:-1], *self.shapes[i])
+            part = part.view(*part.shape[:-1], *self.shapes[i])
         return part
 
     def _check_shape(self, shape, name):
@@ -148,8 +148,26 @@ class ProductManifold(Manifold):
     def egrad2rgrad(self, x, u):
         ...
 
-    def as_point(self, tensor):
-        ...
+    def as_point(self, tensor: torch.Tensor):
+        parts = []
+        for i in range(self.n_manifolds):
+            part = self.take_submanifold_value(tensor, i)
+            parts.append(part)
+        return tuple(parts)
 
-    def as_tensor(self, *parts):
-        ...
+    def as_tensor(self, *parts: torch.Tensor):
+        flattened = []
+        for i, part in enumerate(parts):
+            shape = self.shapes[i]
+            if len(shape) > 0:
+                if part.shape[-len(shape) :] != shape:
+                    raise ValueError(
+                        "last shape dimension does not seem to be valid. {} required, but got {}".format(
+                            part.shape[-len(shape) :], shape
+                        )
+                    )
+                new_shape = (*part.shape[: -len(shape)], -1)
+            else:
+                new_shape = (*part.shape, -1)
+            flattened.append(part.view(new_shape))
+        return torch.cat(flattened, -1)

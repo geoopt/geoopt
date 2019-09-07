@@ -18,7 +18,7 @@ class Euclidean(Manifold):
         as inner products, etc will respect the :attr:`ndim`.
     """
 
-    name = "R"
+    name = "Euclidean"
     ndim = 0
     reversible = True
 
