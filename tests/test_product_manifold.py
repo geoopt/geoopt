@@ -16,9 +16,9 @@ def test_reshaping():
         Sphere().random_uniform(5, 3, 2),
         Euclidean().random_normal(5),
     ]
-    tensor = pman.as_tensor(*point)
+    tensor = pman.pack_point(*point)
     assert tensor.shape == (5, 10 + 3 * 2 + 1)
-    point_new = pman.as_point(tensor)
+    point_new = pman.unpack_tensor(tensor)
     for old, new in zip(point, point_new):
         np.testing.assert_allclose(old, new)
 
@@ -30,7 +30,7 @@ def test_inner_product():
         Sphere().random_uniform(5, 3, 2),
         Euclidean().random_normal(5),
     ]
-    tensor = pman.as_tensor(*point)
+    tensor = pman.pack_point(*point)
     tangent = torch.randn_like(tensor)
     tangent = pman.proju(tensor, tangent)
 

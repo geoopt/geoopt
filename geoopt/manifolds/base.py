@@ -656,7 +656,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return self.name + " manifold"
 
-    def as_point(self, tensor):
+    def unpack_tensor(self, tensor):
         """
         Construct a point on the manifold.
 
@@ -670,3 +670,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         Union[torch.Tensor|List[torch.Tensor]]
         """
         return tensor
+
+    def pack_point(self, *tensors):
+        if len(tensors) != 1:
+            raise ValueError("Only one tensor expected")
+        return tensors[0]

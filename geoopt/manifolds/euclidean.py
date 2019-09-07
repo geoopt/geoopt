@@ -1,6 +1,6 @@
 import torch
 from .base import Manifold
-from ..utils import size2shape
+from ..utils import size2shape, broadcast_shapes
 import geoopt
 
 
@@ -41,9 +41,13 @@ class Euclidean(Manifold):
         else:
             inner = u * v
         if self.ndim > 0:
-            return inner.sum(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
+            inner = inner.sum(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
+            x_shape = x.shape[: -self.ndim] + (1,) * self.ndim * keepdim
         else:
-            return inner
+            x_shape = x.shape
+        i_shape = inner.shape
+        target_shape = broadcast_shapes(x_shape, i_shape)
+        return inner.expand(target_shape)
 
     def norm(self, x, u, *, keepdim=False):
         if self.ndim > 0:
@@ -52,7 +56,8 @@ class Euclidean(Manifold):
             return u.abs()
 
     def proju(self, x, u):
-        return u
+        target_shape = broadcast_shapes(x.shape, u.shape)
+        return u.expand(target_shape)
 
     def projx(self, x):
         return x
@@ -67,13 +72,15 @@ class Euclidean(Manifold):
             return (x - y).abs()
 
     def egrad2rgrad(self, x, u):
-        return u
+        target_shape = broadcast_shapes(x.shape, u.shape)
+        return u.expand(target_shape)
 
     def expmap(self, x, u):
         return x + u
 
     def transp(self, x, y, v):
-        return v
+        target_shape = broadcast_shapes(x.shape, y.shape, v.shape)
+        return v.expand(target_shape)
 
     def random_normal(self, *size, mean=0.0, std=1.0, device=None, dtype=None):
         """

@@ -27,6 +27,7 @@ manifold_shapes = {
     geoopt.manifolds.Euclidean: (10,),
     geoopt.manifolds.Sphere: (10,),
     geoopt.manifolds.SphereExact: (10,),
+    geoopt.manifolds.ProductManifold: (10 + 3 + 6 + 1,),
 }
 
 
@@ -163,6 +164,33 @@ def sphere_case():
     yield case
 
 
+def product_case():
+    torch.manual_seed(42)
+    ex = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
+    ev = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
+    manifolds = [
+        geoopt.Sphere(),
+        geoopt.PoincareBall(),
+        geoopt.Stiefel(),
+        geoopt.Euclidean(),
+    ]
+    x = [manifolds[i].projx(ex[i]) for i in range(len(manifolds))]
+    v = [manifolds[i].proju(x[i], ev[i]) for i in range(len(manifolds))]
+
+    product_manifold = geoopt.ProductManifold(
+        *((manifolds[i], ex[i].shape) for i in range(len(ex)))
+    )
+
+    yield UnaryCase(
+        manifold_shapes[geoopt.ProductManifold],
+        product_manifold.pack_point(*x),
+        product_manifold.pack_point(*ex),
+        product_manifold.pack_point(*v),
+        product_manifold.pack_point(*ev),
+        product_manifold,
+    )
+
+
 @pytest.fixture(
     params=itertools.chain(
         euclidean_case(),
@@ -172,6 +200,7 @@ def sphere_case():
         euclidean_stiefel_case(),
         canonical_stiefel_case(),
         poincare_case(),
+        product_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )

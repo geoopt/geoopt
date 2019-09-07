@@ -117,7 +117,7 @@ class ManifoldTensor(torch.Tensor):
         )
         return _rebuild_manifold_parameter, proto + (self.manifold,)
 
-    @insert_docs(Manifold.as_point.__doc__, r"\s+tensor : .+\n.+", "")
+    @insert_docs(Manifold.unpack_tensor.__doc__, r"\s+tensor : .+\n.+", "")
     def as_point(self):
         return self.manifold.as_point(self)
 

@@ -1,7 +1,7 @@
 import torch.nn
 from . import math
 from ...tensor import ManifoldTensor
-from ...utils import make_tuple, size2shape
+from ...utils import size2shape, broadcast_shapes
 from ..base import Manifold
 
 __all__ = ["PoincareBall", "PoincareBallExact"]
@@ -66,7 +66,8 @@ class PoincareBall(Manifold):
         return math.project(x, c=self.c, dim=dim)
 
     def proju(self, x, u):
-        return u
+        target_shape = broadcast_shapes(x.shape, u.shape)
+        return u.expand(target_shape)
 
     def inner(self, x, u, v=None, *, keepdim=False, dim=-1):
         if v is None:
@@ -100,12 +101,12 @@ class PoincareBall(Manifold):
     def expmap_transp(self, x, u, v, dim=-1, project=True):
         y = self.expmap(x, u, dim=dim, project=project)
         v_transp = self.transp(x, y, v, dim=dim)
-        return (y, v_transp)
+        return y, v_transp
 
     def retr_transp(self, x, u, v, dim=-1):
         y = self.retr(x, u, dim=dim)
         v_transp = self.transp(x, y, v, dim=dim)
-        return (y, v_transp)
+        return y, v_transp
 
     def mobius_add(self, x, y, *, dim=-1, project=True):
         res = math.mobius_add(x, y, c=self.c, dim=dim)
