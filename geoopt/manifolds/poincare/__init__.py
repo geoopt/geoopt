@@ -39,7 +39,7 @@ class PoincareBall(Manifold):
         super().__init__()
         self.register_buffer("c", torch.as_tensor(c, dtype=torch.get_default_dtype()))
 
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         px = math.project(x, c=self.c)
         ok = torch.allclose(x, px, atol=atol, rtol=rtol)
         if not ok:
@@ -48,163 +48,198 @@ class PoincareBall(Manifold):
             reason = None
         return ok, reason
 
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ):
         return True, None
 
-    def dist(self, x, y, *, keepdim=False, dim=-1):
+    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, dim=-1):
         return math.dist(x, y, c=self.c, keepdim=keepdim, dim=dim)
 
-    def egrad2rgrad(self, x, u, *, dim=-1):
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1):
         return math.egrad2rgrad(x, u, c=self.c, dim=dim)
 
-    def retr(self, x, u, *, dim=-1):
+    def retr(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1):
         # always assume u is scaled properly
         approx = x + u
         return math.project(approx, c=self.c, dim=dim)
 
-    def projx(self, x, dim=-1):
+    def projx(self, x: torch.Tensor, dim=-1):
         return math.project(x, c=self.c, dim=dim)
 
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor):
         target_shape = broadcast_shapes(x.shape, u.shape)
         return u.expand(target_shape)
 
-    def inner(self, x, u, v=None, *, keepdim=False, dim=-1):
+    def inner(
+        self,
+        x: torch.Tensor,
+        u: torch.Tensor,
+        v: torch.Tensor = None,
+        *,
+        keepdim=False,
+        dim=-1
+    ):
         if v is None:
             v = u
         return math.inner(x, u, v, c=self.c, keepdim=keepdim, dim=dim)
 
-    def norm(self, x, u, *, keepdim=False, dim=-1):
+    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, dim=-1):
         return math.norm(x, u, keepdim=keepdim, dim=dim)
 
-    def expmap(self, x, u, *, project=True, dim=-1):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1):
         res = math.expmap(x, u, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def logmap(self, x, y, *, dim=-1):
+    def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1):
         return math.logmap(x, y, c=self.c, dim=dim)
 
-    def transp(self, x, y, v, dim=-1):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, dim=-1):
         return math.parallel_transport(x, y, v, c=self.c, dim=dim)
 
-    def transp_follow_retr(self, x, u, v, dim=-1):
+    def transp_follow_retr(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1
+    ):
         y = self.retr(x, u, dim=dim)
         return self.transp(x, y, v, dim=dim)
 
-    def transp_follow_expmap(self, x, u, v, dim=-1, project=True):
+    def transp_follow_expmap(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1, project=True
+    ):
         y = self.expmap(x, u, dim=dim, project=project)
         return self.transp(x, y, v, dim=dim)
 
-    def expmap_transp(self, x, u, v, dim=-1, project=True):
+    def expmap_transp(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1, project=True
+    ):
         y = self.expmap(x, u, dim=dim, project=project)
         v_transp = self.transp(x, y, v, dim=dim)
         return y, v_transp
 
-    def retr_transp(self, x, u, v, dim=-1):
+    def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1):
         y = self.retr(x, u, dim=dim)
         v_transp = self.transp(x, y, v, dim=dim)
         return y, v_transp
 
-    def mobius_add(self, x, y, *, dim=-1, project=True):
+    def mobius_add(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True):
         res = math.mobius_add(x, y, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def mobius_sub(self, x, y, *, dim=-1, project=True):
+    def mobius_sub(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True):
         res = math.mobius_sub(x, y, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def mobius_coadd(self, x, y, *, dim=-1, project=True):
+    def mobius_coadd(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True):
         res = math.mobius_coadd(x, y, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def mobius_cosub(self, x, y, *, dim=-1, project=True):
+    def mobius_cosub(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True):
         res = math.mobius_coadd(x, y, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def mobius_scalar_mul(self, r, x, *, dim=-1, project=True):
+    def mobius_scalar_mul(
+        self, r: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
+    ):
         res = math.mobius_scalar_mul(r, x, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def mobius_pointwise_mul(self, w, x, *, dim=-1, project=True):
+    def mobius_pointwise_mul(
+        self, w: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
+    ):
         res = math.mobius_pointwise_mul(w, x, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def mobius_matvec(self, m, x, *, dim=-1, project=True):
+    def mobius_matvec(self, m: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True):
         res = math.mobius_matvec(m, x, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def geodesic(self, t, x, y, *, dim=-1):
+    def geodesic(self, t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, dim=-1):
         return math.geodesic(t, x, y, c=self.c, dim=dim)
 
-    def geodesic_unit(self, t, x, u, *, dim=-1, project=True):
+    def geodesic_unit(
+        self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1, project=True
+    ):
         res = math.geodesic_unit(t, x, u, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def lambda_x(self, x, *, dim=-1, keepdim=False):
+    def lambda_x(self, x: torch.Tensor, *, dim=-1, keepdim=False):
         return math.lambda_x(x, c=self.c, dim=dim, keepdim=keepdim)
 
-    def dist0(self, x, *, dim=-1, keepdim=False):
+    def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False):
         return math.dist0(x, c=self.c, dim=dim, keepdim=keepdim)
 
-    def expmap0(self, u, *, dim=-1, project=True):
+    def expmap0(self, u: torch.Tensor, *, dim=-1, project=True):
         res = math.expmap0(u, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def logmap0(self, x, *, dim=-1):
+    def logmap0(self, x: torch.Tensor, *, dim=-1):
         return math.logmap0(x, c=self.c, dim=dim)
 
-    def transp0(self, y, u, *, dim=-1):
+    def transp0(self, y: torch.Tensor, u: torch.Tensor, *, dim=-1):
         return math.parallel_transport0(y, u, c=self.c, dim=dim)
 
-    def transp0back(self, y, u, *, dim=-1):
+    def transp0back(self, y: torch.Tensor, u: torch.Tensor, *, dim=-1):
         return math.parallel_transport0back(y, u, c=self.c, dim=dim)
 
-    def gyration(self, x, y, z, *, dim=-1):
+    def gyration(self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor, *, dim=-1):
         return math.gyration(x, y, z, c=self.c, dim=dim)
 
-    def dist2plane(self, x, p, a, *, dim=-1, keepdim=False, signed=False):
+    def dist2plane(
+        self,
+        x: torch.Tensor,
+        p: torch.Tensor,
+        a: torch.Tensor,
+        *,
+        dim=-1,
+        keepdim=False,
+        signed=False
+    ):
         return math.dist2plane(
             x, p, a, dim=dim, c=self.c, keepdim=keepdim, signed=signed
         )
 
-    def mobius_fn_apply(self, fn, x, *args, dim=-1, project=True, **kwargs):
+    def mobius_fn_apply(
+        self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True, **kwargs
+    ):
         res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
             return res
 
-    def mobius_fn_apply_chain(self, x, *fns, project=True, dim=-1):
+    def mobius_fn_apply_chain(
+        self, x: torch.Tensor, *fns: callable, project=True, dim=-1
+    ):
         res = math.mobius_fn_apply_chain(x, *fns, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)

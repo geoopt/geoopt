@@ -32,10 +32,12 @@ class Euclidean(Manifold):
     def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         return True, None
 
-    def retr(self, x, u):
+    def retr(self, x: torch.Tensor, u: torch.Tensor):
         return x + u
 
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def inner(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
+    ):
         if v is None:
             inner = u.pow(2)
         else:
@@ -49,36 +51,36 @@ class Euclidean(Manifold):
         target_shape = broadcast_shapes(x_shape, i_shape)
         return inner.expand(target_shape)
 
-    def norm(self, x, u, *, keepdim=False):
+    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         if self.ndim > 0:
             return u.norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
         else:
             return u.abs()
 
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor):
         target_shape = broadcast_shapes(x.shape, u.shape)
         return u.expand(target_shape)
 
-    def projx(self, x):
+    def projx(self, x: torch.Tensor):
         return x
 
-    def logmap(self, x, y):
+    def logmap(self, x: torch.Tensor, y: torch.Tensor):
         return y - x
 
-    def dist(self, x, y, *, keepdim=False):
+    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
         if self.ndim > 0:
             return (x - y).norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
         else:
             return (x - y).abs()
 
-    def egrad2rgrad(self, x, u):
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor):
         target_shape = broadcast_shapes(x.shape, u.shape)
         return u.expand(target_shape)
 
-    def expmap(self, x, u):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor):
         return x + u
 
-    def transp(self, x, y, v):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
         target_shape = broadcast_shapes(x.shape, y.shape, v.shape)
         return v.expand(target_shape)
 

@@ -339,7 +339,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         v_transp = self.transp(x, y, v)
         return y, v_transp
 
-    def retr_transp(self, x, u, v):
+    def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         """
         Perform a retraction + vector transport at once.
 
@@ -347,13 +347,10 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         ----------
         x : tensor
             point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
         v : tensor
             tangent vector at point :math:`x` to be transported
-        u : tensor
-            tangent vector at point :math:`x` (required keyword only argument)
-        order : int
-            order of retraction approximation, by default uses the simplest.
-            Possible choices depend on a concrete manifold and -1 stays for exponential map
 
         Returns
         -------
@@ -368,7 +365,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         v_transp = self.transp(x, y, v)
         return y, v_transp
 
-    def transp_follow_retr(self, x, u, v):
+    def transp_follow_retr(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{retr}(x, u)}(v)`.
 
@@ -391,7 +388,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         y = self.retr(x, u)
         return self.transp(x, y, v)
 
-    def transp_follow_expmap(self, x, u, v):
+    def transp_follow_expmap(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
 
@@ -416,7 +413,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         y = self.expmap(x, u)
         return self.transp(x, y, v)
 
-    def transp(self, x, y, v):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
         r"""
         Perform vector transport :math:`\mathfrac{T}_{x\to y}(v)`.
 
@@ -437,7 +434,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def inner(self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False):
         """
         Inner product for tangent vectors at point :math:`x`.
 
@@ -459,7 +456,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def norm(self, x, u, *, keepdim=False):
+    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         """
         Norm of a tangent vector at point :math:`x`.
 
@@ -480,7 +477,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise self.inner(x, u, keepdim=keepdim) ** 0.5
 
     @abc.abstractmethod
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor):
         """
         Project vector :math:`u` on a tangent space for :math:`x`, usually is the same as :meth:`egrad2rgrad`.
 
@@ -499,7 +496,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def egrad2rgrad(self, x, u):
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor):
         """
         Transform gradient computed using autodiff to the correct Riemannian gradient for the point :math:`x`.
 
@@ -518,7 +515,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def projx(self, x):
+    def projx(self, x: torch.Tensor):
         """
         Project point :math:`x` on the manifold.
 
@@ -588,7 +585,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             raise ValueError(reason)
 
     @abc.abstractmethod
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         """
         Util to check point lies on the manifold.
 
@@ -617,7 +614,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ):
         """
         Util to check a vector belongs to the tangent space of a point.
 
@@ -656,7 +655,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return self.name + " manifold"
 
-    def unpack_tensor(self, tensor):
+    def unpack_tensor(self, tensor: torch.Tensor):
         """
         Construct a point on the manifold.
 
@@ -671,7 +670,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         return tensor
 
-    def pack_point(self, *tensors):
+    def pack_point(self, *tensors: torch.Tensor):
         if len(tensors) != 1:
             raise ValueError("Only one tensor expected")
         return tensors[0]
