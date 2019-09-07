@@ -144,22 +144,70 @@ class ProductManifold(Manifold):
         return torch.cat(projected, -1)
 
     def expmap(self, x, u):
-        ...
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            tangent = self.take_submanifold_value(u, i)
+            mapped = manifold.expmap(point, tangent)
+            mapped = mapped.view(*x.shape[: len(x.shape) - 1], -1)
+            mapped_tensors.append(mapped)
+        return torch.cat(mapped_tensors, -1)
 
     def retr(self, x, u):
-        ...
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            tangent = self.take_submanifold_value(u, i)
+            mapped = manifold.retr(point, tangent)
+            mapped = mapped.view(*x.shape[: len(x.shape) - 1], -1)
+            mapped_tensors.append(mapped)
+        return torch.cat(mapped_tensors, -1)
 
     def transp(self, x, y, v):
-        ...
+        transported_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            point1 = self.take_submanifold_value(y, i)
+            tangent = self.take_submanifold_value(v, i)
+            transported = manifold.transp(point, point1, tangent)
+            transported = transported.view(*x.shape[: len(x.shape) - 1], -1)
+            transported_tensors.append(transported)
+        return torch.cat(transported_tensors, -1)
 
     def logmap(self, x, y):
-        ...
+        logmapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            point1 = self.take_submanifold_value(y, i)
+            transported = manifold.logmap(point, point1)
+            transported = transported.view(*x.shape[: len(x.shape) - 1], -1)
+            logmapped_tensors.append(transported)
+        return torch.cat(logmapped_tensors, -1)
 
     def dist(self, x, y, *, keepdim=False):
-        ...
+        target_batch_dim = max(x.dim(), y.dim())
+        target_batch_dim -= 1
+        mini_dists = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            point1 = self.take_submanifold_value(y, i)
+            mini_dist = manifold.dist(point, point1)
+            mini_dist = mini_dist.view(*mini_dist.shape[:target_batch_dim], -1).sum(-1)
+            mini_dists.append(mini_dist)
+        result = sum(mini_dists)
+        if keepdim:
+            result = torch.unsqueeze(result, -1)
+        return result
 
     def egrad2rgrad(self, x, u):
-        ...
+        transformed_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            grad = self.take_submanifold_value(u, i)
+            transformed = manifold.egrad2rgrad(point, grad)
+            transformed = transformed.view(*x.shape[: len(x.shape) - 1], -1)
+            transformed_tensors.append(transformed)
+        return torch.cat(transformed_tensors, -1)
 
     def as_point(self, tensor: torch.Tensor):
         parts = []
