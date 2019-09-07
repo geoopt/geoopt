@@ -1,4 +1,5 @@
 from geoopt import ProductManifold, Sphere, Euclidean
+import torch
 import numpy as np
 
 
@@ -20,3 +21,20 @@ def test_reshaping():
     point_new = pman.as_point(tensor)
     for old, new in zip(point, point_new):
         np.testing.assert_allclose(old, new)
+
+
+def test_inner_product():
+    pman = ProductManifold((Sphere(), 10), (Sphere(), (3, 2)), (Euclidean(), ()))
+    point = [
+        Sphere().random_uniform(5, 10),
+        Sphere().random_uniform(5, 3, 2),
+        Euclidean().random_normal(5),
+    ]
+    tensor = pman.as_tensor(*point)
+    tangent = torch.randn_like(tensor)
+    tangent = pman.proju(tensor, tangent)
+
+    inner = pman.inner(tensor, tangent)
+    assert inner.shape == (5,)
+    inner_kd = pman.inner(tensor, tangent, keepdim=True)
+    assert inner_kd.shape == (5, 1)

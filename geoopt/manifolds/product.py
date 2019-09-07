@@ -125,10 +125,23 @@ class ProductManifold(Manifold):
         return result
 
     def projx(self, x):
-        ...
+        projected = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            proj = manifold.projx(point)
+            proj = proj.view(*x.shape[: len(x.shape) - 1], -1)
+            projected.append(proj)
+        return torch.cat(projected, -1)
 
     def proju(self, x, u):
-        ...
+        projected = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            tangent = self.take_submanifold_value(u, i)
+            proj = manifold.proju(point, tangent)
+            proj = proj.view(*x.shape[: len(x.shape) - 1], -1)
+            projected.append(proj)
+        return torch.cat(projected, -1)
 
     def expmap(self, x, u):
         ...
