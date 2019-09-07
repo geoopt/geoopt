@@ -140,7 +140,7 @@ class Sphere(Manifold):
         return torch.where(cond, u * dist / u.norm(dim=-1, keepdim=True), u)
 
     def dist(self, x, y, *, keepdim=False):
-        inner = self.inner(None, x, y, keepdim=keepdim).clamp(-1, 1)
+        inner = self.inner(None, x, y, keepdim=keepdim).clamp(-0.9999, 0.9999)
         return torch.acos(inner)
 
     egrad2rgrad = proju
