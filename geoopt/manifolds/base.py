@@ -261,6 +261,26 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    def dist2(self, x, y, *, keepdim=False):
+        """
+        Compute squared distance between 2 points on the manifold that is the shortest path along geodesics.
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        y : tensor
+            point on the manifold
+        keepdim : bool
+            keep the last dim?
+
+        Returns
+        -------
+        scalar
+            squared distance between two points
+        """
+        raise self.dist(x, y, keepdim=keepdim) ** 2
+
     @abc.abstractmethod
     def retr(self, x, u):
         """

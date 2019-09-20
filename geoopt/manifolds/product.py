@@ -18,7 +18,17 @@ def _calculate_target_batch_dim(*dims):
 
 
 class ProductManifold(Manifold):
-    """Product Manifold."""
+    """
+    Product Manifold.
+
+    Examples
+    --------
+
+    A Torus
+    >>> import geoopt
+    >>> sphere = geoopt.Sphere()
+    >>> torus = ProductManifold((sphere, 2), (sphere, 2))
+    """
 
     ndim = 1
 
@@ -261,21 +271,24 @@ class ProductManifold(Manifold):
         points, vectors = zip(*results)
         return torch.cat(points, -1), torch.cat(vectors, -1)
 
-    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
+    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
         target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())
-        mini_dists = []
+        mini_dists2 = []
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
             point1 = self.take_submanifold_value(y, i)
-            mini_dist = manifold.dist(point, point1)
-            mini_dist = mini_dist.reshape(
-                (*mini_dist.shape[:target_batch_dim], -1)
+            mini_dist2 = manifold.dist2(point, point1)
+            mini_dist2 = mini_dist2.reshape(
+                (*mini_dist2.shape[:target_batch_dim], -1)
             ).sum(-1)
-            mini_dists.append(mini_dist)
-        result = sum(mini_dists)
+            mini_dists2.append(mini_dist2)
+        result = sum(mini_dists2)
         if keepdim:
             result = torch.unsqueeze(result, -1)
         return result
+
+    def dist(self, x, y, *, keepdim=False):
+        return self.dist2(x, y, keepdim=keepdim) ** 0.5
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor):
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim())
