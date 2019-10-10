@@ -816,7 +816,4 @@ class ScaledFunction(object):
 
     @staticmethod
     def rescale(value, scaling, power):
-        if isinstance(power, torch.Tensor):
-            return torch.where(power == 0, value, value * scaling ** power)
-        else:
-            return value * scaling ** power if power != 0 else value
+        return value * scaling ** power if power != 0 else value
