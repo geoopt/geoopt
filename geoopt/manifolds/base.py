@@ -1,10 +1,43 @@
 import abc
 import torch.nn
+import inspect
 
-__all__ = ["Manifold"]
+__all__ = ["Manifold", "ScalingInfo"]
+
+
+class ScalingInfo(object):
+    """
+    Scaling info for each argument that requires rescaling.
+
+    .. code:: python
+
+        scaled_value = value * scaling ** power if power != 0 else value
+
+    For results it is not always required to set powers of scaling, then it is no-op
+    """
+
+    __slots__ = ["kwargs", "results"]
+
+    def __init__(self, *results: float, **kwargs: float):
+        self.results = results
+        self.kwargs = kwargs
+
+
+class ScalingStorage(dict):
+    """
+    Helper class to make implementation transparent.
+    """
+
+    def __call__(self, scaling_info: ScalingInfo):
+        def register(fn):
+            self[fn.__name__] = scaling_info
+            return fn
+
+        return register
 
 
 class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
+    __scaling__ = ScalingStorage()  # will be filled along with implementation below
     name = None
     ndim = None
     reversible = None
@@ -241,6 +274,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
                 )
             )
 
+    @__scaling__(ScalingInfo(1))
     def dist(self, x, y, *, keepdim=False):
         """
         Compute distance between 2 points on the manifold that is the shortest path along geodesics.
@@ -261,6 +295,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @__scaling__(ScalingInfo(2))
     def dist2(self, x, y, *, keepdim=False):
         """
         Compute squared distance between 2 points on the manifold that is the shortest path along geodesics.
@@ -282,6 +317,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise self.dist(x, y, keepdim=keepdim) ** 2
 
     @abc.abstractmethod
+    @__scaling__(ScalingInfo(u=-1))
     def retr(self, x, u):
         """
         Perform a retraction from point :math:`x` with given direction :math:`u`.
@@ -301,6 +337,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    @__scaling__(ScalingInfo(u=-1))
     def expmap(self, x, u):
         r"""
         Perform an exponential map :math:`\operatorname{Exp}_x(u)`.
@@ -319,6 +356,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @__scaling__(ScalingInfo(1))
     def logmap(self, x, y):
         r"""
         Perform an logarithmic map :math:`\operatorname{Log}_{x}(y)`.
@@ -337,6 +375,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @__scaling__(ScalingInfo(u=-1))
     def expmap_transp(self, x, u, v):
         """
         Perform an exponential map and vector transport from point :math:`x` with given direction :math:`u`.
@@ -359,6 +398,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         v_transp = self.transp(x, y, v)
         return y, v_transp
 
+    @__scaling__(ScalingInfo(u=-1))
     def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         """
         Perform a retraction + vector transport at once.
@@ -385,6 +425,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         v_transp = self.transp(x, y, v)
         return y, v_transp
 
+    @__scaling__(ScalingInfo(u=-1))
     def transp_follow_retr(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{retr}(x, u)}(v)`.
@@ -408,6 +449,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         y = self.retr(x, u)
         return self.transp(x, y, v)
 
+    @__scaling__(ScalingInfo(u=-1))
     def transp_follow_expmap(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
@@ -454,6 +496,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    @__scaling__(ScalingInfo(2))
     def inner(self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False):
         """
         Inner product for tangent vectors at point :math:`x`.
@@ -476,6 +519,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @__scaling__(ScalingInfo(1))
     def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         """
         Norm of a tangent vector at point :math:`x`.
@@ -708,3 +752,71 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         if len(tensors) != 1:
             raise ValueError("Only one tensor expected")
         return tensors[0]
+
+
+class ScaledFunction(object):
+    r"""
+    Helper class to scale method calls properly if a Manifold is wrapped into :class:`Scaled`
+
+    To implement mixed curvature manifolds, within a single Product manifold we need to
+    track scales of each tangent space. Moreover, if we eventually learn scalings, for some manifolds (e.g Sphere)
+    we either should also change representations of points rescaling vectors in the ambient space, or change operations
+    defined on these points. It is more practical to change operations, rather than points because this makes
+    implementation much more easier.
+
+    Examples
+    --------
+    Consider an arbitrary Riemannian Manifold.
+    If we change the scale of charts on the manifold, distances would change as well. Say, we change
+    distances at a constant factor :math:`\lambda`. Then having a convention that the only part changed is distance,
+    but not points. We come up with a changed metric tensor what influences such operations as
+    :math:`\operatorname{Exp}`, :math:`\operatorname{Log}` and so on.
+
+    Examples
+    --------
+    For expmap we downscale tangent vector :math:`\Rightarrow` scaling power is -1. But output remains untouched
+    :math:`\Rightarrow` scaling power is 0.
+
+    >>> import geoopt, numpy as np
+    >>> scaling_info_expmap = ScalingInfo(0, u=-1)
+    >>> # scaling_info_expmap = ScalingInfo(u=-1) would be also valid, nothing to do with results
+    >>> manifold = geoopt.Sphere()
+    >>> scaled_expmap = ScaledFunction(manifold.expmap, scaling_info_expmap)
+    >>> point = torch.tensor([2 ** .5 / 2, 2 ** .5 / 2])  # point on radius 1 sphere
+    >>> tangent = manifold.proju(point, torch.randn(2))  # some random tangent there
+    >>> new_point = scaled_expmap(point, tangent, scaling=2) # radius 2 sphere, but canonical representation is radius 1
+    >>> new_point_alternative = manifold.expmap(point, tangent / 2)
+    >>> np.testing.assert_allclose(new_point, new_point_alternative)
+    """
+    __slots__ = ["fn", "sig", "scaling_info"]
+
+    def __init__(self, fn, scaling_info: ScalingInfo):
+        self.fn = fn
+        self.scaling_info = scaling_info
+        self.sig = inspect.signature(fn)
+
+    def __call__(self, *args, scaling, **kwargs):
+        kwargs = self.sig.bind(*args, **kwargs).arguments
+        for k, power in self.scaling_info.kwargs.items():
+            kwargs[k] = kwargs[k] * scaling ** power
+        results = self.fn(**kwargs)
+        if not self.scaling_info.results:
+            # do nothing
+            return results
+        if isinstance(results, tuple):
+            return tuple(
+                (
+                    self.rescale(res, scaling, power)
+                    for res, power in zip(results, self.scaling_info.results)
+                )
+            )
+        else:
+            power = self.scaling_info.results[0]
+            return self.rescale(results, scaling, power)
+
+    @staticmethod
+    def rescale(value, scaling, power):
+        if isinstance(power, torch.Tensor):
+            return torch.where(power == 0, value, value * scaling ** power)
+        else:
+            return value * scaling ** power if power != 0 else value
