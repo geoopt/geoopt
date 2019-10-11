@@ -234,6 +234,7 @@ class PoincareBall(Manifold):
             x, p, a, dim=dim, c=self.c, keepdim=keepdim, signed=signed
         )
 
+    # this does not yet work with scaling
     def mobius_fn_apply(
         self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True, **kwargs
     ):
@@ -243,6 +244,7 @@ class PoincareBall(Manifold):
         else:
             return res
 
+    # this does not yet work with scaling
     def mobius_fn_apply_chain(
         self, x: torch.Tensor, *fns: callable, project=True, dim=-1
     ):

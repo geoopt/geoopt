@@ -42,6 +42,9 @@ class ScalingStorage(dict):
 
         return register
 
+    def copy(self):
+        return self.__class__(self)
+
 
 class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     __scaling__ = ScalingStorage()  # will be filled along with implementation below

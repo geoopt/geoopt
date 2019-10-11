@@ -216,7 +216,9 @@ def unary_case_base(request):
 @pytest.fixture
 def unary_case(unary_case_base, scaled):
     if scaled:
-        return unary_case_base._replace(manifold=geoopt.Scaled(unary_case_base.manifold, 2))
+        return unary_case_base._replace(
+            manifold=geoopt.Scaled(unary_case_base.manifold, 2)
+        )
     else:
         return unary_case_base
 

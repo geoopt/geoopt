@@ -2,6 +2,7 @@ import inspect
 import torch
 from geoopt.manifolds.base import ScalingInfo, Manifold
 import functools
+
 __all__ = ["Scaled"]
 
 
@@ -37,18 +38,42 @@ class ScaledFunction(object):
     >>> np.testing.assert_allclose(new_point, new_point_alternative)
     """
 
-    __slots__ = ["fn", "sig", "scaling_info"]
+    __slots__ = ["__signature__", "__wrapped__", "fsig", "scaling_info"]
 
-    def __init__(self, fn, scaling_info: ScalingInfo):
-        self.fn = fn
+    def __init__(self, fn: callable, scaling_info: ScalingInfo):
+        self.__wrapped__ = fn
         self.scaling_info = scaling_info
-        self.sig = inspect.signature(fn)
+        self.fsig = inspect.signature(fn)
+        old_args = tuple(self.fsig.parameters.values())
+        old_args = tuple(
+            filter(lambda arg: arg.name not in {"scaling", "log_scaling"}, old_args)
+        )
+        if old_args and old_args[-1].kind is inspect.Parameter.VAR_KEYWORD:
+            variadic = (old_args[-1],)
+            old_args = old_args[:-1]
+        else:
+            variadic = ()
 
-    def __call__(self, *args, scaling, **kwargs):
-        kwargs = self.sig.bind(*args, **kwargs).arguments
+        new_args = (
+            inspect.Parameter(
+                "scaling", kind=inspect.Parameter.KEYWORD_ONLY, default=None
+            ),
+            inspect.Parameter(
+                "log_scaling", kind=inspect.Parameter.KEYWORD_ONLY, default=None
+            ),
+        )
+        self.__signature__ = self.fsig.replace(
+            parameters=old_args + new_args + variadic
+        )
+
+    def __call__(self, *args, scaling=None, log_scaling=None, **kwargs):
+        assert (scaling is not None) ^ (log_scaling is not None)
+        if log_scaling is not None:
+            scaling = log_scaling.exp()
+        kwargs = self.fsig.bind(*args, **kwargs).arguments
         for k, power in self.scaling_info.kwargs.items():
-            kwargs[k] = kwargs[k] * scaling ** power
-        results = self.fn(**kwargs)
+            kwargs[k] = self.rescale(kwargs[k], scaling, power)
+        results = self.__wrapped__(**kwargs)
         if not self.scaling_info.results:
             # do nothing
             return results
@@ -69,15 +94,37 @@ class ScaledFunction(object):
 
 
 class Scaled(Manifold):
-    def __init__(self, manifold: Manifold, scale):
+    def __init__(self, manifold: Manifold, scale=1.0, learnable=False):
         super().__init__()
         self.base = manifold
-        self.scale = torch.as_tensor(scale, dtype=torch.get_default_dtype())
-        # do not rebuild scaled functions very frequently, save them
         self._scaled_functions = dict()
+        scale = torch.as_tensor(scale, dtype=torch.get_default_dtype())
+        scale = scale.requires_grad_(False)
+        if not learnable:
+            self.register_buffer("_scale", scale)
+            self.register_buffer("_log_scale", None)
+        else:
+            self.register_buffer("_scale", None)
+            self.register_parameter("_log_scale", torch.nn.Parameter(scale.log()))
+        # do not rebuild scaled functions very frequently, save them
+
         for method, scaling_info in self.base.__scaling__.items():
             bound_method = getattr(self.base, method)
             self._scaled_functions[method] = ScaledFunction(bound_method, scaling_info)
+
+    @property
+    def scale(self):
+        if self._scale is None:
+            return self._log_scale.exp()
+        else:
+            return self._scale
+
+    @property
+    def log_scale(self):
+        if self._log_scale is None:
+            return self._scale.log()
+        else:
+            return self._log_scale
 
     # propagate all important stuff
     reversible = property(lambda self: self.base.reversible)
@@ -87,13 +134,18 @@ class Scaled(Manifold):
 
     def __getattr__(self, item):
         if item in self._scaled_functions:
-            return functools.partial(self._scaled_functions[item], scaling=self.scale)
+            return functools.partial(
+                self._scaled_functions[item],
+                # for partial we need raw tensors
+                scaling=self._scale,
+                log_scaling=self._log_scale,
+            )
         else:
             try:
                 return super().__getattr__(item)
             except AttributeError as original:
                 try:
-                    return getattr(self.base, item)
+                    return self.base.__getattribute__(item)
                 except AttributeError as e:
                     raise original from e
 
@@ -125,10 +177,10 @@ class Scaled(Manifold):
         keepdim=False,
         **kwargs
     ):
-        return self._scaled_functions["inner"](x, u, v, keepdim=keepdim, scaling=self.scale, **kwargs)
+        return self.base.inner(x, u, v, keepdim=keepdim, **kwargs)
 
     def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, **kwargs):
-        return self._scaled_functions["norm"](x, u, keepdim=keepdim, scaling=self.scale, **kwargs)
+        return self.base.norm(x, u, keepdim=keepdim, **kwargs)
 
     def proju(self, x: torch.Tensor, u: torch.Tensor, **kwargs):
         return self.base.proju(x, u, **kwargs)
@@ -140,10 +192,14 @@ class Scaled(Manifold):
         return self._scaled_functions["logmap"](x, y, scaling=self.scale, **kwargs)
 
     def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, **kwargs):
-        return self._scaled_functions["dist"](x, y, keepdim=keepdim, scaling=self.scale, **kwargs)
+        return self._scaled_functions["dist"](
+            x, y, keepdim=keepdim, scaling=self.scale, **kwargs
+        )
 
     def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, **kwargs):
-        return self._scaled_functions["dist2"](x, y, keepdim=keepdim, scaling=self.scale, **kwargs)
+        return self._scaled_functions["dist2"](
+            x, y, keepdim=keepdim, scaling=self.scale, **kwargs
+        )
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, **kwargs):
         return self.base.egrad2rgrad(x, u, **kwargs)
@@ -155,19 +211,27 @@ class Scaled(Manifold):
         return self.base.transo(x, y, v, **kwargs)
 
     def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs):
-        return self._scaled_functions["retr_transp"](x, u, v, scaling=self.scale, **kwargs)
+        return self._scaled_functions["retr_transp"](
+            x, u, v, scaling=self.scale, **kwargs
+        )
 
     def expmap_transp(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs
     ):
-        return self._scaled_functions["expmap_transp"](x, u, v, scaling=self.scale, **kwargs)
+        return self._scaled_functions["expmap_transp"](
+            x, u, v, scaling=self.scale, **kwargs
+        )
 
     def transp_follow_expmap(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs
     ):
-        return self._scaled_functions["transp_follow_expmap"](x, u, v, scaling=self.scale, **kwargs)
+        return self._scaled_functions["transp_follow_expmap"](
+            x, u, v, scaling=self.scale, **kwargs
+        )
 
     def transp_follow_retr(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs
     ):
-        return self._scaled_functions["transp_follow_retr"](x, u, v, scaling=self.scale, **kwargs)
+        return self._scaled_functions["transp_follow_retr"](
+            x, u, v, scaling=self.scale, **kwargs
+        )
