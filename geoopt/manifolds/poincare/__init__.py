@@ -194,9 +194,11 @@ class PoincareBall(Manifold):
     def lambda_x(self, x: torch.Tensor, *, dim=-1, keepdim=False):
         return math.lambda_x(x, c=self.c, dim=dim, keepdim=keepdim)
 
+    @__scaling__(ScalingInfo(1))
     def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False):
         return math.dist0(x, c=self.c, dim=dim, keepdim=keepdim)
 
+    @__scaling__(ScalingInfo(u=-1))
     def expmap0(self, u: torch.Tensor, *, dim=-1, project=True):
         res = math.expmap0(u, c=self.c, dim=dim)
         if project:
@@ -204,6 +206,7 @@ class PoincareBall(Manifold):
         else:
             return res
 
+    @__scaling__(ScalingInfo(1))
     def logmap0(self, x: torch.Tensor, *, dim=-1):
         return math.logmap0(x, c=self.c, dim=dim)
 
@@ -216,6 +219,7 @@ class PoincareBall(Manifold):
     def gyration(self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor, *, dim=-1):
         return math.gyration(x, y, z, c=self.c, dim=dim)
 
+    @__scaling__(ScalingInfo(1))
     def dist2plane(
         self,
         x: torch.Tensor,
