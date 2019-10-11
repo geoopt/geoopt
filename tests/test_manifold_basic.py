@@ -191,6 +191,11 @@ def product_case():
     )
 
 
+@pytest.fixture(params=[True, False], ids=str)
+def scaled(request):
+    return request.param
+
+
 @pytest.fixture(
     params=itertools.chain(
         euclidean_case(),
@@ -204,8 +209,16 @@ def product_case():
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )
-def unary_case(request):
+def unary_case_base(request):
     return request.param
+
+
+@pytest.fixture
+def unary_case(unary_case_base, scaled):
+    if scaled:
+        return unary_case_base._replace(manifold=geoopt.Scaled(unary_case_base.manifold, 2))
+    else:
+        return unary_case_base
 
 
 def test_projection_identity(unary_case):

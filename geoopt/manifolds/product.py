@@ -23,7 +23,6 @@ class ProductManifold(Manifold):
 
     Examples
     --------
-
     A Torus
     >>> import geoopt
     >>> sphere = geoopt.Sphere()

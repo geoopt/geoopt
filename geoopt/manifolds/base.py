@@ -1,6 +1,5 @@
 import abc
 import torch.nn
-import inspect
 
 __all__ = ["Manifold", "ScalingInfo"]
 
@@ -13,7 +12,12 @@ class ScalingInfo(object):
 
         scaled_value = value * scaling ** power if power != 0 else value
 
-    For results it is not always required to set powers of scaling, then it is no-op
+    For results it is not always required to set powers of scaling, then it is no-op.
+
+    The convention for this info is the following. The output of a function is either a tuple or a single object.
+    In any case, outputs are treated as positionals. Function inputs, in contrast, are treated by keywords.
+    It is a common practice to maintain function signature when overriding, so this way may be considered
+    as a sufficient in this particular scenario. The only required info for formula above is ``power``.
     """
 
     __slots__ = ["kwargs", "results"]
@@ -26,6 +30,9 @@ class ScalingInfo(object):
 class ScalingStorage(dict):
     """
     Helper class to make implementation transparent.
+
+    This is just a dictionary with additional overriden ``__call__``
+    for more explicit and elegant API to declare members. A usage example may be found in :class:`Manifold`
     """
 
     def __call__(self, scaling_info: ScalingInfo):
@@ -47,7 +54,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super().__init__()
 
-    def check_point(self, x, *, explain=False):
+    def check_point(self, x: torch.Tensor, *, explain=False):
         """
         Check if point is valid to be used with the manifold.
 
@@ -73,7 +80,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point(self, x):
+    def assert_check_point(self, x: torch.Tensor):
         """
         Check if point is valid to be used with the manifold and raise an error with informative message on failure.
 
@@ -94,7 +101,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
                 "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
-    def check_vector(self, u, *, explain=False):
+    def check_vector(self, u: torch.Tensor, *, explain=False):
         """
         Check if vector is valid to be used with the manifold.
 
@@ -120,7 +127,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_vector(self, u):
+    def assert_check_vector(self, u: torch.Tensor):
         """
         Check if vector is valid to be used with the manifold and raise an error with informative message on failure.
 
@@ -141,7 +148,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
                 "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
-    def check_point_on_manifold(self, x, *, explain=False, atol=1e-5, rtol=1e-5):
+    def check_point_on_manifold(
+        self, x: torch.Tensor, *, explain=False, atol=1e-5, rtol=1e-5
+    ):
         """
         Check if point :math:`x` is lying on the manifold.
 
@@ -173,7 +182,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def assert_check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         """
         Check if point :math`x` is lying on the manifold and raise an error with informative message on failure.
 
@@ -195,7 +204,14 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             )
 
     def check_vector_on_tangent(
-        self, x, u, *, ok_point=False, explain=False, atol=1e-5, rtol=1e-5
+        self,
+        x: torch.Tensor,
+        u: torch.Tensor,
+        *,
+        ok_point=False,
+        explain=False,
+        atol=1e-5,
+        rtol=1e-5
     ):
         """
         Check if :math:`u` is lying on the tangent space to x.
@@ -237,7 +253,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             return ok
 
     def assert_check_vector_on_tangent(
-        self, x, u, *, ok_point=False, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, u: torch.Tensor, *, ok_point=False, atol=1e-5, rtol=1e-5
     ):
         """
         Check if u :math:`u` is lying on the tangent space to x and raise an error on fail.
@@ -275,7 +291,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             )
 
     @__scaling__(ScalingInfo(1))
-    def dist(self, x, y, *, keepdim=False):
+    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
         """
         Compute distance between 2 points on the manifold that is the shortest path along geodesics.
 
@@ -296,7 +312,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @__scaling__(ScalingInfo(2))
-    def dist2(self, x, y, *, keepdim=False):
+    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
         """
         Compute squared distance between 2 points on the manifold that is the shortest path along geodesics.
 
@@ -318,7 +334,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     @__scaling__(ScalingInfo(u=-1))
-    def retr(self, x, u):
+    def retr(self, x: torch.Tensor, u: torch.Tensor):
         """
         Perform a retraction from point :math:`x` with given direction :math:`u`.
 
@@ -338,7 +354,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     @__scaling__(ScalingInfo(u=-1))
-    def expmap(self, x, u):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor):
         r"""
         Perform an exponential map :math:`\operatorname{Exp}_x(u)`.
 
@@ -357,7 +373,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @__scaling__(ScalingInfo(1))
-    def logmap(self, x, y):
+    def logmap(self, x: torch.Tensor, y: torch.Tensor):
         r"""
         Perform an logarithmic map :math:`\operatorname{Log}_{x}(y)`.
 
@@ -376,7 +392,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @__scaling__(ScalingInfo(u=-1))
-    def expmap_transp(self, x, u, v):
+    def expmap_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         """
         Perform an exponential map and vector transport from point :math:`x` with given direction :math:`u`.
 
@@ -496,7 +512,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    @__scaling__(ScalingInfo(2))
     def inner(self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False):
         """
         Inner product for tangent vectors at point :math:`x`.
@@ -519,7 +534,6 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @__scaling__(ScalingInfo(1))
     def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         """
         Norm of a tangent vector at point :math:`x`.
@@ -752,68 +766,3 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         if len(tensors) != 1:
             raise ValueError("Only one tensor expected")
         return tensors[0]
-
-
-class ScaledFunction(object):
-    r"""
-    Helper class to scale method calls properly if a Manifold is wrapped into :class:`Scaled`
-
-    To implement mixed curvature manifolds, within a single Product manifold we need to
-    track scales of each tangent space. Moreover, if we eventually learn scalings, for some manifolds (e.g Sphere)
-    we either should also change representations of points rescaling vectors in the ambient space, or change operations
-    defined on these points. It is more practical to change operations, rather than points because this makes
-    implementation much more easier.
-
-    Examples
-    --------
-    Consider an arbitrary Riemannian Manifold.
-    If we change the scale of charts on the manifold, distances would change as well. Say, we change
-    distances at a constant factor :math:`\lambda`. Then having a convention that the only part changed is distance,
-    but not points. We come up with a changed metric tensor what influences such operations as
-    :math:`\operatorname{Exp}`, :math:`\operatorname{Log}` and so on.
-
-    Examples
-    --------
-    For expmap we downscale tangent vector :math:`\Rightarrow` scaling power is -1. But output remains untouched
-    :math:`\Rightarrow` scaling power is 0.
-
-    >>> import geoopt, numpy as np
-    >>> scaling_info_expmap = ScalingInfo(0, u=-1)
-    >>> # scaling_info_expmap = ScalingInfo(u=-1) would be also valid, nothing to do with results
-    >>> manifold = geoopt.Sphere()
-    >>> scaled_expmap = ScaledFunction(manifold.expmap, scaling_info_expmap)
-    >>> point = torch.tensor([2 ** .5 / 2, 2 ** .5 / 2])  # point on radius 1 sphere
-    >>> tangent = manifold.proju(point, torch.randn(2))  # some random tangent there
-    >>> new_point = scaled_expmap(point, tangent, scaling=2) # radius 2 sphere, but canonical representation is radius 1
-    >>> new_point_alternative = manifold.expmap(point, tangent / 2)
-    >>> np.testing.assert_allclose(new_point, new_point_alternative)
-    """
-    __slots__ = ["fn", "sig", "scaling_info"]
-
-    def __init__(self, fn, scaling_info: ScalingInfo):
-        self.fn = fn
-        self.scaling_info = scaling_info
-        self.sig = inspect.signature(fn)
-
-    def __call__(self, *args, scaling, **kwargs):
-        kwargs = self.sig.bind(*args, **kwargs).arguments
-        for k, power in self.scaling_info.kwargs.items():
-            kwargs[k] = kwargs[k] * scaling ** power
-        results = self.fn(**kwargs)
-        if not self.scaling_info.results:
-            # do nothing
-            return results
-        if isinstance(results, tuple):
-            return tuple(
-                (
-                    self.rescale(res, scaling, power)
-                    for res, power in zip(results, self.scaling_info.results)
-                )
-            )
-        else:
-            power = self.scaling_info.results[0]
-            return self.rescale(results, scaling, power)
-
-    @staticmethod
-    def rescale(value, scaling, power):
-        return value * scaling ** power if power != 0 else value

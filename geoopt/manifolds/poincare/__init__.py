@@ -2,7 +2,7 @@ import torch.nn
 from . import math
 from ...tensor import ManifoldTensor
 from ...utils import size2shape, broadcast_shapes
-from ..base import Manifold
+from ..base import Manifold, ScalingInfo
 
 __all__ = ["PoincareBall", "PoincareBallExact"]
 
@@ -34,6 +34,7 @@ class PoincareBall(Manifold):
     ndim = 1
     reversible = False
     name = "Poincare ball"
+    __scaling__ = Manifold.__scaling__.copy()
 
     def __init__(self, c=1.0):
         super().__init__()
@@ -180,6 +181,7 @@ class PoincareBall(Manifold):
     def geodesic(self, t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, dim=-1):
         return math.geodesic(t, x, y, c=self.c, dim=dim)
 
+    @__scaling__(ScalingInfo(t=-1))
     def geodesic_unit(
         self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1, project=True
     ):

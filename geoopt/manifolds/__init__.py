@@ -5,3 +5,5 @@ from .sphere import Sphere, SphereExact
 from .poincare import PoincareBall, PoincareBallExact
 from .product import ProductManifold
 from . import poincare
+from . import scaled
+from .scaled import Scaled
