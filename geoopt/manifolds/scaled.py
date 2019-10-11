@@ -150,7 +150,9 @@ class Scaled(Manifold):
                     raise original from e
 
     def __dir__(self):
-        return list(set(super().__dir__()) | set(dir(self.base)))
+        base_attribures = set(dir(self.base.__class__))
+        base_attribures |= set(self.base.__dict__.keys())
+        return list(set(super().__dir__()) | base_attribures)
 
     def __repr__(self):
         extra = self.base.extra_repr()
