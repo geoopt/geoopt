@@ -210,7 +210,7 @@ class Scaled(Manifold):
         return self._scaled_functions["expmap"](x, u, scaling=self.scale, **kwargs)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, **kwargs):
-        return self.base.transo(x, y, v, **kwargs)
+        return self.base.transp(x, y, v, **kwargs)
 
     def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs):
         return self._scaled_functions["retr_transp"](
