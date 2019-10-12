@@ -19,7 +19,7 @@ class ManifoldTensor(torch.Tensor):
         if len(args) == 1 and isinstance(args[0], torch.Tensor):
             data = args[0].data
         else:
-            data = torch.Tensor.__new__(cls, *args, **kwargs)
+            data = torch.Tensor(*args, **kwargs)
         if kwargs.get("device") is not None:
             data.data = data.data.to(kwargs.get("device"))
         with torch.no_grad():
@@ -136,7 +136,7 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
 
     def __new__(cls, data=None, manifold=None, requires_grad=True):
         if data is None:
-            data = ManifoldTensor(manifold=manifold)
+            data = ManifoldTensor(manifold=manifold or Euclidean())
         elif not isinstance(data, ManifoldTensor):
             data = ManifoldTensor(data, manifold=manifold or Euclidean())
         else:

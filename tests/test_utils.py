@@ -116,3 +116,8 @@ def test_manifold_is_submodule_poincare():
     container = torch.nn.ModuleDict({"ball": ball})
     container.to(torch.float64)
     assert ball.c.dtype == torch.float64
+
+
+def test_allow_empty_parameter_compat():
+    p = geoopt.ManifoldParameter()
+    assert p.shape == (0,)
