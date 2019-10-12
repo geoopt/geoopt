@@ -1,6 +1,5 @@
 import abc
 import torch.nn
-import geoopt
 import itertools
 
 
@@ -810,7 +809,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def random(
         self, *size, dtype=None, device=None, **kwargs
-    ) -> "geoopt.ManifoldTensor":
+    ):
         """Random sampling on the manifold.
 
         The exact implementation depends on manifold and usually does not follow all
