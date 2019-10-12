@@ -161,6 +161,9 @@ class Scaled(Manifold):
         else:
             return self.name + "({}) manifold".format(self.base.name)
 
+    def _check_shape(self, shape, name):
+        return self.base._check_shape(shape, name)
+
     def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
         return self.base._check_point_on_manifold(x, atol=atol, rtol=rtol)
 

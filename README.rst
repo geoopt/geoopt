@@ -56,9 +56,8 @@ points on a certain manifold
    projected, they are assumed to be already projected.
 -  ``.retr(u)`` – retraction map following vector ``u``
 -  ``.expmap(u)`` – exponential map following vector ``u`` (if expmap is not available in closed form, best approximation is used)
--  ``.transp(v, u, *more)`` – transport vector ``v`` (and possibly
-   more vectors) with direction ``u``
--  ``.retr_transp(v, u, *more)`` – transport ``self``, vector ``v``
+-  ``.transp(v, u)`` – transport vector ``v``  with direction ``u``
+-  ``.retr_transp(v, u)`` – transport ``self``, vector ``v``
    (and possibly more vectors) with direction ``u``
    (returns are plain tensors)
 

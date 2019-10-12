@@ -40,42 +40,42 @@ class ManifoldTensor(torch.Tensor):
         return copy_or_set_(self, self.manifold.projx(self))
 
     @insert_docs(Manifold.retr.__doc__, r"\s+x : .+\n.+", "")
-    def retr(self, u):
-        return self.manifold.retr(self, u=u)
+    def retr(self, u, **kwargs):
+        return self.manifold.retr(self, u=u, **kwargs)
 
     @insert_docs(Manifold.expmap.__doc__, r"\s+x : .+\n.+", "")
-    def expmap(self, u):
-        return self.manifold.expmap(self, u=u)
+    def expmap(self, u, **kwargs):
+        return self.manifold.expmap(self, u=u, **kwargs)
 
     @insert_docs(Manifold.inner.__doc__, r"\s+x : .+\n.+", "")
-    def inner(self, u, v=None):
-        return self.manifold.inner(self, u=u, v=v)
+    def inner(self, u, v=None, **kwargs):
+        return self.manifold.inner(self, u=u, v=v, **kwargs)
 
     @insert_docs(Manifold.proju.__doc__, r"\s+x : .+\n.+", "")
-    def proju(self, u):
-        return self.manifold.proju(self, u)
+    def proju(self, u, **kwargs):
+        return self.manifold.proju(self, u, **kwargs)
 
     @insert_docs(Manifold.transp.__doc__, r"\s+x : .+\n.+", "")
-    def transp(self, y, v, *more):
-        return self.manifold.transp(self, y, v, *more)
+    def transp(self, y, v, **kwargs):
+        return self.manifold.transp(self, y, v, **kwargs)
 
     @insert_docs(Manifold.retr_transp.__doc__, r"\s+x : .+\n.+", "")
-    def retr_transp(self, u, v, *more):
-        return self.manifold.retr_transp(self, u, v, *more)
+    def retr_transp(self, u, v, **kwargs):
+        return self.manifold.retr_transp(self, u, v, **kwargs)
 
     @insert_docs(Manifold.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
-    def expmap_transp(self, u, v, *more):
-        return self.manifold.expmap_transp(self, u, v, *more)
+    def expmap_transp(self, u, v, **kwargs):
+        return self.manifold.expmap_transp(self, u, v, **kwargs)
 
     @insert_docs(Manifold.transp_follow_expmap.__doc__, r"\s+x : .+\n.+", "")
-    def transp_follow_expmap(self, u, v, *more):
-        return self.manifold.transp_follow_expmap(self, u, v, *more)
+    def transp_follow_expmap(self, u, v, **kwargs):
+        return self.manifold.transp_follow_expmap(self, u, v, **kwargs)
 
     @insert_docs(Manifold.transp_follow_retr.__doc__, r"\s+x : .+\n.+", "")
-    def transp_follow_retr(self, u, v, *more):
-        return self.manifold.transp_follow_retr(self, u, v, *more)
+    def transp_follow_retr(self, u, v, **kwargs):
+        return self.manifold.transp_follow_retr(self, u, v, **kwargs)
 
-    def dist(self, other, p=2):
+    def dist(self, other, p=2, **kwargs):
         """
         Return euclidean  or geodesic distance between points on the manifold. Allows broadcasting.
 
@@ -91,13 +91,13 @@ class ManifoldTensor(torch.Tensor):
         scalar
         """
         if p == "g":
-            return self.manifold.dist(self, other)
+            return self.manifold.dist(self, other, **kwargs)
         else:
             return super().dist(other)
 
     @insert_docs(Manifold.logmap.__doc__, r"\s+x : .+\n.+", "")
-    def logmap(self, y):
-        return self.manifold.logmap(self, y)
+    def logmap(self, y, **kwargs):
+        return self.manifold.logmap(self, y, **kwargs)
 
     def __repr__(self):
         return "Tensor on {} containing:\n".format(

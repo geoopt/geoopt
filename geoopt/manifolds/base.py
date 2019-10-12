@@ -745,6 +745,10 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         However, there might be cases, when this representation is simpler or more efficient to store in
         a different way that is hard to use in practice.
 
+        Parameters
+        ----------
+        tensor : torch.Tensor
+
         Returns
         -------
         torch.Tensor
