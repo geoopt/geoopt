@@ -807,10 +807,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             raise ValueError("Only one tensor expected")
         return tensors[0]
 
-    def random(
-        self, *size, dtype=None, device=None, **kwargs
-    ):
-        """Random sampling on the manifold.
+    def random(self, *size, dtype=None, device=None, **kwargs):
+        """
+        Random sampling on the manifold.
 
         The exact implementation depends on manifold and usually does not follow all
         assumptions about uniform measure, etc.
