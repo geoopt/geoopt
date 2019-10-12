@@ -292,6 +292,8 @@ class PoincareBall(Manifold):
         tens = torch.randn(*size, device=self.c.device, dtype=self.c.dtype) * std + mean
         return ManifoldTensor(self.expmap0(tens), manifold=self)
 
+    random = random_normal
+
 
 class PoincareBallExact(PoincareBall):
     __doc__ = r"""{}

@@ -81,3 +81,14 @@ def test_fails_Poincare():
     with pytest.raises(ValueError):
         manifold = geoopt.PoincareBall()
         manifold.random_normal(())
+
+
+def test_product():
+    manifold = geoopt.ProductManifold(
+        (geoopt.Sphere(), 10),
+        (geoopt.PoincareBall(), 3),
+        (geoopt.Stiefel(), (20, 2)),
+        (geoopt.Euclidean(), 43),
+    )
+    sample = manifold.random(20, manifold.n_elements)
+    manifold.assert_check_point_on_manifold(sample)
