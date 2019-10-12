@@ -107,6 +107,8 @@ class Stiefel(Manifold):
         tens = torch.randn(*size, device=device, dtype=dtype)
         return ManifoldTensor(linalg.qr(tens)[0], manifold=self)
 
+    random = random_naive
+
 
 class CanonicalStiefel(Stiefel):
     __doc__ = r"""Stiefel Manifold with Canonical inner product

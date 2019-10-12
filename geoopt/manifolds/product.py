@@ -43,12 +43,28 @@ class ProductManifold(Manifold):
         self.slices = []
         name_parts = []
         manifolds = []
+        dtype = None
+        device = None
         pos0 = 0
         for i, (manifold, shape) in enumerate(manifolds_with_shape):
+            # check shape consistency
             shape = geoopt.utils.size2shape(shape)
             ok, reason = manifold._check_shape(shape, str("{}'th shape".format(i)))
             if not ok:
                 raise ValueError(reason)
+            # check device consistency
+            if manifold.device is not None and device is not None:
+                if device != manifold.device:
+                    raise ValueError("Not all manifold share the same device")
+            elif device is None:
+                device = manifold.device
+            # check dtype consistency
+            if manifold.dtype is not None and dtype is not None:
+                if dtype != manifold.dtype:
+                    raise ValueError("Not all manifold share the same dtype")
+            elif dtype is None:
+                dtype = manifold.dtype
+
             name_parts.append(manifold.name)
             manifolds.append(manifold)
             self.shapes.append(shape)
@@ -353,3 +369,19 @@ class ProductManifold(Manifold):
                 raise ValueError("Not all parts have same batch shape")
             init.append((manifold, tens.shape[batch_dims:]))
         return cls(*init)
+
+    def random_combined(
+        self, *size, dtype=None, device=None
+    ) -> "geoopt.ManifoldTensor":
+        shape = geoopt.utils.size2shape(*size)
+        self._assert_check_shape(shape, "x")
+        batch_shape = shape[:-1]
+        points = []
+        for manifold, shape in zip(self.manifolds, self.shapes):
+            points.append(
+                manifold.random(batch_shape + shape, dtype=dtype, device=device)
+            )
+        tensor = self.pack_point(*points)
+        return geoopt.ManifoldTensor(tensor, manifold=self)
+
+    random = random_combined

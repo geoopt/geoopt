@@ -1,5 +1,8 @@
 import abc
 import torch.nn
+import geoopt
+import itertools
+
 
 __all__ = ["Manifold", "ScalingInfo"]
 
@@ -56,6 +59,37 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def __init__(self, **kwargs):
         super().__init__()
+
+    @property
+    def device(self):
+        """
+        Manifold device.
+
+        Returns
+        -------
+        Optional[torch.device]
+        """
+        p = next(itertools.chain(self.buffers(), self.parameters()), None)
+        if p is not None:
+            return p.device
+        else:
+            return None
+
+    @property
+    def dtype(self):
+        """
+        Manifold dtype.
+
+        Returns
+        -------
+        Optional[torch.dtype]
+        """
+
+        p = next(itertools.chain(self.buffers(), self.parameters()), None)
+        if p is not None:
+            return p.dtype
+        else:
+            return None
 
     def check_point(self, x: torch.Tensor, *, explain=False):
         """
@@ -773,3 +807,13 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         if len(tensors) != 1:
             raise ValueError("Only one tensor expected")
         return tensors[0]
+
+    def random(
+        self, *size, dtype=None, device=None, **kwargs
+    ) -> "geoopt.ManifoldTensor":
+        """Random sampling on the manifold.
+
+        The exact implementation depends on manifold and usually does not follow all
+        assumptions about uniform measure, etc.
+        """
+        raise NotImplementedError

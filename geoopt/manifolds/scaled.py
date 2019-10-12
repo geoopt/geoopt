@@ -44,10 +44,16 @@ class ScaledFunction(object):
         self.__wrapped__ = fn
         self.scaling_info = scaling_info
         self.fsig = inspect.signature(fn)
+
+        # for correct and consistent behaviour and introspection
+        # we need to specify signature attribute.
         old_args = tuple(self.fsig.parameters.values())
+        # we use scaling and log, but actually we may rescale the existent scale function
+        # this is to avoid collision
         old_args = tuple(
             filter(lambda arg: arg.name not in {"scaling", "log_scaling"}, old_args)
         )
+        # variadic keywords case
         if old_args and old_args[-1].kind is inspect.Parameter.VAR_KEYWORD:
             variadic = (old_args[-1],)
             old_args = old_args[:-1]
@@ -94,6 +100,25 @@ class ScaledFunction(object):
 
 
 class Scaled(Manifold):
+    """
+    Scaled manifold.
+
+    Scales all the distances on tha manifold by a constant factor. Scaling may be learnable
+    since the underlying representation is canonical.
+
+    Examples
+    --------
+    Here is a simple example of
+
+    >>> import geoopt, torch, numpy as np
+    >>> sphere = geoopt.Sphere()
+    >>> radius_2_sphere = Scaled(sphere, 2)
+    >>> p1 = torch.tensor([-1., 0.])
+    >>> p2 = torch.tensor([0., 1.])
+    >>> np.testing.assert_allclose(sphere.dist(p1, p2), np.pi / 2)
+    >>> np.testing.assert_allclose(radius_2_sphere.dist(p1, p2), np.pi)
+    """
+
     def __init__(self, manifold: Manifold, scale=1.0, learnable=False):
         super().__init__()
         self.base = manifold

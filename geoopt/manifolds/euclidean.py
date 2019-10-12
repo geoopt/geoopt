@@ -118,5 +118,7 @@ class Euclidean(Manifold):
         tens = std.new_empty(*size).normal_() * std + mean
         return geoopt.ManifoldTensor(tens, manifold=self)
 
+    random = random_normal
+
     def extra_repr(self):
         return "ndim={}".format(self.ndim)

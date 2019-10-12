@@ -1,4 +1,4 @@
-from geoopt import ProductManifold, Sphere, Euclidean
+from geoopt import ProductManifold, Sphere, Euclidean, PoincareBall
 import torch
 import numpy as np
 import pytest
@@ -62,3 +62,11 @@ def test_inner_product():
     assert inner.shape == (5,)
     inner_kd = pman.inner(tensor, tangent, keepdim=True)
     assert inner_kd.shape == (5, 1)
+
+
+def test_dtype_checked_properly():
+    p1 = PoincareBall()
+    p2 = PoincareBall().double()
+    with pytest.raises(ValueError) as e:
+        _ = ProductManifold((p1, (10,)), (p2, (12,)))
+    assert e.match("Not all manifold share the same dtype")

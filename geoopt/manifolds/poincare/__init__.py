@@ -254,7 +254,7 @@ class PoincareBall(Manifold):
         else:
             return res
 
-    def random_normal(self, *size, mean=0, std=1):
+    def random_normal(self, *size, mean=0, std=1, dtype=None, device=None):
         """
         Create a point on the manifold, measure is induced by Normal distribution on the tangent space of zero.
 
@@ -266,6 +266,10 @@ class PoincareBall(Manifold):
             mean value for the Normal distribution
         std : float|tensor
             std value for the Normal distribution
+        dtype: torch.dtype
+            target dtype for sample, if not None, should match Manifold dtype
+        device: torch.device
+            target device for sample, if not None, should match Manifold device
 
         Returns
         -------
@@ -277,6 +281,14 @@ class PoincareBall(Manifold):
         The device and dtype will match the device and dtype of the Manifold
         """
         self._assert_check_shape(size2shape(*size), "x")
+        if device is not None and device != self.c.device:
+            raise ValueError(
+                "`device` does not match the projector `device`, set the `device` argument to None"
+            )
+        if dtype is not None and dtype != self.c.dtype:
+            raise ValueError(
+                "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
+            )
         tens = torch.randn(*size, device=self.c.device, dtype=self.c.dtype) * std + mean
         return ManifoldTensor(self.expmap0(tens), manifold=self)
 

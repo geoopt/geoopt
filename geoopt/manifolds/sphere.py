@@ -212,6 +212,8 @@ class Sphere(Manifold):
             )
         return ManifoldTensor(self.projx(tens), manifold=self)
 
+    random = random_uniform
+
 
 class SphereExact(Sphere):
     __doc__ = r"""{}
