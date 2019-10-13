@@ -366,7 +366,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         scalar
             squared distance between two points
         """
-        raise self.dist(x, y, keepdim=keepdim) ** 2
+        return self.dist(x, y, keepdim=keepdim) ** 2
 
     @abc.abstractmethod
     @__scaling__(ScalingInfo(u=-1))
@@ -588,7 +588,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         scalar
             inner product (broadcasted)
         """
-        raise self.inner(x, u, keepdim=keepdim) ** 0.5
+        return self.inner(x, u, keepdim=keepdim) ** 0.5
 
     @abc.abstractmethod
     def proju(self, x: torch.Tensor, u: torch.Tensor):
