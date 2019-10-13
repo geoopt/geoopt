@@ -41,3 +41,11 @@ def test_scaling_compensates():
     rsball = geoopt.Scaled(sball, 0.5)
     v = torch.arange(10).float() / 10
     np.testing.assert_allclose(ball.expmap0(v), rsball.expmap0(v))
+
+
+def test_scaling_getattr():
+    ball = geoopt.PoincareBallExact()
+    sball = geoopt.Scaled(ball, 2)
+    pa, pb = sball.random(2, 10)
+    # this one is representative and not present in __scaling__
+    sball.geodesic(0.5, pa, pb)

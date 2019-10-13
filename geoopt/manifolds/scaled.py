@@ -1,102 +1,40 @@
 import inspect
 import torch
-from geoopt.manifolds.base import ScalingInfo, Manifold
+import types
+from geoopt.manifolds.base import Manifold
 import functools
 
 __all__ = ["Scaled"]
 
 
-class ScaledFunction(object):
-    r"""
-    Helper class to scale method calls properly if a Manifold is wrapped into :class:`Scaled`.
+def rescale_value(value, scaling, power):
+    return value * scaling ** power if power != 0 else value
 
-    To implement mixed curvature manifolds, within a single Product manifold we need to
-    track scales of each tangent space. Moreover, if we eventually learn scalings, for some manifolds (e.g Sphere)
-    we either should also change representations of points rescaling vectors in the ambient space, or change operations
-    defined on these points. It is more practical to change operations, rather than points because this makes
-    implementation much more easier.
 
-    Examples
-    --------
-    Consider an arbitrary Riemannian Manifold.
-    If we change the scale of charts on the manifold, distances would change as well. Say, we change
-    distances at a constant factor :math:`\lambda`. Then having a convention that the only part changed is distance,
-    but not points. We come up with a changed metric tensor what influences such operations as
-    :math:`\operatorname{Exp}`, :math:`\operatorname{Log}` and so on.
+def rescale(function, scaling_info):
+    signature = inspect.signature(function)
 
-    For expmap we downscale tangent vector :math:`\Rightarrow` scaling power is -1. But output remains untouched
-    :math:`\Rightarrow` scaling power is 0.
-
-    >>> import geoopt, torch, numpy as np
-    >>> scaling_info_expmap = ScalingInfo(u=-1)
-    >>> manifold = geoopt.Sphere()
-    >>> scaled_expmap = ScaledFunction(manifold.expmap, scaling_info_expmap)
-    >>> point = torch.tensor([2 ** .5 / 2, 2 ** .5 / 2])  # point on radius 1 sphere
-    >>> tangent = manifold.proju(point, torch.randn(2))  # some random tangent there
-    >>> new_point = scaled_expmap(point, tangent, scaling=2) # radius 2 sphere, but canonical representation is radius 1
-    >>> new_point_alternative = manifold.expmap(point, tangent / 2)
-    >>> np.testing.assert_allclose(new_point, new_point_alternative)
-    """
-
-    __slots__ = ["__signature__", "__wrapped__", "fsig", "scaling_info"]
-
-    def __init__(self, fn: callable, scaling_info: ScalingInfo):
-        self.__wrapped__ = fn
-        self.scaling_info = scaling_info
-        self.fsig = inspect.signature(fn)
-
-        # for correct and consistent behaviour and introspection
-        # we need to specify signature attribute.
-        old_args = tuple(self.fsig.parameters.values())
-        # we use scaling and log, but actually we may rescale the existent scale function
-        # this is to avoid collision
-        old_args = tuple(
-            filter(lambda arg: arg.name not in {"scaling", "log_scaling"}, old_args)
-        )
-        # variadic keywords case
-        if old_args and old_args[-1].kind is inspect.Parameter.VAR_KEYWORD:
-            variadic = (old_args[-1],)
-            old_args = old_args[:-1]
-        else:
-            variadic = ()
-
-        new_args = (
-            inspect.Parameter(
-                "scaling", kind=inspect.Parameter.KEYWORD_ONLY, default=None
-            ),
-            inspect.Parameter(
-                "log_scaling", kind=inspect.Parameter.KEYWORD_ONLY, default=None
-            ),
-        )
-        self.__signature__ = self.fsig.replace(
-            parameters=old_args + new_args + variadic
-        )
-
-    def __call__(self, *args, scaling=None, log_scaling=None, **kwargs):
-        assert (scaling is not None) ^ (log_scaling is not None)
-        if log_scaling is not None:
-            scaling = log_scaling.exp()
-        kwargs = self.fsig.bind(*args, **kwargs).arguments
-        for k, power in self.scaling_info.kwargs.items():
-            kwargs[k] = self.rescale(kwargs[k], scaling, power)
-        results = self.__wrapped__(**kwargs)
-        if not self.scaling_info.results:
+    @functools.wraps(function)
+    def rescaled_function(self, *args, **kwargs):
+        kwargs = signature.bind(self.base, *args, **kwargs).arguments
+        for k, power in scaling_info.kwargs.items():
+            kwargs[k] = rescale_value(kwargs[k], self.scale, power)
+        results = function(**kwargs)
+        if not scaling_info.results:
             # do nothing
             return results
         if isinstance(results, tuple):
             return tuple(
                 (
-                    self.rescale(res, scaling, power)
-                    for res, power in zip(results, self.scaling_info.results)
+                    rescale_value(res, self.scale, power)
+                    for res, power in zip(results, scaling_info.results)
                 )
             )
         else:
-            power = self.scaling_info.results[0]
-            return self.rescale(results, scaling, power)
+            power = scaling_info.results[0]
+            return rescale_value(results, self.scale, power)
 
-    @staticmethod
-    def rescale(value, scaling, power):
-        return value * scaling ** power if power != 0 else value
+    return rescaled_function
 
 
 class Scaled(Manifold):
@@ -122,7 +60,6 @@ class Scaled(Manifold):
     def __init__(self, manifold: Manifold, scale=1.0, learnable=False):
         super().__init__()
         self.base = manifold
-        self._scaled_functions = dict()
         scale = torch.as_tensor(scale, dtype=torch.get_default_dtype())
         scale = scale.requires_grad_(False)
         if not learnable:
@@ -134,8 +71,11 @@ class Scaled(Manifold):
         # do not rebuild scaled functions very frequently, save them
 
         for method, scaling_info in self.base.__scaling__.items():
-            bound_method = getattr(self.base, method)
-            self._scaled_functions[method] = ScaledFunction(bound_method, scaling_info)
+            # register rescaled functions as bound methods of this particular instance
+            bound_method = getattr(self.base, method).__func__  # unbound method
+            self.__setattr__(
+                method, types.MethodType(rescale(bound_method, scaling_info), self)
+            )
 
     @property
     def scale(self):
@@ -157,22 +97,18 @@ class Scaled(Manifold):
     name = "Scaled"
     __scaling__ = property(lambda self: self.base.__scaling__)
 
+    # to be fixed in __init__
+    retr = NotImplemented
+    expmap = NotImplemented
+
     def __getattr__(self, item):
-        if item in self._scaled_functions:
-            return functools.partial(
-                self._scaled_functions[item],
-                # for partial we need raw tensors
-                scaling=self._scale,
-                log_scaling=self._log_scale,
-            )
-        else:
+        try:
+            return super().__getattr__(item)
+        except AttributeError as original:
             try:
-                return super().__getattr__(item)
-            except AttributeError as original:
-                try:
-                    return self.base.__getattribute__(item)
-                except AttributeError as e:
-                    raise original from e
+                return self.base.__getattribute__(item)
+            except AttributeError as e:
+                raise original from e
 
     def __dir__(self):
         base_attribures = set(dir(self.base.__class__))
@@ -195,9 +131,7 @@ class Scaled(Manifold):
     def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
         return self.base._check_vector_on_tangent(x, u, atol=atol, rtol=rtol)
 
-    def retr(self, x: torch.Tensor, u: torch.Tensor, **kwargs):
-        return self._scaled_functions["retr"](x, u, scaling=self.scale, **kwargs)
-
+    # stuff that should remain the same but we need to override it
     def inner(
         self,
         x: torch.Tensor,
@@ -218,50 +152,11 @@ class Scaled(Manifold):
     def projx(self, x: torch.Tensor, **kwargs):
         return self.base.projx(x, **kwargs)
 
-    def logmap(self, x: torch.Tensor, y: torch.Tensor, **kwargs):
-        return self._scaled_functions["logmap"](x, y, scaling=self.scale, **kwargs)
-
-    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, **kwargs):
-        return self._scaled_functions["dist"](
-            x, y, keepdim=keepdim, scaling=self.scale, **kwargs
-        )
-
-    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, **kwargs):
-        return self._scaled_functions["dist2"](
-            x, y, keepdim=keepdim, scaling=self.scale, **kwargs
-        )
-
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, **kwargs):
         return self.base.egrad2rgrad(x, u, **kwargs)
-
-    def expmap(self, x: torch.Tensor, u: torch.Tensor, **kwargs):
-        return self._scaled_functions["expmap"](x, u, scaling=self.scale, **kwargs)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, **kwargs):
         return self.base.transp(x, y, v, **kwargs)
 
-    def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs):
-        return self._scaled_functions["retr_transp"](
-            x, u, v, scaling=self.scale, **kwargs
-        )
-
-    def expmap_transp(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs
-    ):
-        return self._scaled_functions["expmap_transp"](
-            x, u, v, scaling=self.scale, **kwargs
-        )
-
-    def transp_follow_expmap(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs
-    ):
-        return self._scaled_functions["transp_follow_expmap"](
-            x, u, v, scaling=self.scale, **kwargs
-        )
-
-    def transp_follow_retr(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, **kwargs
-    ):
-        return self._scaled_functions["transp_follow_retr"](
-            x, u, v, scaling=self.scale, **kwargs
-        )
+    def random(self, *size, dtype=None, device=None, **kwargs):
+        return self.base.random(*size, dtype=dtype, device=device, **kwargs)
