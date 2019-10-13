@@ -97,7 +97,7 @@ class Scaled(Manifold):
     name = "Scaled"
     __scaling__ = property(lambda self: self.base.__scaling__)
 
-    # to be fixed in __init__
+    # Make AbstractMeta happy, to be fixed in __init__
     retr = NotImplemented
     expmap = NotImplemented
 
@@ -106,6 +106,7 @@ class Scaled(Manifold):
             return super().__getattr__(item)
         except AttributeError as original:
             try:
+                # propagate only public methods and attributes, ignore buffers, parameters, etc
                 return self.base.__getattribute__(item)
             except AttributeError as e:
                 raise original from e
