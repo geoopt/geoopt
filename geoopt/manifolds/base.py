@@ -22,6 +22,8 @@ class ScalingInfo(object):
     as a sufficient in this particular scenario. The only required info for formula above is ``power``.
     """
 
+    # marks method to be not working with Scaled wrapper
+    NotCompatible = object()
     __slots__ = ["kwargs", "results"]
 
     def __init__(self, *results: float, **kwargs: float):

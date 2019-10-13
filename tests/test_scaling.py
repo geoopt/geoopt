@@ -1,5 +1,6 @@
 import geoopt
 import torch
+import pytest
 import numpy as np
 
 
@@ -49,3 +50,12 @@ def test_scaling_getattr():
     pa, pb = sball.random(2, 10)
     # this one is representative and not present in __scaling__
     sball.geodesic(0.5, pa, pb)
+
+
+def test_scaling_not_implemented():
+    ball = geoopt.PoincareBallExact()
+    sball = geoopt.Scaled(ball, 2)
+    pa = sball.random(10)
+    with pytest.raises(NotImplementedError) as e:
+        sball.mobius_fn_apply(lambda x: x, pa)
+    assert e.match("Scaled version of 'mobius_fn_apply' is not available")
