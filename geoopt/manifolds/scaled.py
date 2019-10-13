@@ -46,7 +46,7 @@ class Scaled(Manifold):
 
     Examples
     --------
-    Here is a simple example of
+    Here is a simple example of radius 2 Sphere
 
     >>> import geoopt, torch, numpy as np
     >>> sphere = geoopt.Sphere()
