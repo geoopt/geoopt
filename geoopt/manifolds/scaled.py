@@ -13,11 +13,16 @@ def rescale_value(value, scaling, power):
 
 def rescale(function, scaling_info):
     if scaling_info is ScalingInfo.NotCompatible:
+
         @functools.wraps(functools)
         def stub(self, *args, **kwargs):
-            raise NotImplementedError("Scaled version of '{}' is not available".format(function.__name__))
+            raise NotImplementedError(
+                "Scaled version of '{}' is not available".format(function.__name__)
+            )
+
         return stub
     signature = inspect.signature(function)
+
     @functools.wraps(function)
     def rescaled_function(self, *args, **kwargs):
         kwargs = signature.bind(self.base, *args, **kwargs).arguments
