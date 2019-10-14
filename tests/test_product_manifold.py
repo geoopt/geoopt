@@ -70,3 +70,18 @@ def test_dtype_checked_properly():
     with pytest.raises(ValueError) as e:
         _ = ProductManifold((p1, (10,)), (p2, (12,)))
     assert e.match("Not all manifold share the same dtype")
+
+
+def test_component_inner_product():
+    pman = ProductManifold((Sphere(), 10), (Sphere(), (3, 2)), (Euclidean(), ()))
+    point = [
+        Sphere().random_uniform(5, 10),
+        Sphere().random_uniform(5, 3, 2),
+        Euclidean().random_normal(5),
+    ]
+    tensor = pman.pack_point(*point)
+    tangent = torch.randn_like(tensor)
+    tangent = pman.proju(tensor, tangent)
+
+    inner = pman.component_inner(tensor, tangent)
+    assert inner.shape == (5, pman.n_elements)
