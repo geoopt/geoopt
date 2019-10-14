@@ -223,7 +223,7 @@ class ProductManifold(Manifold):
             point = self.take_submanifold_value(x, i)
             point1 = self.take_submanifold_value(y, i)
             logmapped = manifold.logmap(point, point1)
-            logmapped = logmapped.reshape((*transported.shape[:target_batch_dim], -1))
+            logmapped = logmapped.reshape((*logmapped.shape[:target_batch_dim], -1))
             logmapped_tensors.append(logmapped)
         return torch.cat(logmapped_tensors, -1)
 
