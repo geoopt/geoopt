@@ -81,9 +81,9 @@ class Scaled(Manifold):
 
         for method, scaling_info in self.base.__scaling__.items():
             # register rescaled functions as bound methods of this particular instance
-            bound_method = getattr(self.base, method).__func__  # unbound method
+            unbound_method = getattr(self.base, method).__func__  # unbound method
             self.__setattr__(
-                method, types.MethodType(rescale(bound_method, scaling_info), self)
+                method, types.MethodType(rescale(unbound_method, scaling_info), self)
             )
 
     @property
