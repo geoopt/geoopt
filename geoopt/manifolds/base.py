@@ -592,7 +592,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Returns
         -------
-        scalar
+        tensor
             inner product component wise (broadcasted)
 
         Notes
