@@ -217,7 +217,7 @@ class ProductManifold(Manifold):
         return torch.cat(transported_tensors, -1)
 
     def logmap(self, x: torch.Tensor, y: torch.Tensor):
-        target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
+        target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())
         logmapped_tensors = []
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
