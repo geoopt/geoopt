@@ -477,7 +477,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         scalar
             inner product (broadcasted)
         """
-        raise self.inner(x, u, keepdim=keepdim) ** 0.5
+        return self.inner(x, u, keepdim=keepdim) ** 0.5
 
     @abc.abstractmethod
     def proju(self, x, u):
