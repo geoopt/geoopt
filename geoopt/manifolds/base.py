@@ -597,7 +597,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Notes
         -----
-        The purpose of this method better adaptive properties in optimization since ProductManifold
+        The purpose of this method is better adaptive properties in optimization since ProductManifold
         will "hide" the structure in public API.
         """
         return self.inner(x, u, v, keepdim=True)
