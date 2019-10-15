@@ -400,3 +400,19 @@ class ProductManifold(Manifold):
         return geoopt.ManifoldTensor(tensor, manifold=self)
 
     random = random_combined
+
+    def origin(
+        self, *size, dtype=None, device=None, seed=42
+    ) -> "geoopt.ManifoldTensor":
+        shape = geoopt.utils.size2shape(*size)
+        self._assert_check_shape(shape, "x")
+        batch_shape = shape[:-1]
+        points = []
+        for manifold, shape in zip(self.manifolds, self.shapes):
+            points.append(
+                manifold.origin(
+                    batch_shape + shape, dtype=dtype, device=device, seed=42
+                )
+            )
+        tensor = self.pack_point(*points)
+        return geoopt.ManifoldTensor(tensor, manifold=self)

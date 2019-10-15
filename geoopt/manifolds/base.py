@@ -847,3 +847,31 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         assumptions about uniform measure, etc.
         """
         raise NotImplementedError
+
+    def origin(self, *size, dtype=None, device=None, seed=42):
+        """
+        Create some reasonable point on the manifold in a deterministic way.
+
+        For some manifolds there may exist e.g. zero vector or some analogy.
+        In case it is possible to define this special point, this point is returned with the desired size.
+        In other case, the returned point is sampled on the manifold in a deterministic way.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            A parameter controlling deterministic randomness for manifolds that do not provide :method:`origin`,
+            but provide :method:`random`. (default: 42)
+
+        Returns
+        -------
+        tensor
+        """
+        with torch.random.fork_rng():
+            torch.random.manual_seed(seed)
+            return self.random(*size, dtype=dtype, device=device)
