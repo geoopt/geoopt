@@ -872,6 +872,13 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         -------
         tensor
         """
-        with torch.random.fork_rng():
+        if seed is not None:
+            # we promise pseudorandom behaviour but do not want to modify global seed
+            state = torch.random.get_rng_state()
             torch.random.manual_seed(seed)
+            try:
+                return self.random(*size, dtype=dtype, device=device)
+            finally:
+                torch.random.set_rng_state(state)
+        else:
             return self.random(*size, dtype=dtype, device=device)
