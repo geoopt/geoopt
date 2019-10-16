@@ -120,5 +120,11 @@ class Euclidean(Manifold):
 
     random = random_normal
 
+    def origin(self, *size, dtype=None, device=None, seed=42):
+        self._assert_check_shape(size2shape(*size), "x")
+        return geoopt.ManifoldTensor(
+            torch.zeros(*size, dtype=dtype, device=device), manifold=self
+        )
+
     def extra_repr(self):
         return "ndim={}".format(self.ndim)

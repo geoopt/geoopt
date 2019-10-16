@@ -572,6 +572,36 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None):
+        """
+        Inner product for tangent vectors at point :math:`x` according to components of the manifold.
+
+        The result of the function is same as ``inner`` with ``keepdim=True`` for
+        all the manifolds except ProductManifold. For this manifold it acts different way
+        computing inner product for each component and then building an output correctly
+        tiling and reshaping the result.
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
+        v : tensor (optional)
+            tangent vector at point :math:`x`
+
+        Returns
+        -------
+        tensor
+            inner product component wise (broadcasted)
+
+        Notes
+        -----
+        The purpose of this method is better adaptive properties in optimization since ProductManifold
+        will "hide" the structure in public API.
+        """
+        return self.inner(x, u, v, keepdim=True)
+
     def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         """
         Norm of a tangent vector at point :math:`x`.
@@ -817,3 +847,31 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         assumptions about uniform measure, etc.
         """
         raise NotImplementedError
+
+    def origin(self, *size, dtype=None, device=None, seed=42):
+        """
+        Create some reasonable point on the manifold in a deterministic way.
+
+        For some manifolds there may exist e.g. zero vector or some analogy.
+        In case it is possible to define this special point, this point is returned with the desired size.
+        In other case, the returned point is sampled on the manifold in a deterministic way.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            A parameter controlling deterministic randomness for manifolds that do not provide :method:`origin`,
+            but provide :method:`random`. (default: 42)
+
+        Returns
+        -------
+        tensor
+        """
+        with torch.random.fork_rng():
+            torch.random.manual_seed(seed)
+            return self.random(*size, dtype=dtype, device=device)

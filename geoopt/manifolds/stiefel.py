@@ -109,6 +109,12 @@ class Stiefel(Manifold):
 
     random = random_naive
 
+    def origin(self, *size, dtype=None, device=None, seed=42):
+        self._assert_check_shape(size2shape(*size), "x")
+        eye = torch.zeros(*size, dtype=dtype, device=device)
+        eye[..., torch.arange(eye.shape[-1]), torch.arange(eye.shape[-1])] += 1
+        return ManifoldTensor(eye, manifold=self)
+
 
 class CanonicalStiefel(Stiefel):
     __doc__ = r"""Stiefel Manifold with Canonical inner product

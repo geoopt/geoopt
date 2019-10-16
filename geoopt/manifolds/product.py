@@ -160,6 +160,21 @@ class ProductManifold(Manifold):
             result = torch.unsqueeze(result, -1)
         return result
 
+    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None):
+        products = []
+        for i, manifold in enumerate(self.manifolds):
+            point = self.take_submanifold_value(x, i)
+            u_vec = self.take_submanifold_value(u, i)
+            if v is not None:
+                v_vec = self.take_submanifold_value(v, i)
+            else:
+                v_vec = None
+            inner = manifold.component_inner(point, u_vec, v_vec)
+            inner = inner.expand_as(u_vec)
+            products.append(inner)
+        result = self.pack_point(*products)
+        return result
+
     def projx(self, x: torch.Tensor):
         projected = []
         for i, manifold in enumerate(self.manifolds):
@@ -386,3 +401,19 @@ class ProductManifold(Manifold):
         return geoopt.ManifoldTensor(tensor, manifold=self)
 
     random = random_combined
+
+    def origin(
+        self, *size, dtype=None, device=None, seed=42
+    ) -> "geoopt.ManifoldTensor":
+        shape = geoopt.utils.size2shape(*size)
+        self._assert_check_shape(shape, "x")
+        batch_shape = shape[:-1]
+        points = []
+        for manifold, shape in zip(self.manifolds, self.shapes):
+            points.append(
+                manifold.origin(
+                    batch_shape + shape, dtype=dtype, device=device, seed=42
+                )
+            )
+        tensor = self.pack_point(*points)
+        return geoopt.ManifoldTensor(tensor, manifold=self)

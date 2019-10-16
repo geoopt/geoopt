@@ -296,6 +296,11 @@ class PoincareBall(Manifold):
 
     random = random_normal
 
+    def origin(self, *size, dtype=None, device=None, seed=42):
+        return ManifoldTensor(
+            torch.zeros(*size, dtype=dtype, device=device), manifold=self
+        )
+
 
 class PoincareBallExact(PoincareBall):
     __doc__ = r"""{}
