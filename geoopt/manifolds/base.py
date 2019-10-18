@@ -36,7 +36,49 @@ class ScalingStorage(dict):
     Helper class to make implementation transparent.
 
     This is just a dictionary with additional overriden ``__call__``
-    for more explicit and elegant API to declare members. A usage example may be found in :class:`Manifold`
+    for more explicit and elegant API to declare members. A usage example may be found in :class:`Manifold`.
+
+    Methods that require rescaling when wrapped into :class:`Scaled` should be defined as follows
+
+    1. Regular methods like ``dist``, ``dist2``, ``expmap``, ``retr`` etc. that are already present in the base class
+    do not require registration, it has already happened in the base :class:`Manifold` class.
+
+    2. New methods (like in :class:`PoincareBall`) should be treated with care.
+
+    .. codeblock:: python
+
+        class PoincareBall(Manifold):
+            # make a class copy of __scaling__ info. Default methods are already present there
+            __scaling__ = Manifold.__scaling__.copy()
+            ... # here come regular implementation of the required methods
+
+            @__scaling__(ScalingInfo(1))  # rescale output according to rule `out * scaling ** 1`
+            def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False):
+                return math.dist0(x, c=self.c, dim=dim, keepdim=keepdim)
+
+            @__scaling__(ScalingInfo(u=-1))  # rescale argument `u` according to the rule `out * scaling ** -1`
+            def expmap0(self, u: torch.Tensor, *, dim=-1, project=True):
+                res = math.expmap0(u, c=self.c, dim=dim)
+                if project:
+                    return math.project(res, c=self.c, dim=dim)
+                else:
+                    return res
+            ... # other special methods implementation
+
+    3. Some methods are not compliant with the above rescaling rules. We should mark them as `NotCompatible`
+
+    .. codeblock:: python
+
+            # continuation of the PoincareBall definition
+            @__scaling__(ScalingInfo.NotCompatible)
+            def mobius_fn_apply(
+                self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True, **kwargs
+            ):
+                res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
+                if project:
+                    return math.project(res, c=self.c, dim=dim)
+                else:
+                    return res
     """
 
     def __call__(self, scaling_info: ScalingInfo):
