@@ -524,7 +524,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     @__scaling__(ScalingInfo(u=-1))
     def transp_follow_retr(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{retr}(x, u)}(v)`.
+        Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{retr}(x, u)}(v)`.
 
         This operation is sometimes is much more simpler and can be optimized.
 
@@ -548,7 +548,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     @__scaling__(ScalingInfo(u=-1))
     def transp_follow_expmap(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
+        Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
 
         Here, :math:`\operatorname{Exp}` is the best possible approximation of the true exponential map.
         There are cases when the exact variant is hard or impossible implement, therefore a
@@ -573,7 +573,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport :math:`\mathfrac{T}_{x\to y}(v)`.
+        Perform vector transport :math:`\mathfrak{T}_{x\to y}(v)`.
 
         Parameters
         ----------
@@ -907,8 +907,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         dtype : torch.dtype
             the desired dtype
         seed : int
-            A parameter controlling deterministic randomness for manifolds that do not provide :method:`origin`,
-            but provide :method:`random`. (default: 42)
+            A parameter controlling deterministic randomness for manifolds that do not provide ``.origin``,
+            but provide ``.random``. (default: 42)
 
         Returns
         -------
