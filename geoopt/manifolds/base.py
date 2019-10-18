@@ -45,7 +45,7 @@ class ScalingStorage(dict):
 
     2. New methods (like in :class:`PoincareBall`) should be treated with care.
 
-    .. codeblock:: python
+    .. code-block:: python
 
         class PoincareBall(Manifold):
             # make a class copy of __scaling__ info. Default methods are already present there
@@ -67,7 +67,7 @@ class ScalingStorage(dict):
 
     3. Some methods are not compliant with the above rescaling rules. We should mark them as `NotCompatible`
 
-    .. codeblock:: python
+    .. code-block:: python
 
             # continuation of the PoincareBall definition
             @__scaling__(ScalingInfo.NotCompatible)
