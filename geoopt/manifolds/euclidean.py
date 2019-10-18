@@ -121,6 +121,24 @@ class Euclidean(Manifold):
     random = random_normal
 
     def origin(self, *size, dtype=None, device=None, seed=42):
+        """
+        Zero point origin.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            ignored
+
+        Returns
+        -------
+        ManifoldTensor
+        """
         self._assert_check_shape(size2shape(*size), "x")
         return geoopt.ManifoldTensor(
             torch.zeros(*size, dtype=dtype, device=device), manifold=self

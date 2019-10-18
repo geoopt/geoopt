@@ -297,6 +297,25 @@ class PoincareBall(Manifold):
     random = random_normal
 
     def origin(self, *size, dtype=None, device=None, seed=42):
+        """
+        Zero point origin.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            ignored
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on the manifold
+        """
         return ManifoldTensor(
             torch.zeros(*size, dtype=dtype, device=device), manifold=self
         )
