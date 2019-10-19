@@ -116,14 +116,24 @@ class Scaled(Manifold):
         except AttributeError as original:
             try:
                 # propagate only public methods and attributes, ignore buffers, parameters, etc
-                return self.base.__getattribute__(item)
+                if isinstance(self.base, Scaled) and item in self._base_attributes:
+                    return self.base.__getattr__(item)
+                else:
+                    return self.base.__getattribute__(item)
             except AttributeError as e:
                 raise original from e
 
+    @property
+    def _base_attributes(self):
+        if isinstance(self.base, Scaled):
+            return self.base._base_attributes
+        else:
+            base_attribures = set(dir(self.base.__class__))
+            base_attribures |= set(self.base.__dict__.keys())
+            return base_attribures
+
     def __dir__(self):
-        base_attribures = set(dir(self.base.__class__))
-        base_attribures |= set(self.base.__dict__.keys())
-        return list(set(super().__dir__()) | base_attribures)
+        return list(set(super().__dir__()) | self.base_attribures)
 
     def __repr__(self):
         extra = self.base.extra_repr()

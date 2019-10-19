@@ -44,6 +44,15 @@ def test_scaling_compensates():
     np.testing.assert_allclose(ball.expmap0(v), rsball.expmap0(v))
 
 
+def test_rescaling_methods_accessible():
+    ball = geoopt.PoincareBallExact()
+    sball = geoopt.Scaled(ball, 2)
+    rsball = geoopt.Scaled(sball, 0.5)
+    v0 = torch.arange(10).float() / 10
+    v1 = -torch.arange(10).float() / 10
+    rsball.geodesic(0.5, v0, v1)
+
+
 def test_scaling_getattr():
     ball = geoopt.PoincareBallExact()
     sball = geoopt.Scaled(ball, 2)
