@@ -36,7 +36,49 @@ class ScalingStorage(dict):
     Helper class to make implementation transparent.
 
     This is just a dictionary with additional overriden ``__call__``
-    for more explicit and elegant API to declare members. A usage example may be found in :class:`Manifold`
+    for more explicit and elegant API to declare members. A usage example may be found in :class:`Manifold`.
+
+    Methods that require rescaling when wrapped into :class:`Scaled` should be defined as follows
+
+    1. Regular methods like ``dist``, ``dist2``, ``expmap``, ``retr`` etc. that are already present in the base class
+    do not require registration, it has already happened in the base :class:`Manifold` class.
+
+    2. New methods (like in :class:`PoincareBall`) should be treated with care.
+
+    .. code-block:: python
+
+        class PoincareBall(Manifold):
+            # make a class copy of __scaling__ info. Default methods are already present there
+            __scaling__ = Manifold.__scaling__.copy()
+            ... # here come regular implementation of the required methods
+
+            @__scaling__(ScalingInfo(1))  # rescale output according to rule `out * scaling ** 1`
+            def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False):
+                return math.dist0(x, c=self.c, dim=dim, keepdim=keepdim)
+
+            @__scaling__(ScalingInfo(u=-1))  # rescale argument `u` according to the rule `out * scaling ** -1`
+            def expmap0(self, u: torch.Tensor, *, dim=-1, project=True):
+                res = math.expmap0(u, c=self.c, dim=dim)
+                if project:
+                    return math.project(res, c=self.c, dim=dim)
+                else:
+                    return res
+            ... # other special methods implementation
+
+    3. Some methods are not compliant with the above rescaling rules. We should mark them as `NotCompatible`
+
+    .. code-block:: python
+
+            # continuation of the PoincareBall definition
+            @__scaling__(ScalingInfo.NotCompatible)
+            def mobius_fn_apply(
+                self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True, **kwargs
+            ):
+                res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
+                if project:
+                    return math.project(res, c=self.c, dim=dim)
+                else:
+                    return res
     """
 
     def __call__(self, scaling_info: ScalingInfo):
@@ -482,7 +524,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     @__scaling__(ScalingInfo(u=-1))
     def transp_follow_retr(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{retr}(x, u)}(v)`.
+        Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{retr}(x, u)}(v)`.
 
         This operation is sometimes is much more simpler and can be optimized.
 
@@ -506,7 +548,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     @__scaling__(ScalingInfo(u=-1))
     def transp_follow_expmap(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
+        Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
 
         Here, :math:`\operatorname{Exp}` is the best possible approximation of the true exponential map.
         There are cases when the exact variant is hard or impossible implement, therefore a
@@ -531,7 +573,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport :math:`\mathfrac{T}_{x\to y}(v)`.
+        Perform vector transport :math:`\mathfrak{T}_{x\to y}(v)`.
 
         Parameters
         ----------
@@ -865,13 +907,20 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         dtype : torch.dtype
             the desired dtype
         seed : int
-            A parameter controlling deterministic randomness for manifolds that do not provide :method:`origin`,
-            but provide :method:`random`. (default: 42)
+            A parameter controlling deterministic randomness for manifolds that do not provide ``.origin``,
+            but provide ``.random``. (default: 42)
 
         Returns
         -------
         tensor
         """
-        with torch.random.fork_rng():
+        if seed is not None:
+            # we promise pseudorandom behaviour but do not want to modify global seed
+            state = torch.random.get_rng_state()
             torch.random.manual_seed(seed)
+            try:
+                return self.random(*size, dtype=dtype, device=device)
+            finally:
+                torch.random.set_rng_state(state)
+        else:
             return self.random(*size, dtype=dtype, device=device)

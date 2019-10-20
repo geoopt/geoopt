@@ -110,6 +110,24 @@ class Stiefel(Manifold):
     random = random_naive
 
     def origin(self, *size, dtype=None, device=None, seed=42):
+        """
+        Identity matrix point origin.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            ignored
+
+        Returns
+        -------
+        ManifoldTensor
+        """
         self._assert_check_shape(size2shape(*size), "x")
         eye = torch.zeros(*size, dtype=dtype, device=device)
         eye[..., torch.arange(eye.shape[-1]), torch.arange(eye.shape[-1])] += 1
