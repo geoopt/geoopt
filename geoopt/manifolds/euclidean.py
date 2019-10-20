@@ -51,6 +51,15 @@ class Euclidean(Manifold):
         target_shape = broadcast_shapes(x_shape, i_shape)
         return inner.expand(target_shape)
 
+    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None):
+        # it is possible to factorize the manifold
+        if v is None:
+            inner = u.pow(2)
+        else:
+            inner = u * v
+        target_shape = broadcast_shapes(x.shape, inner.shape)
+        return inner.expand(target_shape)
+
     def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         if self.ndim > 0:
             return u.norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
