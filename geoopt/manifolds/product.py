@@ -153,7 +153,7 @@ class ProductManifold(Manifold):
                 v_vec = self.take_submanifold_value(v, i)
             else:
                 v_vec = None
-            inner = manifold.inner(point, u_vec, v_vec)
+            inner = manifold.inner(point, u_vec, v_vec, keepdim=True)
             inner = inner.view(*inner.shape[:target_batch_dim], -1).sum(-1)
             products.append(inner)
         result = sum(products)
@@ -166,12 +166,13 @@ class ProductManifold(Manifold):
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
             u_vec = self.take_submanifold_value(u, i)
+            target_shape = geoopt.utils.broadcast_shapes(point.shape, u_vec.shape)
             if v is not None:
                 v_vec = self.take_submanifold_value(v, i)
             else:
                 v_vec = None
             inner = manifold.component_inner(point, u_vec, v_vec)
-            inner = inner.expand_as(u_vec)
+            inner = inner.expand(target_shape)
             products.append(inner)
         result = self.pack_point(*products)
         return result
@@ -309,7 +310,7 @@ class ProductManifold(Manifold):
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
             point1 = self.take_submanifold_value(y, i)
-            mini_dist2 = manifold.dist2(point, point1)
+            mini_dist2 = manifold.dist2(point, point1, keepdim=True)
             mini_dist2 = mini_dist2.reshape(
                 (*mini_dist2.shape[:target_batch_dim], -1)
             ).sum(-1)
