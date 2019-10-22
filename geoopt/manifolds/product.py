@@ -414,7 +414,7 @@ class ProductManifold(Manifold):
         for manifold, shape in zip(self.manifolds, self.shapes):
             points.append(
                 manifold.origin(
-                    batch_shape + shape, dtype=dtype, device=device, seed=42
+                    batch_shape + shape, dtype=dtype, device=device, seed=seed
                 )
             )
         tensor = self.pack_point(*points)
