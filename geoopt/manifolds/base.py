@@ -878,7 +878,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         torch.Tensor
         """
         if len(tensors) != 1:
-            raise ValueError("Only one tensor expected")
+            raise ValueError("1 tensor expected, got {}".format(len(tensors)))
         return tensors[0]
 
     def random(self, *size, dtype=None, device=None, **kwargs):
