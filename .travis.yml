@@ -3,13 +3,13 @@ python:
     - "3.6"
 
 env:
-  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch==1.3.0' COVERAGE='--cov geoopt'
-  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch==1.2.0' COVERAGE=''
-  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION=1.3.0 COVERAGE='--cov geoopt'
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION=1.2.0 COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
 
 matrix:
   allow_failures:
-    - env: PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' COVERAGE=''
+    - env: PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
 
 before_install:
   - docker pull conda/miniconda3
