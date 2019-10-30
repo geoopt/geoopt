@@ -1,3 +1,5 @@
+import itertools
+
 __all__ = "copy_or_set_"
 
 
@@ -45,3 +47,17 @@ def make_tuple(obj):
 
 def size2shape(*size):
     return make_tuple(strip_tuple(size))
+
+
+def broadcast_shapes(*shapes: tuple):
+    """Apply broadcasting rules to shapes."""
+    result = []
+    for dims in itertools.zip_longest(*map(reversed, shapes), fillvalue=1):
+        dim = 1
+        for d in dims:
+            if dim != 1 and d != 1 and d != dim:
+                raise ValueError("Shapes can't be broadcasted")
+            elif d > dim:
+                dim = d
+        result.append(dim)
+    return tuple(reversed(result))

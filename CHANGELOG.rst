@@ -20,7 +20,10 @@ New Features
 * Added Poincare Ball model (#45)
 * Poincare Ball manifold has now new methods (#78)
 * Added ``ndim`` argument to ``Euclidean`` manifold
-
+* Added ``Product`` manifold (#109)
+* Added ``Scaled`` manifold (#109)
+* Unified ``random`` for manifolds (#109) so it can be used in product manifold
+* Added ``origin`` for manifolds (#109), it is useful for embeddings
 
 Maintenance
 -----------

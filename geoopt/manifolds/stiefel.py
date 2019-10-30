@@ -60,7 +60,7 @@ class Stiefel(Manifold):
             )
         return True, None
 
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         xtx = x.transpose(-1, -2) @ x
         # less memory usage for substract diagonal
         xtx[..., torch.arange(x.shape[-1]), torch.arange(x.shape[-1])] -= 1
@@ -69,14 +69,16 @@ class Stiefel(Manifold):
             return False, "`X^T X != I` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ):
         diff = u.transpose(-1, -2) @ x + x.transpose(-1, -2) @ u
         ok = torch.allclose(diff, diff.new((1,)).fill_(0), atol=atol, rtol=rtol)
         if not ok:
             return False, "`u^T x + x^T u !=0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def projx(self, x):
+    def projx(self, x: torch.Tensor):
         U, _, V = linalg.batch_linalg.svd(x)
         return torch.einsum("...ik,...jk->...ij", U, V)
 
@@ -105,6 +107,32 @@ class Stiefel(Manifold):
         tens = torch.randn(*size, device=device, dtype=dtype)
         return ManifoldTensor(linalg.qr(tens)[0], manifold=self)
 
+    random = random_naive
+
+    def origin(self, *size, dtype=None, device=None, seed=42):
+        """
+        Identity matrix point origin.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            ignored
+
+        Returns
+        -------
+        ManifoldTensor
+        """
+        self._assert_check_shape(size2shape(*size), "x")
+        eye = torch.zeros(*size, dtype=dtype, device=device)
+        eye[..., torch.arange(eye.shape[-1]), torch.arange(eye.shape[-1])] += 1
+        return ManifoldTensor(eye, manifold=self)
+
 
 class CanonicalStiefel(Stiefel):
     __doc__ = r"""Stiefel Manifold with Canonical inner product
@@ -121,7 +149,9 @@ class CanonicalStiefel(Stiefel):
     def _amat(x, u):
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def inner(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
+    ):
         # <u, v>_x = tr(u^T(I-1/2xx^T)v)
         # = tr(u^T(v-1/2xx^Tv))
         # = tr(u^Tv-1/2u^Txx^Tv)
@@ -138,7 +168,7 @@ class CanonicalStiefel(Stiefel):
             [-1, -2], keepdim=keepdim
         )
 
-    def _transp_follow_one(self, x, v, *, u):
+    def _transp_follow_one(self, x: torch.Tensor, v: torch.Tensor, *, u: torch.Tensor):
         a = self._amat(x, u)
         rhs = v + 1 / 2 * a @ v
         lhs = -1 / 2 * a
@@ -146,12 +176,12 @@ class CanonicalStiefel(Stiefel):
         qv, _ = torch.solve(rhs, lhs)
         return qv
 
-    def transp_follow_retr(self, x, u, v):
+    def transp_follow_retr(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         return self._transp_follow_one(x, v, u=u)
 
     transp_follow_expmap = transp_follow_retr
 
-    def retr_transp(self, x, u, v):
+    def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         """Calculate an optimized retr_transp for Stiefel Manifold."""
         xvs = torch.cat((x, v), -1)
         qxvs = self._transp_follow_one(x, xvs, u=u).view(
@@ -161,12 +191,12 @@ class CanonicalStiefel(Stiefel):
 
     expmap_transp = retr_transp
 
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor):
         return u - x @ u.transpose(-1, -2) @ x
 
     egrad2rgrad = proju
 
-    def retr(self, x, u):
+    def retr(self, x: torch.Tensor, u: torch.Tensor):
         return self._transp_follow_one(x, x, u=u)
 
     expmap = retr
@@ -183,26 +213,28 @@ class EuclideanStiefel(Stiefel):
     name = "Stiefel(euclidean)"
     reversible = False
 
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor):
         return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
     egrad2rgrad = proju
 
-    def transp(self, x, y, v):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
         return self.proju(y, v)
 
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def inner(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
+    ):
         if v is None:
             v = u
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
-    def retr(self, x, u):
+    def retr(self, x: torch.Tensor, u: torch.Tensor):
         q, r = linalg.batch_linalg.qr(x + u)
         unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
 
-    def expmap(self, x, u):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor):
         xtu = x.transpose(-1, -2) @ u
         utu = u.transpose(-1, -2) @ u
         eye = torch.zeros_like(utu)

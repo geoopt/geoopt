@@ -56,9 +56,8 @@ points on a certain manifold
    projected, they are assumed to be already projected.
 -  ``.retr(u)`` – retraction map following vector ``u``
 -  ``.expmap(u)`` – exponential map following vector ``u`` (if expmap is not available in closed form, best approximation is used)
--  ``.transp(v, u, *more)`` – transport vector ``v`` (and possibly
-   more vectors) with direction ``u``
--  ``.retr_transp(v, u, *more)`` – transport ``self``, vector ``v``
+-  ``.transp(v, u)`` – transport vector ``v``  with direction ``u``
+-  ``.retr_transp(v, u)`` – transport ``self``, vector ``v``
    (and possibly more vectors) with direction ``u``
    (returns are plain tensors)
 
@@ -71,6 +70,8 @@ Manifolds
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
 -  ``geoopt.PoincareBall`` - Poincare ball model (`wiki <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_)
+-  ``geoopt.ProductManifold`` - Product manifold constructor
+-  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``
 
 
 All manifolds implement methods necessary to manipulate tensors on manifolds and
