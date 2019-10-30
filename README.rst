@@ -102,7 +102,7 @@ Samplers
 
 Citing Geoopt
 ~~~~~~~~~~~~~
-If you find this project useful in your research, please kindly add this bibtex entry in references.
+If you find this project useful in your research, please kindly add this bibtex entry in references and cite.
 
 .. code::
 
