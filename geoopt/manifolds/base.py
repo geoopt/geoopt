@@ -1,10 +1,99 @@
 import abc
 import torch.nn
+import itertools
 
-__all__ = ["Manifold"]
+
+__all__ = ["Manifold", "ScalingInfo"]
+
+
+class ScalingInfo(object):
+    """
+    Scaling info for each argument that requires rescaling.
+
+    .. code:: python
+
+        scaled_value = value * scaling ** power if power != 0 else value
+
+    For results it is not always required to set powers of scaling, then it is no-op.
+
+    The convention for this info is the following. The output of a function is either a tuple or a single object.
+    In any case, outputs are treated as positionals. Function inputs, in contrast, are treated by keywords.
+    It is a common practice to maintain function signature when overriding, so this way may be considered
+    as a sufficient in this particular scenario. The only required info for formula above is ``power``.
+    """
+
+    # marks method to be not working with Scaled wrapper
+    NotCompatible = object()
+    __slots__ = ["kwargs", "results"]
+
+    def __init__(self, *results: float, **kwargs: float):
+        self.results = results
+        self.kwargs = kwargs
+
+
+class ScalingStorage(dict):
+    """
+    Helper class to make implementation transparent.
+
+    This is just a dictionary with additional overriden ``__call__``
+    for more explicit and elegant API to declare members. A usage example may be found in :class:`Manifold`.
+
+    Methods that require rescaling when wrapped into :class:`Scaled` should be defined as follows
+
+    1. Regular methods like ``dist``, ``dist2``, ``expmap``, ``retr`` etc. that are already present in the base class
+    do not require registration, it has already happened in the base :class:`Manifold` class.
+
+    2. New methods (like in :class:`PoincareBall`) should be treated with care.
+
+    .. code-block:: python
+
+        class PoincareBall(Manifold):
+            # make a class copy of __scaling__ info. Default methods are already present there
+            __scaling__ = Manifold.__scaling__.copy()
+            ... # here come regular implementation of the required methods
+
+            @__scaling__(ScalingInfo(1))  # rescale output according to rule `out * scaling ** 1`
+            def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False):
+                return math.dist0(x, c=self.c, dim=dim, keepdim=keepdim)
+
+            @__scaling__(ScalingInfo(u=-1))  # rescale argument `u` according to the rule `out * scaling ** -1`
+            def expmap0(self, u: torch.Tensor, *, dim=-1, project=True):
+                res = math.expmap0(u, c=self.c, dim=dim)
+                if project:
+                    return math.project(res, c=self.c, dim=dim)
+                else:
+                    return res
+            ... # other special methods implementation
+
+    3. Some methods are not compliant with the above rescaling rules. We should mark them as `NotCompatible`
+
+    .. code-block:: python
+
+            # continuation of the PoincareBall definition
+            @__scaling__(ScalingInfo.NotCompatible)
+            def mobius_fn_apply(
+                self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True, **kwargs
+            ):
+                res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
+                if project:
+                    return math.project(res, c=self.c, dim=dim)
+                else:
+                    return res
+    """
+
+    def __call__(self, scaling_info: ScalingInfo):
+        def register(fn):
+            self[fn.__name__] = scaling_info
+            return fn
+
+        return register
+
+    def copy(self):
+        return self.__class__(self)
 
 
 class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
+    __scaling__ = ScalingStorage()  # will be filled along with implementation below
     name = None
     ndim = None
     reversible = None
@@ -14,7 +103,38 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super().__init__()
 
-    def check_point(self, x, *, explain=False):
+    @property
+    def device(self):
+        """
+        Manifold device.
+
+        Returns
+        -------
+        Optional[torch.device]
+        """
+        p = next(itertools.chain(self.buffers(), self.parameters()), None)
+        if p is not None:
+            return p.device
+        else:
+            return None
+
+    @property
+    def dtype(self):
+        """
+        Manifold dtype.
+
+        Returns
+        -------
+        Optional[torch.dtype]
+        """
+
+        p = next(itertools.chain(self.buffers(), self.parameters()), None)
+        if p is not None:
+            return p.dtype
+        else:
+            return None
+
+    def check_point(self, x: torch.Tensor, *, explain=False):
         """
         Check if point is valid to be used with the manifold.
 
@@ -40,7 +160,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point(self, x):
+    def assert_check_point(self, x: torch.Tensor):
         """
         Check if point is valid to be used with the manifold and raise an error with informative message on failure.
 
@@ -61,7 +181,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
                 "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
-    def check_vector(self, u, *, explain=False):
+    def check_vector(self, u: torch.Tensor, *, explain=False):
         """
         Check if vector is valid to be used with the manifold.
 
@@ -87,7 +207,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_vector(self, u):
+    def assert_check_vector(self, u: torch.Tensor):
         """
         Check if vector is valid to be used with the manifold and raise an error with informative message on failure.
 
@@ -108,7 +228,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
                 "tensor for {} manifold.\nerror: {}".format(self.name, reason)
             )
 
-    def check_point_on_manifold(self, x, *, explain=False, atol=1e-5, rtol=1e-5):
+    def check_point_on_manifold(
+        self, x: torch.Tensor, *, explain=False, atol=1e-5, rtol=1e-5
+    ):
         """
         Check if point :math:`x` is lying on the manifold.
 
@@ -140,7 +262,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def assert_check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         """
         Check if point :math`x` is lying on the manifold and raise an error with informative message on failure.
 
@@ -162,7 +284,14 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             )
 
     def check_vector_on_tangent(
-        self, x, u, *, ok_point=False, explain=False, atol=1e-5, rtol=1e-5
+        self,
+        x: torch.Tensor,
+        u: torch.Tensor,
+        *,
+        ok_point=False,
+        explain=False,
+        atol=1e-5,
+        rtol=1e-5
     ):
         """
         Check if :math:`u` is lying on the tangent space to x.
@@ -204,7 +333,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             return ok
 
     def assert_check_vector_on_tangent(
-        self, x, u, *, ok_point=False, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, u: torch.Tensor, *, ok_point=False, atol=1e-5, rtol=1e-5
     ):
         """
         Check if u :math:`u` is lying on the tangent space to x and raise an error on fail.
@@ -241,7 +370,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
                 )
             )
 
-    def dist(self, x, y, *, keepdim=False):
+    @__scaling__(ScalingInfo(1))
+    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
         """
         Compute distance between 2 points on the manifold that is the shortest path along geodesics.
 
@@ -261,8 +391,30 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @__scaling__(ScalingInfo(2))
+    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
+        """
+        Compute squared distance between 2 points on the manifold that is the shortest path along geodesics.
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        y : tensor
+            point on the manifold
+        keepdim : bool
+            keep the last dim?
+
+        Returns
+        -------
+        scalar
+            squared distance between two points
+        """
+        return self.dist(x, y, keepdim=keepdim) ** 2
+
     @abc.abstractmethod
-    def retr(self, x, u):
+    @__scaling__(ScalingInfo(u=-1))
+    def retr(self, x: torch.Tensor, u: torch.Tensor):
         """
         Perform a retraction from point :math:`x` with given direction :math:`u`.
 
@@ -281,7 +433,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def expmap(self, x, u):
+    @__scaling__(ScalingInfo(u=-1))
+    def expmap(self, x: torch.Tensor, u: torch.Tensor):
         r"""
         Perform an exponential map :math:`\operatorname{Exp}_x(u)`.
 
@@ -299,7 +452,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def logmap(self, x, y):
+    @__scaling__(ScalingInfo(1))
+    def logmap(self, x: torch.Tensor, y: torch.Tensor):
         r"""
         Perform an logarithmic map :math:`\operatorname{Log}_{x}(y)`.
 
@@ -317,7 +471,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def expmap_transp(self, x, u, v):
+    @__scaling__(ScalingInfo(u=-1))
+    def expmap_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         """
         Perform an exponential map and vector transport from point :math:`x` with given direction :math:`u`.
 
@@ -339,7 +494,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         v_transp = self.transp(x, y, v)
         return y, v_transp
 
-    def retr_transp(self, x, u, v):
+    @__scaling__(ScalingInfo(u=-1))
+    def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         """
         Perform a retraction + vector transport at once.
 
@@ -347,13 +503,10 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         ----------
         x : tensor
             point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
         v : tensor
             tangent vector at point :math:`x` to be transported
-        u : tensor
-            tangent vector at point :math:`x` (required keyword only argument)
-        order : int
-            order of retraction approximation, by default uses the simplest.
-            Possible choices depend on a concrete manifold and -1 stays for exponential map
 
         Returns
         -------
@@ -368,9 +521,10 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         v_transp = self.transp(x, y, v)
         return y, v_transp
 
-    def transp_follow_retr(self, x, u, v):
+    @__scaling__(ScalingInfo(u=-1))
+    def transp_follow_retr(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{retr}(x, u)}(v)`.
+        Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{retr}(x, u)}(v)`.
 
         This operation is sometimes is much more simpler and can be optimized.
 
@@ -391,9 +545,10 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         y = self.retr(x, u)
         return self.transp(x, y, v)
 
-    def transp_follow_expmap(self, x, u, v):
+    @__scaling__(ScalingInfo(u=-1))
+    def transp_follow_expmap(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport following :math:`u`: :math:`\mathfrac{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
+        Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
 
         Here, :math:`\operatorname{Exp}` is the best possible approximation of the true exponential map.
         There are cases when the exact variant is hard or impossible implement, therefore a
@@ -416,9 +571,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         y = self.expmap(x, u)
         return self.transp(x, y, v)
 
-    def transp(self, x, y, v):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
         r"""
-        Perform vector transport :math:`\mathfrac{T}_{x\to y}(v)`.
+        Perform vector transport :math:`\mathfrak{T}_{x\to y}(v)`.
 
         Parameters
         ----------
@@ -437,7 +592,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def inner(self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False):
         """
         Inner product for tangent vectors at point :math:`x`.
 
@@ -459,7 +614,37 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def norm(self, x, u, *, keepdim=False):
+    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None):
+        """
+        Inner product for tangent vectors at point :math:`x` according to components of the manifold.
+
+        The result of the function is same as ``inner`` with ``keepdim=True`` for
+        all the manifolds except ProductManifold. For this manifold it acts different way
+        computing inner product for each component and then building an output correctly
+        tiling and reshaping the result.
+
+        Parameters
+        ----------
+        x : tensor
+            point on the manifold
+        u : tensor
+            tangent vector at point :math:`x`
+        v : tensor (optional)
+            tangent vector at point :math:`x`
+
+        Returns
+        -------
+        tensor
+            inner product component wise (broadcasted)
+
+        Notes
+        -----
+        The purpose of this method is better adaptive properties in optimization since ProductManifold
+        will "hide" the structure in public API.
+        """
+        return self.inner(x, u, v, keepdim=True)
+
+    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         """
         Norm of a tangent vector at point :math:`x`.
 
@@ -480,7 +665,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         return self.inner(x, u, keepdim=keepdim) ** 0.5
 
     @abc.abstractmethod
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor):
         """
         Project vector :math:`u` on a tangent space for :math:`x`, usually is the same as :meth:`egrad2rgrad`.
 
@@ -499,7 +684,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def egrad2rgrad(self, x, u):
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor):
         """
         Transform gradient computed using autodiff to the correct Riemannian gradient for the point :math:`x`.
 
@@ -518,7 +703,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def projx(self, x):
+    def projx(self, x: torch.Tensor):
         """
         Project point :math:`x` on the manifold.
 
@@ -588,7 +773,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             raise ValueError(reason)
 
     @abc.abstractmethod
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         """
         Util to check point lies on the manifold.
 
@@ -617,7 +802,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ):
         """
         Util to check a vector belongs to the tangent space of a point.
 
@@ -655,3 +842,85 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             return self.name + "({}) manifold".format(extra)
         else:
             return self.name + " manifold"
+
+    def unpack_tensor(self, tensor: torch.Tensor) -> torch.Tensor:
+        """
+        Construct a point on the manifold.
+
+        This method should help to work with product and compound manifolds.
+        Internally all points on the manifold are stored in an intuitive format.
+        However, there might be cases, when this representation is simpler or more efficient to store in
+        a different way that is hard to use in practice.
+
+        Parameters
+        ----------
+        tensor : torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        return tensor
+
+    def pack_point(self, *tensors: torch.Tensor) -> torch.Tensor:
+        """
+        Construct a tensor representation of a manifold point.
+
+        In case of regular manifolds this will return the same tensor. However, for e.g. Product manifold
+        this function will pack all non-batch dimensions.
+
+        Parameters
+        ----------
+        tensors : List[torch.Tensor]
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        if len(tensors) != 1:
+            raise ValueError("1 tensor expected, got {}".format(len(tensors)))
+        return tensors[0]
+
+    def random(self, *size, dtype=None, device=None, **kwargs):
+        """
+        Random sampling on the manifold.
+
+        The exact implementation depends on manifold and usually does not follow all
+        assumptions about uniform measure, etc.
+        """
+        raise NotImplementedError
+
+    def origin(self, *size, dtype=None, device=None, seed=42):
+        """
+        Create some reasonable point on the manifold in a deterministic way.
+
+        For some manifolds there may exist e.g. zero vector or some analogy.
+        In case it is possible to define this special point, this point is returned with the desired size.
+        In other case, the returned point is sampled on the manifold in a deterministic way.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            A parameter controlling deterministic randomness for manifolds that do not provide ``.origin``,
+            but provide ``.random``. (default: 42)
+
+        Returns
+        -------
+        tensor
+        """
+        if seed is not None:
+            # we promise pseudorandom behaviour but do not want to modify global seed
+            state = torch.random.get_rng_state()
+            torch.random.manual_seed(seed)
+            try:
+                return self.random(*size, dtype=dtype, device=device)
+            finally:
+                torch.random.set_rng_state(state)
+        else:
+            return self.random(*size, dtype=dtype, device=device)

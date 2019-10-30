@@ -27,6 +27,7 @@ manifold_shapes = {
     geoopt.manifolds.Euclidean: (10,),
     geoopt.manifolds.Sphere: (10,),
     geoopt.manifolds.SphereExact: (10,),
+    geoopt.manifolds.ProductManifold: (10 + 3 + 6 + 1,),
 }
 
 
@@ -163,6 +164,63 @@ def sphere_case():
     yield case
 
 
+def product_case():
+    torch.manual_seed(42)
+    ex = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
+    ev = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
+    manifolds = [
+        geoopt.Sphere(),
+        geoopt.PoincareBall(),
+        geoopt.Stiefel(),
+        geoopt.Euclidean(),
+    ]
+    x = [manifolds[i].projx(ex[i]) for i in range(len(manifolds))]
+    v = [manifolds[i].proju(x[i], ev[i]) for i in range(len(manifolds))]
+
+    product_manifold = geoopt.ProductManifold(
+        *((manifolds[i], ex[i].shape) for i in range(len(ex)))
+    )
+
+    yield UnaryCase(
+        manifold_shapes[geoopt.ProductManifold],
+        product_manifold.pack_point(*x),
+        product_manifold.pack_point(*ex),
+        product_manifold.pack_point(*v),
+        product_manifold.pack_point(*ev),
+        product_manifold,
+    )
+    # + 1 case without stiefel
+    torch.manual_seed(42)
+    ex = [torch.randn(10), torch.randn(3) / 10, torch.randn(())]
+    ev = [torch.randn(10), torch.randn(3) / 10, torch.randn(())]
+    manifolds = [
+        geoopt.Sphere(),
+        geoopt.PoincareBall(),
+        # geoopt.Stiefel(),
+        geoopt.Euclidean(),
+    ]
+    x = [manifolds[i].projx(ex[i]) for i in range(len(manifolds))]
+    v = [manifolds[i].proju(x[i], ev[i]) for i in range(len(manifolds))]
+
+    product_manifold = geoopt.ProductManifold(
+        *((manifolds[i], ex[i].shape) for i in range(len(ex)))
+    )
+
+    yield UnaryCase(
+        manifold_shapes[geoopt.ProductManifold],
+        product_manifold.pack_point(*x),
+        product_manifold.pack_point(*ex),
+        product_manifold.pack_point(*v),
+        product_manifold.pack_point(*ev),
+        product_manifold,
+    )
+
+
+@pytest.fixture(params=[True, False], ids=str)
+def scaled(request):
+    return request.param
+
+
 @pytest.fixture(
     params=itertools.chain(
         euclidean_case(),
@@ -172,11 +230,22 @@ def sphere_case():
         euclidean_stiefel_case(),
         canonical_stiefel_case(),
         poincare_case(),
+        product_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )
-def unary_case(request):
+def unary_case_base(request):
     return request.param
+
+
+@pytest.fixture
+def unary_case(unary_case_base, scaled):
+    if scaled:
+        return unary_case_base._replace(
+            manifold=geoopt.Scaled(unary_case_base.manifold, 2)
+        )
+    else:
+        return unary_case_base
 
 
 def test_projection_identity(unary_case):
@@ -285,3 +354,15 @@ def test_logmap(unary_case):
         np.testing.assert_allclose(Yh, Y, atol=1e-6, rtol=1e-6)
     except NotImplementedError:
         pytest.skip("logmap was not implemented for {}".format(unary_case.manifold))
+
+
+def test_dist(unary_case):
+    tangent = unary_case.v
+    point = unary_case.x
+    tangent_norm = unary_case.manifold.norm(point, tangent)
+    new_point = unary_case.manifold.expmap(point, tangent)
+    try:
+        dist = unary_case.manifold.dist(point, new_point)
+    except NotImplementedError:
+        pytest.skip("dist is not implemented for {}".format(unary_case.manifold))
+    np.testing.assert_allclose(dist, tangent_norm)
