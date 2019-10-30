@@ -345,7 +345,9 @@ class ProductManifold(Manifold):
 
     def pack_point(self, *tensors: torch.Tensor) -> torch.Tensor:
         if len(tensors) != len(self.manifolds):
-            raise ValueError("{} tensors expected, got {}".format(len(self.manifolds), len(tensors)))
+            raise ValueError(
+                "{} tensors expected, got {}".format(len(self.manifolds), len(tensors))
+            )
         flattened = []
         for i in range(self.n_manifolds):
             part = tensors[i]
