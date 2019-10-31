@@ -1,3 +1,4 @@
+from typing import Tuple
 import torch.jit
 from . import _expm
 
@@ -5,12 +6,12 @@ __all__ = ["svd", "qr", "sym", "extract_diag", "matrix_rank", "expm", "block_mat
 
 
 @torch.jit.script
-def sym(x):  # pragma: no cover
+def sym(x: torch.Tensor):  # pragma: no cover
     return 0.5 * (x.transpose(-1, -2) + x)
 
 
 @torch.jit.script
-def extract_diag(x):  # pragma: no cover
+def extract_diag(x: torch.Tensor):  # pragma: no cover
     n, m = x.shape[-2:]
     batch = x.shape[:-2]
     k = n if n < m else m
@@ -21,7 +22,7 @@ def extract_diag(x):  # pragma: no cover
 
 
 @torch.jit.script
-def matrix_rank(x):  # pragma: no cover
+def matrix_rank(x: torch.Tensor):  # pragma: no cover
     # inspired by
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
@@ -46,7 +47,7 @@ def matrix_rank(x):  # pragma: no cover
 
 
 @torch.jit.script
-def expm(x):  # pragma: no cover
+def expm(x: torch.Tensor):  # pragma: no cover
     # inspired by
     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
     # prolonged here:
@@ -65,7 +66,7 @@ def expm(x):  # pragma: no cover
     return result
 
 
-def block_matrix(blocks):
+def block_matrix(blocks: Tuple[Tuple[torch.Tensor, ...], ...]):
     # [[A, B], [C, D]] ->
     # [AB]
     # [CD]

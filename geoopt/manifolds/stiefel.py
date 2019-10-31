@@ -249,7 +249,7 @@ class EuclideanStiefel(Stiefel):
         utu = u.transpose(-1, -2) @ u
         eye = torch.zeros_like(utu)
         eye[..., torch.arange(utu.shape[-2]), torch.arange(utu.shape[-2])] += 1
-        logw = linalg.block_matrix([[xtu, -utu], [eye, xtu]])
+        logw = linalg.block_matrix(((xtu, -utu), (eye, xtu)))
         w = linalg.expm(logw)
         z = torch.cat((linalg.expm(-xtu), torch.zeros_like(utu)), dim=-2)
         y = torch.cat((x, u), dim=-1) @ w @ z
