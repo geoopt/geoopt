@@ -1,5 +1,5 @@
 import torch
-
+from typing import Optional, NoReturn, Union, Tuple
 from .base import Manifold
 from ..tensor import ManifoldTensor
 from ..utils import size2shape, broadcast_shapes
@@ -64,7 +64,9 @@ class Sphere(Manifold):
                 "subspace is 1-dimensional."
             )
 
-    def _check_shape(self, shape, name):
+    def _check_shape(
+        self, shape: Tuple[int], name: str
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         ok, reason = super()._check_shape(shape, name)
         if ok and self.projector is not None:
             ok = len(shape) < (self.projector.dim() - 1)
@@ -86,7 +88,9 @@ class Sphere(Manifold):
                 )
         return ok, reason
 
-    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Tuple[bool, Optional[str]]:
         norm = x.norm(dim=-1)
         ok = torch.allclose(norm, norm.new((1,)).fill_(1), atol=atol, rtol=rtol)
         if not ok:
@@ -101,9 +105,9 @@ class Sphere(Manifold):
             )
         return True, None
 
-    def _check_vector_on_tangent(
-        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
-    ):
+    def assert_check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, ok_point=False, atol=1e-5, rtol=1e-5
+    ) -> Optional[NoReturn]:
         inner = self.inner(x, x, u, keepdim=True)
         ok = torch.allclose(inner, inner.new_zeros((1,)), atol=atol, rtol=rtol)
         if not ok:
@@ -112,42 +116,42 @@ class Sphere(Manifold):
 
     def inner(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
-    ):
+    ) -> torch.Tensor:
         if v is None:
             v = u
         inner = (u * v).sum(-1, keepdim=keepdim)
         target_shape = broadcast_shapes(x.shape[:-1] + (1,) * keepdim, inner.shape)
         return inner.expand(target_shape)
 
-    def projx(self, x: torch.Tensor):
+    def projx(self, x: torch.Tensor) -> torch.Tensor:
         x = self._project_on_subspace(x)
         return x / x.norm(dim=-1, keepdim=True)
 
-    def proju(self, x: torch.Tensor, u: torch.Tensor):
+    def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         u = u - (x * u).sum(dim=-1, keepdim=True) * x
         return self._project_on_subspace(u)
 
-    def expmap(self, x: torch.Tensor, u: torch.Tensor):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         norm_u = u.norm(dim=-1, keepdim=True)
         exp = x * torch.cos(norm_u) + u * torch.sin(norm_u) / norm_u
         retr = self.projx(x + u)
         cond = norm_u > EPS[norm_u.dtype]
         return torch.where(cond, exp, retr)
 
-    def retr(self, x: torch.Tensor, u: torch.Tensor):
+    def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return self.projx(x + u)
 
-    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         return self.proju(y, v)
 
-    def logmap(self, x: torch.Tensor, y: torch.Tensor):
+    def logmap(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         u = self.proju(x, y - x)
         dist = self.dist(x, y, keepdim=True)
         # If the two points are "far apart", correct the norm.
         cond = dist.gt(EPS[dist.dtype])
         return torch.where(cond, u * dist / u.norm(dim=-1, keepdim=True), u)
 
-    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
+    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         inner = self.inner(x, x, y, keepdim=keepdim).clamp(-0.9999, 0.9999)
         return torch.acos(inner)
 
@@ -166,13 +170,13 @@ class Sphere(Manifold):
     def _configure_manifold_no_constraints(self):
         self.register_buffer("projector", None)
 
-    def _project_on_subspace(self, x: torch.Tensor):
+    def _project_on_subspace(self, x: torch.Tensor) -> torch.Tensor:
         if self.projector is not None:
             return x @ self.projector.transpose(-1, -2)
         else:
             return x
 
-    def random_uniform(self, *size, dtype=None, device=None):
+    def random_uniform(self, *size, dtype=None, device=None) -> torch.Tensor:
         """
         Uniform random measure on Sphere manifold.
 
