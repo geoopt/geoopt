@@ -106,7 +106,7 @@ class Sphere(Manifold):
         return True, None
 
     def _check_vector_on_tangent(
-        self, x: torch.Tensor, u: torch.Tensor, *, ok_point=False, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
     ) -> Tuple[bool, Optional[str]]:
         inner = self.inner(x, x, u, keepdim=True)
         ok = torch.allclose(inner, inner.new_zeros((1,)), atol=atol, rtol=rtol)
