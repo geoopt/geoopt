@@ -1,5 +1,5 @@
 import torch.nn
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 import operator
 import functools
 import geoopt.utils
@@ -9,11 +9,11 @@ from geoopt.manifolds import Manifold
 __all__ = ["ProductManifold"]
 
 
-def _shape2size(shape):
+def _shape2size(shape: Tuple[int]):
     return functools.reduce(operator.mul, shape, 1)
 
 
-def _calculate_target_batch_dim(*dims):
+def _calculate_target_batch_dim(*dims: int):
     return max(dims) - 1
 
 
@@ -78,7 +78,7 @@ class ProductManifold(Manifold):
         self.manifolds = torch.nn.ModuleList(manifolds)
 
     @property
-    def reversible(self):
+    def reversible(self) -> bool:
         return all(m.reversible for m in self.manifolds)
 
     def take_submanifold_value(
@@ -106,7 +106,7 @@ class ProductManifold(Manifold):
             part = part.reshape((*part.shape[:-1], *self.shapes[i]))
         return part
 
-    def _check_shape(self, shape, name):
+    def _check_shape(self, shape: Tuple[int], name: str) -> Tuple[bool, Optional[str]]:
         ok = shape[-1] == self.n_elements
         if not ok:
             return (
@@ -117,7 +117,9 @@ class ProductManifold(Manifold):
             )
         return ok, None
 
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Tuple[bool, Optional[str]]:
         ok, reason = True, None
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
@@ -128,7 +130,9 @@ class ProductManifold(Manifold):
                 break
         return ok, reason
 
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x, u, *, atol=1e-5, rtol=1e-5
+    ) -> Tuple[bool, Optional[str]]:
         ok, reason = True, None
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
@@ -140,7 +144,9 @@ class ProductManifold(Manifold):
                 break
         return ok, reason
 
-    def inner(self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False):
+    def inner(
+        self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False
+    ) -> torch.Tensor:
         if v is not None:
             target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
         else:
@@ -161,7 +167,7 @@ class ProductManifold(Manifold):
             result = torch.unsqueeze(result, -1)
         return result
 
-    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None):
+    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None) -> torch.Tensor:
         products = []
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
@@ -177,7 +183,7 @@ class ProductManifold(Manifold):
         result = self.pack_point(*products)
         return result
 
-    def projx(self, x: torch.Tensor):
+    def projx(self, x: torch.Tensor) -> torch.Tensor:
         projected = []
         for i, manifold in enumerate(self.manifolds):
             point = self.take_submanifold_value(x, i)
@@ -186,7 +192,7 @@ class ProductManifold(Manifold):
             projected.append(proj)
         return torch.cat(projected, -1)
 
-    def proju(self, x: torch.Tensor, u: torch.Tensor):
+    def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim())
         projected = []
         for i, manifold in enumerate(self.manifolds):
@@ -197,7 +203,7 @@ class ProductManifold(Manifold):
             projected.append(proj)
         return torch.cat(projected, -1)
 
-    def expmap(self, x: torch.Tensor, u: torch.Tensor):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim())
         mapped_tensors = []
         for i, manifold in enumerate(self.manifolds):
@@ -208,7 +214,7 @@ class ProductManifold(Manifold):
             mapped_tensors.append(mapped)
         return torch.cat(mapped_tensors, -1)
 
-    def retr(self, x: torch.Tensor, u: torch.Tensor):
+    def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim())
         mapped_tensors = []
         for i, manifold in enumerate(self.manifolds):
@@ -219,7 +225,7 @@ class ProductManifold(Manifold):
             mapped_tensors.append(mapped)
         return torch.cat(mapped_tensors, -1)
 
-    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim(), v.dim())
         transported_tensors = []
         for i, manifold in enumerate(self.manifolds):
@@ -233,7 +239,7 @@ class ProductManifold(Manifold):
             transported_tensors.append(transported)
         return torch.cat(transported_tensors, -1)
 
-    def logmap(self, x: torch.Tensor, y: torch.Tensor):
+    def logmap(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())
         logmapped_tensors = []
         for i, manifold in enumerate(self.manifolds):
@@ -244,7 +250,9 @@ class ProductManifold(Manifold):
             logmapped_tensors.append(logmapped)
         return torch.cat(logmapped_tensors, -1)
 
-    def transp_follow_retr(self, x, u, v):
+    def transp_follow_retr(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
         results = []
         for i, manifold in enumerate(self.manifolds):
@@ -258,7 +266,9 @@ class ProductManifold(Manifold):
             results.append(transported)
         return torch.cat(results, -1)
 
-    def transp_follow_expmap(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
+    def transp_follow_expmap(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
         results = []
         for i, manifold in enumerate(self.manifolds):
@@ -272,7 +282,9 @@ class ProductManifold(Manifold):
             results.append(transported)
         return torch.cat(results, -1)
 
-    def expmap_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
+    def expmap_transp(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
         results = []
         for i, manifold in enumerate(self.manifolds):

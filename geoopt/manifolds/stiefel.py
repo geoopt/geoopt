@@ -191,12 +191,13 @@ class CanonicalStiefel(Stiefel):
 
     def retr_transp(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
-    ) -> Tuple[torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         xvs = torch.cat((x, v), -1)
         qxvs = self._transp_follow_one(x, xvs, u=u).view(
-            x.shape[:-1] + (-1, x.shape[-1])
+            x.shape[:-1] + (2, x.shape[-1])
         )
-        return qxvs.unbind(-2)
+        new_x, new_v = qxvs.unbind(-2)
+        return new_x, new_v
 
     expmap_transp = retr_transp
 
