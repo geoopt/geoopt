@@ -18,7 +18,9 @@ class ManifoldTensor(torch.Tensor):
 
     manifold: Manifold
 
-    def __new__(cls, *args, manifold: Manifold = Euclidean(), requires_grad=False, **kwargs):
+    def __new__(
+        cls, *args, manifold: Manifold = Euclidean(), requires_grad=False, **kwargs
+    ):
         if len(args) == 1 and isinstance(args[0], torch.Tensor):
             data = args[0].data
         else:
