@@ -735,7 +735,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def _check_shape(self, shape: Tuple[int], name: str) -> Union[Tuple[bool, Optional[str]], bool]:
+    def _check_shape(
+        self, shape: Tuple[int], name: str
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Util to check shape.
 
