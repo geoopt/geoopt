@@ -1,5 +1,5 @@
 import torch
-from typing import Optional, NoReturn, Union, Tuple
+from typing import Optional, Union, Tuple
 from .base import Manifold
 from ..tensor import ManifoldTensor
 from ..utils import size2shape, broadcast_shapes
