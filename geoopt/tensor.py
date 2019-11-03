@@ -129,8 +129,8 @@ class ManifoldTensor(torch.Tensor):
         return _rebuild_manifold_parameter, proto + (self.manifold,)
 
     @insert_docs(Manifold.unpack_tensor.__doc__, r"\s+tensor : .+\n.+", "")
-    def as_point(self) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
-        return self.manifold.as_point(self)
+    def unpack_tensor(self) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
+        return self.manifold.unpack_tensor(self)
 
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
