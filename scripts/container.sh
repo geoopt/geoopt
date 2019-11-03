@@ -4,6 +4,7 @@ set -e
 SRC_DIR=${SRC_DIR:-`pwd`}
 COVERAGE=${COVERAGE:-"--cov geoopt"}
 PYTORCH_CHANNEL=${PYTORCH_CHANNEL:-"pytorch"}
+PYTORCH_VERSION=${PYTORCH_VERSION:-""}
 PYTHON_VERSION=${PYTHON_VERSION:-"3.6"}
 # Build container for use of testing or notebook
 if [[ $* == *--build* ]]; then
@@ -13,6 +14,7 @@ if [[ $* == *--build* ]]; then
         -f ${SRC_DIR}/scripts/Dockerfile \
         --build-arg SRC_DIR=. ${SRC_DIR} \
         --build-arg PYTORCH_CHANNEL=${PYTORCH_CHANNEL} \
+        --build-arg PYTORCH_VERSION=${PYTORCH_VERSION} \
         --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
         --rm
 fi

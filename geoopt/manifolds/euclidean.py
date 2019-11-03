@@ -1,3 +1,4 @@
+from typing import Union, Tuple, Optional
 import torch
 from .base import Manifold
 from ..utils import size2shape, broadcast_shapes
@@ -26,18 +27,22 @@ class Euclidean(Manifold):
         super().__init__()
         self.ndim = ndim
 
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         return True, None
 
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         return True, None
 
-    def retr(self, x: torch.Tensor, u: torch.Tensor):
+    def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return x + u
 
     def inner(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
-    ):
+    ) -> torch.Tensor:
         if v is None:
             inner = u.pow(2)
         else:
@@ -51,7 +56,9 @@ class Euclidean(Manifold):
         target_shape = broadcast_shapes(x_shape, i_shape)
         return inner.expand(target_shape)
 
-    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None):
+    def component_inner(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None
+    ) -> torch.Tensor:
         # it is possible to factorize the manifold
         if v is None:
             inner = u.pow(2)
@@ -66,40 +73,42 @@ class Euclidean(Manifold):
         else:
             return u.abs()
 
-    def proju(self, x: torch.Tensor, u: torch.Tensor):
+    def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
         return u.expand(target_shape)
 
-    def projx(self, x: torch.Tensor):
+    def projx(self, x: torch.Tensor) -> torch.Tensor:
         return x
 
-    def logmap(self, x: torch.Tensor, y: torch.Tensor):
+    def logmap(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return y - x
 
-    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
+    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         if self.ndim > 0:
             return (x - y).norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
         else:
             return (x - y).abs()
 
-    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
+    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         if self.ndim > 0:
             return (x - y).pow(2).sum(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
         else:
             return (x - y).pow(2)
 
-    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor):
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
         return u.expand(target_shape)
 
-    def expmap(self, x: torch.Tensor, u: torch.Tensor):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return x + u
 
-    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, y.shape, v.shape)
         return v.expand(target_shape)
 
-    def random_normal(self, *size, mean=0.0, std=1.0, device=None, dtype=None):
+    def random_normal(
+        self, *size, mean=0.0, std=1.0, device=None, dtype=None
+    ) -> "geoopt.ManifoldTensor":
         """
         Create a point on the manifold, measure is induced by Normal distribution.
 
@@ -129,7 +138,9 @@ class Euclidean(Manifold):
 
     random = random_normal
 
-    def origin(self, *size, dtype=None, device=None, seed=42):
+    def origin(
+        self, *size, dtype=None, device=None, seed=42
+    ) -> "geoopt.ManifoldTensor":
         """
         Zero point origin.
 

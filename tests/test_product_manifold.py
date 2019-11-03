@@ -85,3 +85,12 @@ def test_component_inner_product():
 
     inner = pman.component_inner(tensor, tangent)
     assert inner.shape == (5, pman.n_elements)
+
+
+def test_unpack_tensor_method():
+    pman = ProductManifold((Sphere(), 10), (Sphere(), (3, 2)), (Euclidean(), ()))
+    point = pman.random(4, pman.n_elements)
+    parts = point.unpack_tensor()
+    assert parts[0].shape == (4, 10)
+    assert parts[1].shape == (4, 3, 2)
+    assert parts[2].shape == (4,)
