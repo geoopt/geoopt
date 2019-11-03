@@ -1,7 +1,7 @@
 import pytest
 import torch.nn
 import numpy as np
-import geoopt
+import geoopt.utils
 import tempfile
 import os
 
@@ -116,3 +116,13 @@ def test_manifold_is_submodule_poincare():
     container = torch.nn.ModuleDict({"ball": ball})
     container.to(torch.float64)
     assert ball.c.dtype == torch.float64
+
+
+def test_attach_manifold():
+    p = torch.randn(10, requires_grad=True)
+    man = geoopt.Euclidean()
+    mp = geoopt.utils.attach_manifold(man, p)
+    assert isinstance(mp, geoopt.ManifoldTensor)
+    assert mp.manifold is man
+    p.sum().backward()
+    np.testing.assert_allclose(p.grad, np.ones_like(p.data))

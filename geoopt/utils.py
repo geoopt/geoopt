@@ -1,6 +1,7 @@
 import itertools
 from typing import Tuple, Any, Union
 import torch
+import geoopt
 
 __all__ = [
     "copy_or_set_",
@@ -8,6 +9,7 @@ __all__ = [
     "size2shape",
     "make_tuple",
     "broadcast_shapes",
+    "attach_manifold",
 ]
 
 
@@ -69,3 +71,18 @@ def broadcast_shapes(*shapes: Tuple[int]) -> Tuple[int]:
                 dim = d
         result.append(dim)
     return tuple(reversed(result))
+
+
+class AttachManiold(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, manifold, *inputs):
+        return strip_tuple(
+            tuple(geoopt.ManifoldTensor(inp, manifold=manifold) for inp in inputs)
+        )
+
+    @staticmethod
+    def backward(ctx, *output_grads):
+        return (None,) + output_grads
+
+
+attach_manifold = AttachManiold.apply
