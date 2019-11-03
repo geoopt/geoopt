@@ -269,6 +269,7 @@ class PoincareBall(Manifold):
             res = math.project(res, c=self.c, dim=dim)
         return self.attach(res)
 
+    @__scaling__(ScalingInfo(attach=(0,)))
     def random_normal(
         self, *size, mean=0, std=1, dtype=None, device=None
     ) -> "geoopt.ManifoldTensor":

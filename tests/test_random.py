@@ -7,12 +7,14 @@ def test_random_R():
     manifold = geoopt.Euclidean()
     point = manifold.random_normal(10, 10)
     manifold.assert_check_point_on_manifold(point)
+    manifold.assert_attached(point)
     assert point.manifold is manifold
 
 
 def test_random_Euclidean():
     manifold = geoopt.Euclidean(ndim=1)
     point = manifold.random_normal(10, 10)
+    manifold.assert_attached(point)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
 
@@ -20,6 +22,7 @@ def test_random_Euclidean():
 def test_random_Stiefel():
     manifold = geoopt.Stiefel()
     point = manifold.random_naive(3, 10, 10)
+    manifold.assert_attached(point)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
 
@@ -27,6 +30,7 @@ def test_random_Stiefel():
 def test_random_Sphere():
     manifold = geoopt.Sphere()
     point = manifold.random_uniform(3, 10, 10)
+    manifold.assert_attached(point)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
 
@@ -35,6 +39,7 @@ def test_random_SphereProjection():
     subspace = torch.rand(10, 2, dtype=torch.float64)
     manifold = geoopt.Sphere(intersection=subspace)
     point = manifold.random_uniform(3, 10, 10)
+    manifold.assert_attached(point)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
 
@@ -42,6 +47,7 @@ def test_random_SphereProjection():
 def test_random_Poincare():
     manifold = geoopt.PoincareBall()
     point = manifold.random_normal(3, 10, 10)
+    manifold.assert_attached(point)
     manifold.assert_check_point_on_manifold(point)
     assert point.manifold is manifold
 
@@ -92,3 +98,11 @@ def test_product():
     )
     sample = manifold.random(20, manifold.n_elements)
     manifold.assert_check_point_on_manifold(sample)
+    manifold.assert_attached(sample)
+
+
+def test_scaled():
+    manifold = geoopt.Scaled(geoopt.PoincareBall())
+    point = manifold.random_normal(3, 10, 10)
+    manifold.assert_attached(point)
+    manifold.assert_check_point_on_manifold(point)

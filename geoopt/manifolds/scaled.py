@@ -31,7 +31,9 @@ def rescale(function, scaling_info):
 
     @functools.wraps(function)
     def rescaled_function(self, *args, **kwargs):
-        kwargs = signature.bind(self.base, *args, **kwargs).arguments
+        sig = signature.bind(self.base, *args, **kwargs)
+        # TODO: varargs
+        kwargs = sig.arguments
         for k, power in scaling_info.kwargs.items():
             kwargs[k] = rescale_value(kwargs[k], self.scale, power, None, False)
         results = function(**kwargs)
