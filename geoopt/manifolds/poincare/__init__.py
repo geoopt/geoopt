@@ -68,10 +68,10 @@ class PoincareBall(Manifold):
     def retr(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         # always assume u is scaled properly
         approx = x + u
-        return math.project(approx, c=self.c, dim=dim)
+        return self.attach(math.project(approx, c=self.c, dim=dim))
 
     def projx(self, x: torch.Tensor, dim=-1) -> torch.Tensor:
-        return math.project(x, c=self.c, dim=dim)
+        return self.attach(math.project(x, c=self.c, dim=dim))
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
@@ -100,9 +100,8 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         res = math.expmap(x, u, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.logmap(x, y, c=self.c, dim=dim)
@@ -141,68 +140,61 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         res = math.mobius_add(x, y, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def mobius_sub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         res = math.mobius_sub(x, y, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def mobius_coadd(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         res = math.mobius_coadd(x, y, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def mobius_cosub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         res = math.mobius_coadd(x, y, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def mobius_scalar_mul(
         self, r: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         res = math.mobius_scalar_mul(r, x, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def mobius_pointwise_mul(
         self, w: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         res = math.mobius_pointwise_mul(w, x, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def mobius_matvec(
         self, m: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         res = math.mobius_matvec(m, x, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def geodesic(
         self, t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.geodesic(t, x, y, c=self.c, dim=dim)
+        return self.attach(math.geodesic(t, x, y, c=self.c, dim=dim))
 
     @__scaling__(ScalingInfo(t=-1))
     def geodesic_unit(
@@ -210,9 +202,8 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         res = math.geodesic_unit(t, x, u, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def lambda_x(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
         return math.lambda_x(x, c=self.c, dim=dim, keepdim=keepdim)
@@ -225,9 +216,8 @@ class PoincareBall(Manifold):
     def expmap0(self, u: torch.Tensor, *, dim=-1, project=True) -> torch.Tensor:
         res = math.expmap0(u, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     @__scaling__(ScalingInfo(1))
     def logmap0(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
@@ -242,7 +232,7 @@ class PoincareBall(Manifold):
     def gyration(
         self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.gyration(x, y, z, c=self.c, dim=dim)
+        return self.attach(math.gyration(x, y, z, c=self.c, dim=dim))
 
     @__scaling__(ScalingInfo(1))
     def dist2plane(
@@ -266,9 +256,8 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     # this does not yet work with scaling
     @__scaling__(ScalingInfo.NotCompatible)
@@ -277,9 +266,8 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         res = math.mobius_fn_apply_chain(x, *fns, c=self.c, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
-        else:
-            return res
+            res = math.project(res, c=self.c, dim=dim)
+        return self.attach(res)
 
     def random_normal(
         self, *size, mean=0, std=1, dtype=None, device=None

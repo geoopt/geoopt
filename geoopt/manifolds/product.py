@@ -190,7 +190,7 @@ class ProductManifold(Manifold):
             proj = manifold.projx(point)
             proj = proj.view(*x.shape[: len(x.shape) - 1], -1)
             projected.append(proj)
-        return torch.cat(projected, -1)
+        return self.attach(torch.cat(projected, -1))
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim())
@@ -212,7 +212,7 @@ class ProductManifold(Manifold):
             mapped = manifold.expmap(point, tangent)
             mapped = mapped.reshape((*mapped.shape[:target_batch_dim], -1))
             mapped_tensors.append(mapped)
-        return torch.cat(mapped_tensors, -1)
+        return self.attach(torch.cat(mapped_tensors, -1))
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim())
@@ -223,7 +223,7 @@ class ProductManifold(Manifold):
             mapped = manifold.retr(point, tangent)
             mapped = mapped.reshape((*mapped.shape[:target_batch_dim], -1))
             mapped_tensors.append(mapped)
-        return torch.cat(mapped_tensors, -1)
+        return self.attach(torch.cat(mapped_tensors, -1))
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim(), v.dim())
@@ -298,7 +298,7 @@ class ProductManifold(Manifold):
             new_point = new_point.reshape((*new_point.shape[:target_batch_dim], -1))
             results.append((new_point, transported))
         points, vectors = zip(*results)
-        return torch.cat(points, -1), torch.cat(vectors, -1)
+        return self.attach(torch.cat(points, -1)), torch.cat(vectors, -1)
 
     def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
@@ -314,7 +314,7 @@ class ProductManifold(Manifold):
             new_point = new_point.reshape((*new_point.shape[:target_batch_dim], -1))
             results.append((new_point, transported))
         points, vectors = zip(*results)
-        return torch.cat(points, -1), torch.cat(vectors, -1)
+        return self.attach(torch.cat(points, -1)), torch.cat(vectors, -1)
 
     def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
         target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())

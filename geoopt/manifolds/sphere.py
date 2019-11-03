@@ -1,6 +1,6 @@
 import torch
 from typing import Optional, Union, Tuple
-from .base import Manifold
+from .base import Manifold, ScalingInfo
 from ..tensor import ManifoldTensor
 from ..utils import size2shape, broadcast_shapes
 import geoopt.linalg.batch_linalg
@@ -40,6 +40,7 @@ class Sphere(Manifold):
     ndim = 1
     name = "Sphere"
     reversible = False
+    __scaling__ = Manifold.__scaling__.copy()
 
     def __init__(
         self, intersection: torch.Tensor = None, complement: torch.Tensor = None
@@ -125,7 +126,7 @@ class Sphere(Manifold):
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
         x = self._project_on_subspace(x)
-        return x / x.norm(dim=-1, keepdim=True)
+        return self.attach(x / x.norm(dim=-1, keepdim=True))
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         u = u - (x * u).sum(dim=-1, keepdim=True) * x
@@ -136,7 +137,7 @@ class Sphere(Manifold):
         exp = x * torch.cos(norm_u) + u * torch.sin(norm_u) / norm_u
         retr = self.projx(x + u)
         cond = norm_u > EPS[norm_u.dtype]
-        return torch.where(cond, exp, retr)
+        return self.attach(torch.where(cond, exp, retr))
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return self.projx(x + u)
@@ -176,6 +177,7 @@ class Sphere(Manifold):
         else:
             return x
 
+    @__scaling__(ScalingInfo(attach=(0,)))
     def random_uniform(self, *size, dtype=None, device=None) -> torch.Tensor:
         """
         Uniform random measure on Sphere manifold.

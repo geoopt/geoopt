@@ -216,7 +216,7 @@ def product_case():
     )
 
 
-@pytest.fixture(params=[True, False], ids=str)
+@pytest.fixture(params=[True, False], ids=["Scaled", "NotScaled"])
 def scaled(request):
     return request.param
 
@@ -251,6 +251,7 @@ def unary_case(unary_case_base, scaled):
 def test_projection_identity(unary_case):
     x = unary_case.x
     px = unary_case.manifold.projx(x)
+    unary_case.manifold.assert_attached(px)
     np.testing.assert_allclose(x, px, atol=1e-6)
 
 
@@ -301,6 +302,7 @@ def test_broadcast_retr(unary_case):
     U = torch.stack([unary_case.v] * 4)
     pU = unary_case.manifold.proju(pX, U)
     Y = unary_case.manifold.retr(pX, pU)
+    unary_case.manifold.assert_attached(Y)
     unary_case.manifold.assert_check_point_on_manifold(Y)
     for y in Y:
         unary_case.manifold.assert_check_point_on_manifold(y)
@@ -323,6 +325,20 @@ def test_broadcast_transp(unary_case):
     for px, pu, pv, y, q in zip(pX, pU, pV, Y, Q):
         qq = unary_case.manifold.transp_follow_retr(px, pu, pv)
         np.testing.assert_allclose(q, qq, atol=1e-5)
+
+
+def test_broadcast_retr_transp(unary_case):
+    pX = torch.stack([unary_case.x] * 4)
+    U = torch.stack([unary_case.v] * 4)
+    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
+    pU = unary_case.manifold.proju(pX, U)
+    pV = unary_case.manifold.proju(pX, V)
+    Y = unary_case.manifold.retr(pX, pU)
+    Q = unary_case.manifold.transp_follow_retr(pX, pU, pV)
+    Y1, Q1 = unary_case.manifold.retr_transp(pX, pU, pV)
+    unary_case.manifold.assert_attached(Y1)
+    np.testing.assert_allclose(Y, Y1, atol=1e-5)
+    np.testing.assert_allclose(Q, Q1, atol=1e-5)
 
 
 def test_reversibility(unary_case):

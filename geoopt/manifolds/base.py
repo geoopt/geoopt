@@ -2,6 +2,7 @@ import abc
 import torch.nn
 import itertools
 from typing import Optional, Tuple, Union, NoReturn
+import geoopt.utils
 
 __all__ = ["Manifold", "ScalingInfo"]
 
@@ -20,15 +21,20 @@ class ScalingInfo(object):
     In any case, outputs are treated as positionals. Function inputs, in contrast, are treated by keywords.
     It is a common practice to maintain function signature when overriding, so this way may be considered
     as a sufficient in this particular scenario. The only required info for formula above is ``power``.
+
+    There is an additional `attach` keyword which accepts a tuple of ints, positions of
+    outputs which require to be attached.
     """
 
     # marks method to be not working with Scaled wrapper
     NotCompatible = object()
-    __slots__ = ["kwargs", "results"]
+    __slots__ = ["kwargs", "results", "attach"]
 
-    def __init__(self, *results: float, **kwargs: float):
+    def __init__(self, *results: float, attach=(), **kwargs: float):
+        assert isinstance(attach, tuple)
         self.results = results
         self.kwargs = kwargs
+        self.attach = frozenset(attach)
 
 
 class ScalingStorage(dict):
@@ -56,13 +62,14 @@ class ScalingStorage(dict):
             def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False):
                 return math.dist0(x, c=self.c, dim=dim, keepdim=keepdim)
 
-            @__scaling__(ScalingInfo(u=-1))  # rescale argument `u` according to the rule `out * scaling ** -1`
+            @__scaling__(ScalingInfo(u=-1, attach=(0, ))
+            # rescale argument `u` according to the rule `out * scaling ** -1`
+            # re attach the first (the only) output to the manifold
             def expmap0(self, u: torch.Tensor, *, dim=-1, project=True):
                 res = math.expmap0(u, c=self.c, dim=dim)
                 if project:
-                    return math.project(res, c=self.c, dim=dim)
-                else:
-                    return res
+                    res = math.project(res, c=self.c, dim=dim)
+                return self.attach(res)
             ... # other special methods implementation
 
     3. Some methods are not compliant with the above rescaling rules. We should mark them as `NotCompatible`
@@ -76,9 +83,8 @@ class ScalingStorage(dict):
             ):
                 res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
                 if project:
-                    return math.project(res, c=self.c, dim=dim)
-                else:
-                    return res
+                    res = math.project(res, c=self.c, dim=dim)
+                return self.attach(res)
     """
 
     def __call__(self, scaling_info: ScalingInfo):
@@ -417,7 +423,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         return self.dist(x, y, keepdim=keepdim) ** 2
 
     @abc.abstractmethod
-    @__scaling__(ScalingInfo(u=-1))
+    @__scaling__(ScalingInfo(u=-1, attach=(0,)))
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
         Perform a retraction from point :math:`x` with given direction :math:`u`.
@@ -437,7 +443,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    @__scaling__(ScalingInfo(u=-1))
+    @__scaling__(ScalingInfo(u=-1, attach=(0,)))
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         r"""
         Perform an exponential map :math:`\operatorname{Exp}_x(u)`.
@@ -475,7 +481,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @__scaling__(ScalingInfo(u=-1))
+    @__scaling__(ScalingInfo(u=-1, attach=(0,)))
     def expmap_transp(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -493,14 +499,14 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Returns
         -------
-        torch.Tensor
-            transported point
+        Tuple[torch.Tensor, torch.Tensor]
+            transported point and vector
         """
         y = self.expmap(x, u)
         v_transp = self.transp(x, y, v)
         return y, v_transp
 
-    @__scaling__(ScalingInfo(u=-1))
+    @__scaling__(ScalingInfo(u=-1, attach=(0,)))
     def retr_transp(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -519,7 +525,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         Returns
         -------
         Tuple[torch.Tensor, torch.Tensor]
-            transported point and vectors
+            transported point and vector
 
         Notes
         -----
@@ -950,3 +956,45 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
                 torch.random.set_rng_state(state)
         else:
             return self.random(*size, dtype=dtype, device=device)
+
+    def attach(
+        self, *tensors: torch.Tensor
+    ) -> Union[Tuple["geoopt.ManifoldTensor"], "geoopt.ManifoldTensor"]:
+        """
+        Attach the manifold to tensor or tensors.
+
+        Parameters
+        ----------
+        tensors : torch.Tensor
+            input tensors
+
+        Returns
+        -------
+        Union[Tuple[geoopt.ManifoldTensor], geoopt.ManifoldTensor]
+            Tensor(s) with the attached manifold
+        """
+        return geoopt.utils.attach_manifold(self, *tensors)
+
+    def assert_attached(self, *tensors: torch.Tensor) -> Optional[NoReturn]:
+        """
+        Verify all requested tensors are attached to this manifold instance
+
+        Parameters
+        ----------
+        tensors : torch.Tensor
+            input tensors
+
+        Raises
+        -------
+        RuntimeError
+            in case some of the manifolds is not attached to this instance of the manifold, an error is raised
+        """
+        for i, tensor in enumerate(tensors):
+            if (
+                not isinstance(tensor, geoopt.ManifoldTensor)
+                or tensor.manifold is not self
+            ):
+                raise RuntimeError(
+                    "One of the provided (position {}) tensors "
+                    "is not attached to the requested manifold".format(i)
+                )

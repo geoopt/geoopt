@@ -3,13 +3,18 @@ import torch
 import types
 from typing import Union, Tuple, Optional
 from geoopt.manifolds.base import Manifold, ScalingInfo
+import geoopt.utils
+import itertools
 import functools
 
 __all__ = ["Scaled"]
 
 
-def rescale_value(value, scaling, power):
-    return value * scaling ** power if power != 0 else value
+def rescale_value(value, scaling, power, manifold, attach):
+    result = value * scaling ** power if power != 0 else value
+    if attach:
+        result = manifold.attach(result)
+    return result
 
 
 def rescale(function, scaling_info):
@@ -28,21 +33,25 @@ def rescale(function, scaling_info):
     def rescaled_function(self, *args, **kwargs):
         kwargs = signature.bind(self.base, *args, **kwargs).arguments
         for k, power in scaling_info.kwargs.items():
-            kwargs[k] = rescale_value(kwargs[k], self.scale, power)
+            kwargs[k] = rescale_value(kwargs[k], self.scale, power, None, False)
         results = function(**kwargs)
-        if not scaling_info.results:
-            # do nothing
-            return results
-        if isinstance(results, tuple):
-            return tuple(
-                (
-                    rescale_value(res, self.scale, power)
-                    for res, power in zip(results, scaling_info.results)
-                )
+        if not scaling_info.results and not scaling_info.attach:
+            # do nothing, attach if needed
+            return results if 0 not in scaling_info.attach else self.attach(results)
+        wrapped_results = []
+        is_tuple = isinstance(results, tuple)
+        results = geoopt.utils.make_tuple(results)
+        for i, (res, power) in enumerate(
+            itertools.zip_longest(results, scaling_info.results, fillvalue=0)
+        ):
+            wrapped_results.append(
+                rescale_value(res, self.scale, power, self, i in scaling_info.attach)
             )
+        if not is_tuple:
+            wrapped_results = wrapped_results[0]
         else:
-            power = scaling_info.results[0]
-            return rescale_value(results, self.scale, power)
+            wrapped_results = results.__class__(wrapped_results)
+        return wrapped_results
 
     return rescaled_function
 
@@ -177,7 +186,7 @@ class Scaled(Manifold):
         return self.base.proju(x, u, **kwargs)
 
     def projx(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-        return self.base.projx(x, **kwargs)
+        return self.attach(self.base.projx(x, **kwargs))
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.base.egrad2rgrad(x, u, **kwargs)
@@ -188,4 +197,17 @@ class Scaled(Manifold):
         return self.base.transp(x, y, v, **kwargs)
 
     def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
-        return self.base.random(*size, dtype=dtype, device=device, **kwargs)
+        return self.attach(
+            self.base.random(*size, dtype=dtype, device=device, **kwargs)
+        )
+
+    def origin(
+        self,
+        *size: Union[int, Tuple[int]],
+        dtype=None,
+        device=None,
+        seed: Optional[int] = 42
+    ) -> torch.Tensor:
+        return self.attach(
+            self.base.origin(*size, dtype=dtype, device=device, seed=seed)
+        )

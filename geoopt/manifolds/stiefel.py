@@ -1,6 +1,6 @@
 import torch
 from typing import Union, Tuple, Optional
-from .base import Manifold
+from .base import Manifold, ScalingInfo
 from .. import linalg
 from ..utils import size2shape
 from ..tensor import ManifoldTensor
@@ -36,6 +36,7 @@ class Stiefel(Manifold):
         _stiefel_doc
     )
     ndim = 2
+    __scaling__ = Manifold.__scaling__.copy()
 
     def __new__(cls, canonical=True):
         if cls is Stiefel:
@@ -84,8 +85,9 @@ class Stiefel(Manifold):
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
         U, _, V = linalg.batch_linalg.svd(x)
-        return torch.einsum("...ik,...jk->...ij", U, V)
+        return self.attach(torch.einsum("...ik,...jk->...ij", U, V))
 
+    @__scaling__(ScalingInfo(attach=(0,)))
     def random_naive(self, *size, dtype=None, device=None) -> torch.Tensor:
         """
         Naive approach to get random matrix on Stiefel manifold.
@@ -197,7 +199,7 @@ class CanonicalStiefel(Stiefel):
             x.shape[:-1] + (2, x.shape[-1])
         )
         new_x, new_v = qxvs.unbind(-2)
-        return new_x, new_v
+        return self.attach(new_x), new_v
 
     expmap_transp = retr_transp
 
@@ -207,7 +209,7 @@ class CanonicalStiefel(Stiefel):
     egrad2rgrad = proju
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return self._transp_follow_one(x, x, u=u)
+        return self.attach(self._transp_follow_one(x, x, u=u))
 
     expmap = retr
 
@@ -242,7 +244,7 @@ class EuclideanStiefel(Stiefel):
         q, r = linalg.batch_linalg.qr(x + u)
         unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
-        return q
+        return self.attach(q)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         xtu = x.transpose(-1, -2) @ u
@@ -253,7 +255,7 @@ class EuclideanStiefel(Stiefel):
         w = linalg.expm(logw)
         z = torch.cat((linalg.expm(-xtu), torch.zeros_like(utu)), dim=-2)
         y = torch.cat((x, u), dim=-1) @ w @ z
-        return y
+        return self.attach(y)
 
 
 class EuclideanStiefelExact(EuclideanStiefel):

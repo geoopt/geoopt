@@ -1,6 +1,6 @@
 from typing import Union, Tuple, Optional
 import torch
-from .base import Manifold
+from .base import Manifold, ScalingInfo
 from ..utils import size2shape, broadcast_shapes
 import geoopt
 
@@ -22,6 +22,7 @@ class Euclidean(Manifold):
     name = "Euclidean"
     ndim = 0
     reversible = True
+    __scaling__ = Manifold.__scaling__.copy()
 
     def __init__(self, ndim=0):
         super().__init__()
@@ -38,7 +39,7 @@ class Euclidean(Manifold):
         return True, None
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return x + u
+        return self.attach(x + u)
 
     def inner(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
@@ -78,7 +79,7 @@ class Euclidean(Manifold):
         return u.expand(target_shape)
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
-        return x
+        return self.attach(x)
 
     def logmap(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         return y - x
@@ -100,12 +101,13 @@ class Euclidean(Manifold):
         return u.expand(target_shape)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return x + u
+        return self.attach(x + u)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, y.shape, v.shape)
         return v.expand(target_shape)
 
+    @__scaling__(ScalingInfo(attach=(0,)))
     def random_normal(
         self, *size, mean=0.0, std=1.0, device=None, dtype=None
     ) -> "geoopt.ManifoldTensor":

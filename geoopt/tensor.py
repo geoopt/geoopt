@@ -24,6 +24,7 @@ class ManifoldTensor(torch.Tensor):
         if len(args) == 1 and isinstance(args[0], torch.Tensor):
             data = args[0].data
         else:
+            print(args)
             data = torch.Tensor(*args, **kwargs)
         if kwargs.get("device") is not None:
             data.data = data.data.to(kwargs.get("device"))
