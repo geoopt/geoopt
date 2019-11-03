@@ -1,7 +1,7 @@
 import abc
 import torch.nn
 import itertools
-
+from typing import Optional, Tuple, Union, NoReturn
 
 __all__ = ["Manifold", "ScalingInfo"]
 
@@ -104,7 +104,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         super().__init__()
 
     @property
-    def device(self):
+    def device(self) -> Optional[torch.device]:
         """
         Manifold device.
 
@@ -119,7 +119,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             return None
 
     @property
-    def dtype(self):
+    def dtype(self) -> Optional[torch.dtype]:
         """
         Manifold dtype.
 
@@ -134,13 +134,15 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return None
 
-    def check_point(self, x: torch.Tensor, *, explain=False):
+    def check_point(
+        self, x: torch.Tensor, *, explain=False
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Check if point is valid to be used with the manifold.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
         explain: bool
             return an additional information on check
@@ -160,13 +162,13 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point(self, x: torch.Tensor):
+    def assert_check_point(self, x: torch.Tensor) -> Optional[NoReturn]:
         """
         Check if point is valid to be used with the manifold and raise an error with informative message on failure.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
 
         Notes
@@ -187,7 +189,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        u : tensor
+        u : torch.Tensor
             vector on the tangent plane
         explain: bool
             return an additional information on check
@@ -213,7 +215,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        u : tensor
+        u : torch.Tensor
             vector on the tangent plane
 
         Notes
@@ -230,13 +232,13 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def check_point_on_manifold(
         self, x: torch.Tensor, *, explain=False, atol=1e-5, rtol=1e-5
-    ):
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Check if point :math:`x` is lying on the manifold.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
         atol: float
             absolute tolerance as in :func:`numpy.allclose`
@@ -262,13 +264,15 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
+    def assert_check_point_on_manifold(
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Optional[NoReturn]:
         """
         Check if point :math`x` is lying on the manifold and raise an error with informative message on failure.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
         atol: float
             absolute tolerance as in :func:`numpy.allclose`
@@ -292,15 +296,15 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         explain=False,
         atol=1e-5,
         rtol=1e-5
-    ):
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Check if :math:`u` is lying on the tangent space to x.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             vector on the tangent space to :math:`x`
         atol: float
             absolute tolerance as in :func:`numpy.allclose`
@@ -334,15 +338,15 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def assert_check_vector_on_tangent(
         self, x: torch.Tensor, u: torch.Tensor, *, ok_point=False, atol=1e-5, rtol=1e-5
-    ):
+    ) -> Optional[NoReturn]:
         """
         Check if u :math:`u` is lying on the tangent space to x and raise an error on fail.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             vector on the tangent space to :math:`x`
         atol: float
             absolute tolerance as in :func:`numpy.allclose`
@@ -371,123 +375,125 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             )
 
     @__scaling__(ScalingInfo(1))
-    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
+    def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         """
         Compute distance between 2 points on the manifold that is the shortest path along geodesics.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        y : tensor
+        y : torch.Tensor
             point on the manifold
         keepdim : bool
             keep the last dim?
 
         Returns
         -------
-        scalar
+        torch.Tensor
             distance between two points
         """
         raise NotImplementedError
 
     @__scaling__(ScalingInfo(2))
-    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False):
+    def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         """
         Compute squared distance between 2 points on the manifold that is the shortest path along geodesics.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        y : tensor
+        y : torch.Tensor
             point on the manifold
         keepdim : bool
             keep the last dim?
 
         Returns
         -------
-        scalar
+        torch.Tensor
             squared distance between two points
         """
         return self.dist(x, y, keepdim=keepdim) ** 2
 
     @abc.abstractmethod
     @__scaling__(ScalingInfo(u=-1))
-    def retr(self, x: torch.Tensor, u: torch.Tensor):
+    def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
         Perform a retraction from point :math:`x` with given direction :math:`u`.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
 
         Returns
         -------
-        tensor
+        torch.Tensor
             transported point
         """
         raise NotImplementedError
 
     @abc.abstractmethod
     @__scaling__(ScalingInfo(u=-1))
-    def expmap(self, x: torch.Tensor, u: torch.Tensor):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         r"""
         Perform an exponential map :math:`\operatorname{Exp}_x(u)`.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
 
         Returns
         -------
-        tensor
+        torch.Tensor
             transported point
         """
         raise NotImplementedError
 
     @__scaling__(ScalingInfo(1))
-    def logmap(self, x: torch.Tensor, y: torch.Tensor):
+    def logmap(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         r"""
         Perform an logarithmic map :math:`\operatorname{Log}_{x}(y)`.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        y : tensor
+        y : torch.Tensor
             point on the manifold
 
         Returns
         -------
-        tensor
+        torch.Tensor
             tangent vector
         """
         raise NotImplementedError
 
     @__scaling__(ScalingInfo(u=-1))
-    def expmap_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
+    def expmap_transp(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Perform an exponential map and vector transport from point :math:`x` with given direction :math:`u`.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
-        v : tensor
+        v : torch.Tensor
             tangent vector at point :math:`x` to be transported
 
         Returns
         -------
-        tensor
+        torch.Tensor
             transported point
         """
         y = self.expmap(x, u)
@@ -495,22 +501,24 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         return y, v_transp
 
     @__scaling__(ScalingInfo(u=-1))
-    def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
+    def retr_transp(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Perform a retraction + vector transport at once.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
-        v : tensor
+        v : torch.Tensor
             tangent vector at point :math:`x` to be transported
 
         Returns
         -------
-        tuple of tensors
+        Tuple[torch.Tensor, torch.Tensor]
             transported point and vectors
 
         Notes
@@ -522,7 +530,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         return y, v_transp
 
     @__scaling__(ScalingInfo(u=-1))
-    def transp_follow_retr(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
+    def transp_follow_retr(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{retr}(x, u)}(v)`.
 
@@ -530,23 +540,25 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
-        v : tensor
+        v : torch.Tensor
             tangent vector at point :math:`x` to be transported
 
         Returns
         -------
-        tensor
+        torch.Tensor
             transported tensor
         """
         y = self.retr(x, u)
         return self.transp(x, y, v)
 
     @__scaling__(ScalingInfo(u=-1))
-    def transp_follow_expmap(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
+    def transp_follow_expmap(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
         r"""
         Perform vector transport following :math:`u`: :math:`\mathfrak{T}_{x\to\operatorname{Exp}(x, u)}(v)`.
 
@@ -556,65 +568,69 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
-        v : tensor
+        v : torch.Tensor
             tangent vector at point :math:`x` to be transported
 
         Returns
         -------
-        tensor
+        torch.Tensor
             transported tensor
         """
         y = self.expmap(x, u)
         return self.transp(x, y, v)
 
-    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         r"""
         Perform vector transport :math:`\mathfrak{T}_{x\to y}(v)`.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             start point on the manifold
-        y : tensor
+        y : torch.Tensor
             target point on the manifold
-        v : tensor
+        v : torch.Tensor
             tangent vector at point :math:`x`
 
         Returns
         -------
-        tensor or tuple of tensors
-           transported tensor(s)
+        torch.Tensor
+           transported tensor
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def inner(self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False):
+    def inner(
+        self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False
+    ) -> torch.Tensor:
         """
         Inner product for tangent vectors at point :math:`x`.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
-        v : tensor (optional)
+        v : Optional[torch.Tensor]
             tangent vector at point :math:`x`
         keepdim : bool
             keep the last dim?
 
         Returns
         -------
-        scalar
+        torch.Tensor
             inner product (broadcasted)
         """
         raise NotImplementedError
 
-    def component_inner(self, x: torch.Tensor, u: torch.Tensor, v=None):
+    def component_inner(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None
+    ) -> torch.Tensor:
         """
         Inner product for tangent vectors at point :math:`x` according to components of the manifold.
 
@@ -625,16 +641,16 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
-        v : tensor (optional)
+        v : Optional[torch.Tensor]
             tangent vector at point :math:`x`
 
         Returns
         -------
-        tensor
+        torch.Tensor
             inner product component wise (broadcasted)
 
         Notes
@@ -644,82 +660,84 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         return self.inner(x, u, v, keepdim=True)
 
-    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
+    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         """
         Norm of a tangent vector at point :math:`x`.
 
         Parameters
         ----------
-        x : tensor
+        x : torch.Tensor
             point on the manifold
-        u : tensor
+        u : torch.Tensor
             tangent vector at point :math:`x`
         keepdim : bool
             keep the last dim?
 
         Returns
         -------
-        scalar
+        torch.Tensor
             inner product (broadcasted)
         """
         return self.inner(x, u, keepdim=keepdim) ** 0.5
 
     @abc.abstractmethod
-    def proju(self, x: torch.Tensor, u: torch.Tensor):
+    def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
         Project vector :math:`u` on a tangent space for :math:`x`, usually is the same as :meth:`egrad2rgrad`.
 
         Parameters
         ----------
-        x : tensor
+        x torch.Tensor
             point on the manifold
-        u : tensor
+        u torch.Tensor
             vector to be projected
 
         Returns
         -------
-        tensor
+        torch.Tensor
             projected vector
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor):
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
         Transform gradient computed using autodiff to the correct Riemannian gradient for the point :math:`x`.
 
         Parameters
         ----------
-        x : tensor
+        x torch.Tensor
             point on the manifold
-        u : tensor
+        u torch.Tensor
             gradient to be projected
 
         Returns
         -------
-        tensor
+        torch.Tensor
             grad vector in the Riemannian manifold
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def projx(self, x: torch.Tensor):
+    def projx(self, x: torch.Tensor) -> torch.Tensor:
         """
         Project point :math:`x` on the manifold.
 
         Parameters
         ----------
-        x : tensor
+        x torch.Tensor
             point to be projected
 
         Returns
         -------
-        tensor
+        torch.Tensor
             projected point
         """
         raise NotImplementedError
 
-    def _check_shape(self, shape, name):
+    def _check_shape(
+        self, shape: Tuple[int], name: str
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Util to check shape.
 
@@ -730,7 +748,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        shape : tuple
+        shape : Tuple[int]
             shape of point on the manifold
         name : str
             name to be present in errors
@@ -749,7 +767,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             reason = None
         return ok, reason
 
-    def _assert_check_shape(self, shape, name):
+    def _assert_check_shape(self, shape: Tuple[int], name: str) -> Optional[NoReturn]:
         """
         Util to check shape and raise an error if needed.
 
@@ -773,7 +791,9 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             raise ValueError(reason)
 
     @abc.abstractmethod
-    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Util to check point lies on the manifold.
 
@@ -786,7 +806,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : tensor
+        x torch.Tensor
             point on the manifold
         atol: float
             absolute tolerance as in :func:`numpy.allclose`
@@ -804,7 +824,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def _check_vector_on_tangent(
         self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
-    ):
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Util to check a vector belongs to the tangent space of a point.
 
@@ -818,8 +838,8 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : tensor
-        u : tensor
+        x torch.Tensor
+        u torch.Tensor
         atol : float
             absolute tolerance
         rtol :
@@ -871,7 +891,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        tensors : List[torch.Tensor]
+        tensors : Tuple[torch.Tensor]
 
         Returns
         -------
@@ -881,7 +901,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             raise ValueError("1 tensor expected, got {}".format(len(tensors)))
         return tensors[0]
 
-    def random(self, *size, dtype=None, device=None, **kwargs):
+    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
         """
         Random sampling on the manifold.
 
@@ -890,7 +910,13 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def origin(self, *size, dtype=None, device=None, seed=42):
+    def origin(
+        self,
+        *size: Union[int, Tuple[int]],
+        dtype=None,
+        device=None,
+        seed: Optional[int] = 42
+    ) -> torch.Tensor:
         """
         Create some reasonable point on the manifold in a deterministic way.
 
@@ -900,19 +926,19 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        size : shape
+        size : Union[int, Tuple[int]]
             the desired shape
         device : torch.device
             the desired device
         dtype : torch.dtype
             the desired dtype
-        seed : int
+        seed : Optional[int]
             A parameter controlling deterministic randomness for manifolds that do not provide ``.origin``,
             but provide ``.random``. (default: 42)
 
         Returns
         -------
-        tensor
+        torch.Tensor
         """
         if seed is not None:
             # we promise pseudorandom behaviour but do not want to modify global seed

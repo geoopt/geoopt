@@ -1,6 +1,7 @@
 import torch.nn
 from .manifolds import Euclidean, Manifold
 from .docutils import insert_docs
+from typing import Union, Tuple
 from .utils import copy_or_set_
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
@@ -15,7 +16,11 @@ class ManifoldTensor(torch.Tensor):
         A manifold for the tensor, (default: :class:`geoopt.Euclidean`)
     """
 
-    def __new__(cls, *args, manifold=Euclidean(), requires_grad=False, **kwargs):
+    manifold: Manifold
+
+    def __new__(
+        cls, *args, manifold: Manifold = Euclidean(), requires_grad=False, **kwargs
+    ):
         if len(args) == 1 and isinstance(args[0], torch.Tensor):
             data = args[0].data
         else:
@@ -28,7 +33,7 @@ class ManifoldTensor(torch.Tensor):
         instance.manifold = manifold
         return instance
 
-    def proj_(self):
+    def proj_(self) -> torch.Tensor:
         """
         Inplace projection to the manifold.
 
@@ -40,42 +45,48 @@ class ManifoldTensor(torch.Tensor):
         return copy_or_set_(self, self.manifold.projx(self))
 
     @insert_docs(Manifold.retr.__doc__, r"\s+x : .+\n.+", "")
-    def retr(self, u, **kwargs):
+    def retr(self, u: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.manifold.retr(self, u=u, **kwargs)
 
     @insert_docs(Manifold.expmap.__doc__, r"\s+x : .+\n.+", "")
-    def expmap(self, u, **kwargs):
+    def expmap(self, u: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.manifold.expmap(self, u=u, **kwargs)
 
     @insert_docs(Manifold.inner.__doc__, r"\s+x : .+\n.+", "")
-    def inner(self, u, v=None, **kwargs):
+    def inner(self, u: torch.Tensor, v: torch.Tensor = None, **kwargs) -> torch.Tensor:
         return self.manifold.inner(self, u=u, v=v, **kwargs)
 
     @insert_docs(Manifold.proju.__doc__, r"\s+x : .+\n.+", "")
-    def proju(self, u, **kwargs):
+    def proju(self, u: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.manifold.proju(self, u, **kwargs)
 
     @insert_docs(Manifold.transp.__doc__, r"\s+x : .+\n.+", "")
-    def transp(self, y, v, **kwargs):
+    def transp(self, y: torch.Tensor, v: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.manifold.transp(self, y, v, **kwargs)
 
     @insert_docs(Manifold.retr_transp.__doc__, r"\s+x : .+\n.+", "")
-    def retr_transp(self, u, v, **kwargs):
+    def retr_transp(self, u: torch.Tensor, v: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.manifold.retr_transp(self, u, v, **kwargs)
 
     @insert_docs(Manifold.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
-    def expmap_transp(self, u, v, **kwargs):
+    def expmap_transp(self, u: torch.Tensor, v: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.manifold.expmap_transp(self, u, v, **kwargs)
 
     @insert_docs(Manifold.transp_follow_expmap.__doc__, r"\s+x : .+\n.+", "")
-    def transp_follow_expmap(self, u, v, **kwargs):
+    def transp_follow_expmap(
+        self, u: torch.Tensor, v: torch.Tensor, **kwargs
+    ) -> torch.Tensor:
         return self.manifold.transp_follow_expmap(self, u, v, **kwargs)
 
     @insert_docs(Manifold.transp_follow_retr.__doc__, r"\s+x : .+\n.+", "")
-    def transp_follow_retr(self, u, v, **kwargs):
+    def transp_follow_retr(
+        self, u: torch.Tensor, v: torch.Tensor, **kwargs
+    ) -> torch.Tensor:
         return self.manifold.transp_follow_retr(self, u, v, **kwargs)
 
-    def dist(self, other, p=2, **kwargs):
+    def dist(
+        self, other: torch.Tensor, p: Union[int, float, bool, str] = 2, **kwargs
+    ) -> torch.Tensor:
         """
         Return euclidean  or geodesic distance between points on the manifold. Allows broadcasting.
 
@@ -96,7 +107,7 @@ class ManifoldTensor(torch.Tensor):
             return super().dist(other)
 
     @insert_docs(Manifold.logmap.__doc__, r"\s+x : .+\n.+", "")
-    def logmap(self, y, **kwargs):
+    def logmap(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.manifold.logmap(self, y, **kwargs)
 
     def __repr__(self):
@@ -118,8 +129,8 @@ class ManifoldTensor(torch.Tensor):
         return _rebuild_manifold_parameter, proto + (self.manifold,)
 
     @insert_docs(Manifold.unpack_tensor.__doc__, r"\s+tensor : .+\n.+", "")
-    def as_point(self):
-        return self.manifold.as_point(self)
+    def unpack_tensor(self) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
+        return self.manifold.unpack_tensor(self)
 
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):

@@ -1,6 +1,7 @@
 import inspect
 import torch
 import types
+from typing import Union, Tuple, Optional
 from geoopt.manifolds.base import Manifold, ScalingInfo
 import functools
 
@@ -87,14 +88,14 @@ class Scaled(Manifold):
             )
 
     @property
-    def scale(self):
+    def scale(self) -> torch.Tensor:
         if self._scale is None:
             return self._log_scale.exp()
         else:
             return self._scale
 
     @property
-    def log_scale(self):
+    def log_scale(self) -> torch.Tensor:
         if self._log_scale is None:
             return self._scale.log()
         else:
@@ -142,13 +143,17 @@ class Scaled(Manifold):
         else:
             return self.name + "({}) manifold".format(self.base.name)
 
-    def _check_shape(self, shape, name):
+    def _check_shape(self, shape: Tuple[int], name: str) -> Tuple[bool, Optional[str]]:
         return self.base._check_shape(shape, name)
 
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         return self.base._check_point_on_manifold(x, atol=atol, rtol=rtol)
 
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         return self.base._check_vector_on_tangent(x, u, atol=atol, rtol=rtol)
 
     # stuff that should remain the same but we need to override it
@@ -160,23 +165,27 @@ class Scaled(Manifold):
         *,
         keepdim=False,
         **kwargs
-    ):
+    ) -> torch.Tensor:
         return self.base.inner(x, u, v, keepdim=keepdim, **kwargs)
 
-    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, **kwargs):
+    def norm(
+        self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, **kwargs
+    ) -> torch.Tensor:
         return self.base.norm(x, u, keepdim=keepdim, **kwargs)
 
-    def proju(self, x: torch.Tensor, u: torch.Tensor, **kwargs):
+    def proju(self, x: torch.Tensor, u: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.base.proju(x, u, **kwargs)
 
-    def projx(self, x: torch.Tensor, **kwargs):
+    def projx(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.base.projx(x, **kwargs)
 
-    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, **kwargs):
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.base.egrad2rgrad(x, u, **kwargs)
 
-    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, **kwargs):
+    def transp(
+        self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, **kwargs
+    ) -> torch.Tensor:
         return self.base.transp(x, y, v, **kwargs)
 
-    def random(self, *size, dtype=None, device=None, **kwargs):
+    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
         return self.base.random(*size, dtype=dtype, device=device, **kwargs)

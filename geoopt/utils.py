@@ -1,9 +1,17 @@
 import itertools
+from typing import Tuple, Any, Union
+import torch
 
-__all__ = "copy_or_set_"
+__all__ = [
+    "copy_or_set_",
+    "strip_tuple",
+    "size2shape",
+    "make_tuple",
+    "broadcast_shapes",
+]
 
 
-def copy_or_set_(dest, source):
+def copy_or_set_(dest: torch.Tensor, source: torch.Tensor) -> torch.Tensor:
     """
     Copy or inplace set from :code:`source` to :code:`dest`.
 
@@ -31,29 +39,29 @@ def copy_or_set_(dest, source):
         return dest.set_(source)
 
 
-def strip_tuple(tup):
+def strip_tuple(tup: Tuple) -> Union[Tuple, Any]:
     if len(tup) == 1:
         return tup[0]
     else:
         return tup
 
 
-def make_tuple(obj):
+def make_tuple(obj: Union[Tuple, Any]) -> Tuple:
     if not isinstance(obj, tuple):
         return (obj,)
     else:
         return obj
 
 
-def size2shape(*size):
+def size2shape(*size: Union[Tuple[int], int]) -> Tuple[int]:
     return make_tuple(strip_tuple(size))
 
 
-def broadcast_shapes(*shapes: tuple):
-    """Apply broadcasting rules to shapes."""
+def broadcast_shapes(*shapes: Tuple[int]) -> Tuple[int]:
+    """Apply numpy broadcasting rules to shapes."""
     result = []
     for dims in itertools.zip_longest(*map(reversed, shapes), fillvalue=1):
-        dim = 1
+        dim: int = 1
         for d in dims:
             if dim != 1 and d != 1 and d != dim:
                 raise ValueError("Shapes can't be broadcasted")
