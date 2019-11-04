@@ -49,7 +49,7 @@ def rescale(function, scaling_info):
         # TODO: varargs
         arguments = params.arguments
         for k, power in scaling_info.kwargs.items():
-            arguments[k] = rescale_value(kwargs[k], self.scale, power, None, False)
+            arguments[k] = rescale_value(arguments[k], self.scale, power, None, False)
         params = params.__class__(signature, arguments)
         results = function(*params.args, **params.kwargs)
         if not scaling_info.results and not scaling_info.attach:
