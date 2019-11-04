@@ -1,7 +1,15 @@
 This file tracks important changes in PRs
 
-geoopt v0.1.0 (unreleased)
-==========================
+geoopt v0.1.1
+=============
+
+New Features
+------------
+* ``ManifoldTensor`` is now the output of some manifold methods, e.g exponential map (#114)
+
+
+geoopt v0.1.0
+=============
 
 Breaking Changes
 ----------------
