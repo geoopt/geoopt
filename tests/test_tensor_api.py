@@ -14,3 +14,9 @@ def test_compare_manifolds():
     with pytest.raises(ValueError) as e:
         _ = geoopt.ManifoldParameter(tensor, manifold=m2)
     assert e.match("Manifolds do not match")
+
+
+def test_tensor_is_attached():
+    m1 = geoopt.Euclidean()
+    p = m1.random(())
+    assert m1.is_attached(p)

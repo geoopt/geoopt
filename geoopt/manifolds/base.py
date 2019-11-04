@@ -975,6 +975,29 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         return geoopt.utils.attach_manifold(self, *tensors)
 
+    def is_attached(self, *tensors: torch.Tensor) -> bool:
+        """
+        Check all requested tensors are attached to this manifold instance.
+
+        Parameters
+        ----------
+        tensors : torch.Tensor
+            input tensors
+
+        Returns
+        -------
+        bool
+            Check result
+        """
+
+        for i, tensor in enumerate(tensors):
+            if (
+                not isinstance(tensor, geoopt.ManifoldTensor)
+                or tensor.manifold is not self
+            ):
+                return False
+        return True
+
     def assert_attached(self, *tensors: torch.Tensor) -> Optional[NoReturn]:
         """
         Verify all requested tensors are attached to this manifold instance.

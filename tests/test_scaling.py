@@ -68,3 +68,11 @@ def test_scaling_not_implemented():
     with pytest.raises(NotImplementedError) as e:
         sball.mobius_fn_apply(lambda x: x, pa)
     assert e.match("Scaled version of 'mobius_fn_apply' is not available")
+
+
+def test_tensor_is_attached():
+    m1 = geoopt.Euclidean()
+    m1 = geoopt.Scaled(m1)
+    m1 = geoopt.Scaled(m1)
+    p = m1.random(())
+    assert m1.is_attached(p)
