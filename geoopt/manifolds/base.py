@@ -977,7 +977,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def assert_attached(self, *tensors: torch.Tensor) -> Optional[NoReturn]:
         """
-        Verify all requested tensors are attached to this manifold instance
+        Verify all requested tensors are attached to this manifold instance.
 
         Parameters
         ----------
@@ -985,7 +985,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             input tensors
 
         Raises
-        -------
+        ------
         RuntimeError
             in case some of the manifolds is not attached to this instance of the manifold, an error is raised
         """
