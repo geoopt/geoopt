@@ -17,6 +17,19 @@ def rescale_value(value, scaling, power, manifold, attach):
     return result
 
 
+def apply_bound_args(
+    f: callable, arguments: inspect.BoundArguments, signature: inspect.Signature
+):
+    args = list()
+    kwargs = dict()
+    for k, v in signature.parameters.items():
+        if v.kind in {
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        }:
+            args.append(arguments.args[k])
+
+
 def rescale(function, scaling_info):
     if scaling_info is ScalingInfo.NotCompatible:
 
@@ -31,12 +44,14 @@ def rescale(function, scaling_info):
 
     @functools.wraps(function)
     def rescaled_function(self, *args, **kwargs):
-        sig = signature.bind(self.base, *args, **kwargs)
+        params = signature.bind(self.base, *args, **kwargs)
+        params.apply_defaults()
         # TODO: varargs
-        kwargs = sig.arguments
+        arguments = params.arguments
         for k, power in scaling_info.kwargs.items():
-            kwargs[k] = rescale_value(kwargs[k], self.scale, power, None, False)
-        results = function(**kwargs)
+            arguments[k] = rescale_value(kwargs[k], self.scale, power, None, False)
+        params = params.__class__(signature, arguments)
+        results = function(*params.args, **params.kwargs)
         if not scaling_info.results and not scaling_info.attach:
             # do nothing, attach if needed
             return results if 0 not in scaling_info.attach else self.attach(results)
