@@ -18,5 +18,6 @@ from .manifolds import (
     ProductManifold,
     Scaled,
 )
+from .utils import ismanifold
 
 __version__ = "0.1.0"

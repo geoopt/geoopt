@@ -126,3 +126,19 @@ def test_attach_manifold():
     assert mp.manifold is man
     p.sum().backward()
     np.testing.assert_allclose(p.grad, np.ones_like(p.data))
+
+
+def test_ismanifold():
+    m1 = geoopt.Euclidean()
+    assert geoopt.ismanifold(m1, geoopt.Euclidean)
+    m1 = geoopt.Scaled(m1)
+    m1 = geoopt.Scaled(m1)
+    assert geoopt.ismanifold(m1, geoopt.Euclidean)
+
+    with pytest.raises(TypeError):
+        geoopt.ismanifold(m1, int)
+
+    with pytest.raises(TypeError):
+        geoopt.ismanifold(m1, 1)
+
+    assert not geoopt.ismanifold(1, geoopt.Euclidean)
