@@ -17,19 +17,6 @@ def rescale_value(value, scaling, power, manifold, attach):
     return result
 
 
-def apply_bound_args(
-    f: callable, arguments: inspect.BoundArguments, signature: inspect.Signature
-):
-    args = list()
-    kwargs = dict()
-    for k, v in signature.parameters.items():
-        if v.kind in {
-            inspect.Parameter.POSITIONAL_ONLY,
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        }:
-            args.append(arguments.args[k])
-
-
 def rescale(function, scaling_info):
     if scaling_info is ScalingInfo.NotCompatible:
 
