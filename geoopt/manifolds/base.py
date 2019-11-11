@@ -264,9 +264,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point_on_manifold(
-        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
-    ):
+    def assert_check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         """
         Check if point :math`x` is lying on the manifold and raise an error with informative message on failure.
 
