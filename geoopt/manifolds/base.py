@@ -1,7 +1,7 @@
 import abc
 import torch.nn
 import itertools
-from typing import Optional, Tuple, Union, NoReturn
+from typing import Optional, Tuple, Union
 
 __all__ = ["Manifold", "ScalingInfo"]
 
