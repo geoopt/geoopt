@@ -162,7 +162,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             return ok
 
-    def assert_check_point(self, x: torch.Tensor) -> Optional[NoReturn]:
+    def assert_check_point(self, x: torch.Tensor):
         """
         Check if point is valid to be used with the manifold and raise an error with informative message on failure.
 
@@ -266,7 +266,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def assert_check_point_on_manifold(
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
-    ) -> Optional[NoReturn]:
+    ):
         """
         Check if point :math`x` is lying on the manifold and raise an error with informative message on failure.
 
@@ -338,7 +338,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     def assert_check_vector_on_tangent(
         self, x: torch.Tensor, u: torch.Tensor, *, ok_point=False, atol=1e-5, rtol=1e-5
-    ) -> Optional[NoReturn]:
+    ):
         """
         Check if u :math:`u` is lying on the tangent space to x and raise an error on fail.
 
@@ -767,7 +767,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             reason = None
         return ok, reason
 
-    def _assert_check_shape(self, shape: Tuple[int], name: str) -> Optional[NoReturn]:
+    def _assert_check_shape(self, shape: Tuple[int], name: str):
         """
         Util to check shape and raise an error if needed.
 
