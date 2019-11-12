@@ -65,7 +65,9 @@ class ManifoldTensor(torch.Tensor):
         return self.manifold.transp(self, y, v, **kwargs)
 
     @insert_docs(Manifold.retr_transp.__doc__, r"\s+x : .+\n.+", "")
-    def retr_transp(self, u: torch.Tensor, v: torch.Tensor, **kwargs) -> torch.Tensor:
+    def retr_transp(
+        self, u: torch.Tensor, v: torch.Tensor, **kwargs
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         return self.manifold.retr_transp(self, u, v, **kwargs)
 
     @insert_docs(Manifold.expmap_transp.__doc__, r"\s+x : .+\n.+", "")
