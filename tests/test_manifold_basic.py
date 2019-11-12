@@ -216,7 +216,7 @@ def product_case():
     )
 
 
-@pytest.fixture(params=[True, False], ids=str)
+@pytest.fixture(params=[True, False], ids=["Scaled", "NotScaled"])
 def scaled(request):
     return request.param
 
