@@ -1,7 +1,9 @@
 import inspect
 import torch
+import itertools
 import types
 from typing import Union, Tuple, Optional
+import geoopt.utils
 from geoopt.manifolds.base import Manifold, ScalingInfo
 import functools
 
@@ -26,23 +28,28 @@ def rescale(function, scaling_info):
 
     @functools.wraps(function)
     def rescaled_function(self, *args, **kwargs):
-        kwargs = signature.bind(self.base, *args, **kwargs).arguments
+        params = signature.bind(self.base, *args, **kwargs)
+        params.apply_defaults()
+        arguments = params.arguments
         for k, power in scaling_info.kwargs.items():
-            kwargs[k] = rescale_value(kwargs[k], self.scale, power)
-        results = function(**kwargs)
+            arguments[k] = rescale_value(arguments[k], self.scale, power)
+        params = params.__class__(signature, arguments)
+        results = function(*params.args, **params.kwargs)
         if not scaling_info.results:
             # do nothing
             return results
-        if isinstance(results, tuple):
-            return tuple(
-                (
-                    rescale_value(res, self.scale, power)
-                    for res, power in zip(results, scaling_info.results)
-                )
-            )
+        wrapped_results = []
+        is_tuple = isinstance(results, tuple)
+        results = geoopt.utils.make_tuple(results)
+        for i, (res, power) in enumerate(
+            itertools.zip_longest(results, scaling_info.results, fillvalue=0)
+        ):
+            wrapped_results.append(rescale_value(res, self.scale, power))
+        if not is_tuple:
+            wrapped_results = wrapped_results[0]
         else:
-            power = scaling_info.results[0]
-            return rescale_value(results, self.scale, power)
+            wrapped_results = results.__class__(wrapped_results)
+        return wrapped_results
 
     return rescaled_function
 
