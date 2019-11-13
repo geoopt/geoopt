@@ -116,3 +116,19 @@ def test_manifold_is_submodule_poincare():
     container = torch.nn.ModuleDict({"ball": ball})
     container.to(torch.float64)
     assert ball.c.dtype == torch.float64
+
+
+def test_ismanifold():
+    m1 = geoopt.Euclidean()
+    assert geoopt.ismanifold(m1, geoopt.Euclidean)
+    m1 = geoopt.Scaled(m1)
+    m1 = geoopt.Scaled(m1)
+    assert geoopt.ismanifold(m1, geoopt.Euclidean)
+
+    with pytest.raises(TypeError):
+        geoopt.ismanifold(m1, int)
+
+    with pytest.raises(TypeError):
+        geoopt.ismanifold(m1, 1)
+
+    assert not geoopt.ismanifold(1, geoopt.Euclidean)

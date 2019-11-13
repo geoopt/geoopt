@@ -1,6 +1,7 @@
 import itertools
 from typing import Tuple, Any, Union
 import torch
+import geoopt
 
 __all__ = [
     "copy_or_set_",
@@ -8,6 +9,7 @@ __all__ = [
     "size2shape",
     "make_tuple",
     "broadcast_shapes",
+    "ismanifold",
 ]
 
 
@@ -69,3 +71,30 @@ def broadcast_shapes(*shapes: Tuple[int]) -> Tuple[int]:
                 dim = d
         result.append(dim)
     return tuple(reversed(result))
+
+
+def ismanifold(instance, cls):
+    """
+    Check if interface of an instance is compatible with given class.
+
+    Parameters
+    ----------
+    instance : geoopt.Manifold
+        check if a given manifold is compatible with cls API
+    cls : type
+        manifold type
+
+    Returns
+    -------
+    bool
+        comparison result
+    """
+    if not issubclass(cls, geoopt.manifolds.Manifold):
+        raise TypeError("`cls` should be a subclass of geoopt.manifolds.Manifold")
+    if not isinstance(instance, geoopt.manifolds.Manifold):
+        return False
+    else:
+        # this is the case to care about, Scaled class is a proxy, but fails instance checks
+        while isinstance(instance, geoopt.Scaled):
+            instance = instance.base
+        return isinstance(instance, cls)
