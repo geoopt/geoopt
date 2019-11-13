@@ -76,13 +76,18 @@ def broadcast_shapes(*shapes: Tuple[int]) -> Tuple[int]:
 def ismanifold(instance, cls):
     """
     Check if interface of an instance is compatible with given class.
+
     Parameters
     ----------
     instance : geoopt.Manifold
+        check if a given manifold is compatible with cls API
     cls : type
+        manifold type
+
     Returns
     -------
     bool
+        comparison result
     """
     if not issubclass(cls, geoopt.manifolds.Manifold):
         raise TypeError("`cls` should be a subclass of geoopt.manifolds.Manifold")
