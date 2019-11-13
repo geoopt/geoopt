@@ -9,25 +9,43 @@ matrix:
       language: sh
       python:
         - "3.6"
+      # Perform the manual steps on osx to install python3 and activate venv
+      before_install:
+        - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O $HOME/miniconda.sh
+        - bash $HOME/miniconda.sh -b -p /miniconda
+        - export PATH="$HOME/miniconda/bin:$PATH"
+        - conda create -n test python=3.6 pip wheel
+        - conda activate test
+    - os: osx
+      language: sh
+      python:
         - "3.7"
       # Perform the manual steps on osx to install python3 and activate venv
       before_install:
-        - brew update
-        - brew upgrade python3 --version=$TRAVIS_PYTHON_VERSION
-        - python3 -m pip install virtualenv
-        - virtualenv .venv -p python3
-        - source .venv/bin/activate
+        - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O $HOME/miniconda.sh
+        - bash $HOME/miniconda.sh -b -p /miniconda
+        - export PATH="$HOME/miniconda/bin:$PATH"
+        - conda create -n test python=3.7 pip wheel
+        - conda activate test
     - os: windows
       language: sh
       python:
         - "3.6"
+      before_install:
+        - choco install miniconda3 --params="'/AddToPath:1'
+        - conda create -n test python=3.6 pip
+        - conda activate test
+    - os: windows
+      language: sh
+      python:
         - "3.7"
       before_install:
-        - choco install python3 --params "/InstallDir:C:\\Python" --version=$TRAVIS_PYTHON_VERSION
-        - export PATH="/c/Python:/c/Python/Scripts:$PATH"
-        - python -m pip install --upgrade pip wheel
+        - choco install miniconda3 --params="'/AddToPath:1'
+        - conda create -n test python=3.7 pip
+        - conda activate test
 install:
   # Get newer pip and wheel for binary caching support
-  - pip install --upgrade pip
+  - pip install --upgrade pip wheel
   - pip install -U -r requirements-dev.txt
   - pip install -e .
+  - echo "hurray"
