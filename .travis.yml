@@ -7,19 +7,23 @@ matrix:
   include:
     - os: osx
       language: sh
-      python: "3.7"
+      python:
+        - "3.6"
+        - "3.7"
       # Perform the manual steps on osx to install python3 and activate venv
       before_install:
         - brew update
-        - brew upgrade python3
+        - brew upgrade python3 --version=$TRAVIS_PYTHON_VERSION
         - python3 -m pip install virtualenv
         - virtualenv .venv -p python3
         - source .venv/bin/activate
     - os: windows
       language: sh
-      python: "3.7"
+      python:
+        - "3.6"
+        - "3.7"
       before_install:
-        - choco install python3 --params "/InstallDir:C:\\Python"
+        - choco install python3 --params "/InstallDir:C:\\Python" --version=$TRAVIS_PYTHON_VERSION
         - export PATH="/c/Python:/c/Python/Scripts:$PATH"
         - python -m pip install --upgrade pip wheel
 install:
