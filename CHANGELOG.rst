@@ -1,12 +1,24 @@
 This file tracks important changes in PRs
 
-geoopt v0.1.0 (unreleased)
-==========================
+geoopt v.0.1.1
+==============
+
+New Features
+------------
+* Add ``geoopt.ismanifold`` utility
+
+Bug Fixes
+---------
+* Fix typing compatibility with python 3.7+
+
+
+geoopt v0.1.0
+=============
 
 Breaking Changes
 ----------------
-* better public api, refactored developer api a lot (#40). See the corresponding PR for more details
-* refactored internal design, caused another api change (#77)
+* Better public api, refactored developer api a lot (#40). See the corresponding PR for more details
+* Refactored internal design, caused another api change (#77)
 * Removed ``t`` argument from everywhere (#76). The argument just scaled tangent vectors but
 appeared to be very problematic in maintenance
 
