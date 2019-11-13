@@ -3,7 +3,6 @@ dist: xenial
 python:
   - "3.6"
   - "3.7"
-  - "3.8"
 matrix:
   include:
     - os: osx
@@ -18,7 +17,7 @@ matrix:
         - source .venv/bin/activate
     - os: windows
       language: sh
-      python: "3.x"
+      python: "3.7"
       before_install:
         - choco install python3 --params "/InstallDir:C:\\Python"
         - export PATH="/c/Python:/c/Python/Scripts:$PATH"
