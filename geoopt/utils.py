@@ -10,6 +10,7 @@ __all__ = [
     "make_tuple",
     "broadcast_shapes",
     "ismanifold",
+    "canonical_manifold",
 ]
 
 
