@@ -62,6 +62,11 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         return math.dist(x, y, c=self.c, keepdim=keepdim, dim=dim)
 
+    def dist2(
+        self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, dim=-1
+    ) -> torch.Tensor:
+        return math.dist(x, y, c=self.c, keepdim=keepdim, dim=dim) ** 2
+
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, c=self.c, dim=dim)
 
