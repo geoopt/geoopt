@@ -98,3 +98,23 @@ def ismanifold(instance, cls):
         while isinstance(instance, geoopt.Scaled):
             instance = instance.base
         return isinstance(instance, cls)
+
+
+def canonical_manifold(manifold: geoopt.Manifold):
+    """
+    Get a canonical manifold.
+
+    If a manifold is wrapped with Scaled. Some attributes may not be available. This should help if you really need them.
+
+    Parameters
+    ----------
+    manifold : geoopt.Manifold
+
+    Returns
+    -------
+    geoopt.Maniflold
+        an unwrapped manifold
+    """
+    while isinstance(manifold, geoopt.Scaled):
+        manifold = manifold.base
+    return manifold
