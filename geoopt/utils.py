@@ -101,7 +101,7 @@ def ismanifold(instance, cls):
         return isinstance(instance, cls)
 
 
-def canonical_manifold(manifold: geoopt.Manifold):
+def canonical_manifold(manifold: "geoopt.Manifold"):
     """
     Get a canonical manifold.
 
