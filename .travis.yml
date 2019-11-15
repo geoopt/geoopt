@@ -52,7 +52,7 @@ matrix:
         - "3.6"
       before_install:
         - choco install miniconda3
-        - export PATH=$ToolsDir\miniconda3\bin:$PATH
+        - export PATH="/c/tools/miniconda3/bin:$PATH"
         - conda create -n test python=3.6 pip
         - conda activate test
     - os: windows
@@ -61,7 +61,7 @@ matrix:
         - "3.7"
       before_install:
         - choco install miniconda3
-        - export PATH=$ToolsDir\miniconda3:$ToolsDir\miniconda3\bin:$PATH
+        - export PATH="/c/tools/miniconda3/bin:$PATH"
         - conda create -n test python=3.7 pip
         - conda activate test
 install:
