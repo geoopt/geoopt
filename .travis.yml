@@ -32,7 +32,7 @@ matrix:
       python:
         - "3.6"
       before_install:
-        - choco install miniconda3 --params='/AddToPath:1'
+        - choco install miniconda3 --params="'/AddToPath:1'"
         - conda create -n test python=3.6 pip
         - conda activate test
     - os: windows
@@ -40,7 +40,7 @@ matrix:
       python:
         - "3.7"
       before_install:
-        - choco install miniconda3 --params='/AddToPath:1'
+        - choco install miniconda3 --params="'/AddToPath:1'"
         - conda create -n test python=3.7 pip
         - conda activate test
 install:
