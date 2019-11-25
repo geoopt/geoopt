@@ -52,7 +52,7 @@ sproj_of_sphere = StereographicExact(K=1.0,
 sns.set_style("white")
 x = torch.tensor((-0.25, -0.75)) / 3
 M = torch.tensor([[-1, -1.5], [0.2, 0.5]])
-M_x = poincare_ball.mobius_matvec(M, x)
+M_x = sproj_of_sphere.mobius_matvec(M, x)
 
 radius = 1.0
 circle = plt.Circle((0, 0), 1, fill=False, color="b")
