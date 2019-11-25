@@ -252,7 +252,7 @@ class Stereographic(Manifold):
     def mobius_cosub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_coadd(x, y, K=self.get_K(), dim=dim)
+        res = math.mobius_cosub(x, y, K=self.get_K(), dim=dim)
         if project:
             return math.project(res, K=self.get_K(), dim=dim)
         else:
