@@ -5,17 +5,17 @@ import geoopt
 from ...utils import size2shape, broadcast_shapes
 from ..base import Manifold, ScalingInfo
 
-__all__ = ["Universal", "UniversalExact"]
+__all__ = ["Stereographic", "StereographicExact"]
 
-_universal_doc = r"""
-    Universal manifold model, see more in :doc:`/extended/universal`
+_stereographic_doc = r"""
+    Stereographic manifold model, see more in :doc:`/extended/universal`
     
     Parameters
     ----------
-    c : float|tensor 
-        negative sectional curvature c (c=-K) of manifold
-        - c>0: Poincare ball
-        - c<0: Stereographic projection of sphere
+    K : float|tensor 
+        sectional curvature of manifold
+        - K<0: Poincaré ball
+        - K>0: Stereographic projection of sphere
         - c-->0: approaches Euclidean geometry if points stay relatively close 
           to center
     
@@ -27,26 +27,26 @@ _universal_doc = r"""
 
 
 # noinspection PyMethodOverriding
-class Universal(Manifold):
+class Stereographic(Manifold):
     __doc__ = r"""{}
 
     See Also
     --------
-    :class:`UniversalExact`
+    :class:`StereographicExact`
     """.format(
-        _universal_doc
+        _stereographic_doc
     )
 
     ndim = 1
     reversible = False
-    name = "Universal"
+    name = "Stereographic"
     __scaling__ = Manifold.__scaling__.copy()
 
     def __init__(self,
-                 c=0.1,
+                 K=1.0,
                  float_precision=torch.float64,
                  keep_sign_fixed=False,
-                 min_abs_c=0.001):
+                 min_abs_K=0.001):
 
         # initialize Manifold superclass
         super().__init__()
@@ -58,26 +58,26 @@ class Universal(Manifold):
         self.keep_sign_fixed = keep_sign_fixed
 
         # define minimal curvature
-        self.min_abs_c = torch.tensor(min_abs_c, dtype=self.float_precision)
+        self.min_abs_K = torch.tensor(min_abs_K, dtype=self.float_precision)
 
-        # convert supplied c to tensor
-        c = torch.tensor(c, dtype=self.float_precision)
+        # convert supplied K to tensor
+        K = torch.tensor(K, dtype=self.float_precision)
 
-        # keep track of sign of provided c (enforce no gradients)
-        self.initial_sign = torch.nn.Parameter(torch.sign(c),
+        # keep track of sign of provided K (enforce no gradients)
+        self.initial_sign = torch.nn.Parameter(torch.sign(K),
                                                requires_grad=False)
 
-        # define initial curvature from the provided c
-        c_init = torch.zeros(1, dtype=self.float_precision)
+        # define initial curvature from the provided K
+        K_init = torch.zeros(1, dtype=self.float_precision)
         if self.keep_sign_fixed:
             # if we keep the sign fixed it will always be
-            # sign * (min abs curv + positive value of c(via softplus))
-            c_init[0] = self._inverse_softplus(c.abs()-self.min_abs_c)
+            # sign * (min abs curv + positive value of K(via softplus))
+            K_init[0] = self._inverse_softplus(K.abs() - self.min_abs_K)
         else:
             # if we don't keep the sign fixed it will be
-            # c = sign * (min abs curv) + c
-            c_init[0] = c - self.initial_sign * self.min_abs_c
-        self.c = torch.nn.Parameter(c_init, requires_grad=False)
+            # K = sign * (min abs curv) + K
+            K_init[0] = K - self.initial_sign * self.min_abs_K
+        self.trainable_K = torch.nn.Parameter(K_init, requires_grad=False)
 
     def _softplus(self, x) -> torch.Tensor:
         return torch.log(1.0 + torch.exp(x))
@@ -86,48 +86,46 @@ class Universal(Manifold):
         x = torch.log(torch.exp(y)-1.0)
         return x
 
-    def get_c(self) -> torch.Tensor:
-        """
-        Returns the manifolds negative curvature according to the specified
-        rules (keep sign fixed or not).
-
-        All other quantities like K and R are derived from the trainable c.
-
-        Softplus (and its inverse) are used to get better-behaved gradients
-        for the trainable part of c.
-
-        :return: The manifold's negative curvature c
-        """
-        if self.keep_sign_fixed:
-            return self.initial_sign * (self.min_abs_c + self._softplus(self.c))
-        else:
-            # take sign twice to avoid == 0
-            return torch.sign(torch.sign(self.c)+1e-15)*self.min_abs_c + self.c
-
     def get_K(self) -> torch.Tensor:
         """
-        Returns the manifold's sectional curvature K.
-        :return:
+        Returns the manifold's sectional curvature according to the specified
+        rules (keep sign fixed or not).
+
+        The radius R is derived from get_K().
+
+        Softplus (and its inverse) are used to get better-behaved gradients
+        for the trainable part of the curvature K (self.trainable_K).
+
+        Note that get_K() != self.trainable_K !!! Use get_K() if you want to get
+        the actual sectional curvature of the manifold.
+
+        :return: The manifold's sectional curvature K
         """
-        return -self.get_c()
+        if self.keep_sign_fixed:
+            return -self.initial_sign * \
+                   (self.min_abs_K + self._softplus(self.trainable_K))
+        else:
+            # take sign twice to avoid == 0
+            return -torch.sign(torch.sign(self.trainable_K)+1e-15) \
+                   * self.min_abs_K + self.trainable_K
 
     def get_R(self) -> torch.Tensor:
         """
         Gets the manifold's radius R.
         :return:
         """
-        return 1.0 / torch.sqrt(torch.abs(self.get_c()))
+        return 1.0 / torch.sqrt(torch.abs(self.get_K()))
 
     def _check_point_on_manifold(
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
     ) -> Tuple[bool, Optional[str]]:
-        if self.get_c() > 0:
-            px = math.project(x, c=self.get_c())
+        if self.get_K() < 0:
+            px = math.project(x, K=self.get_K())
             ok = torch.allclose(x, px, atol=atol, rtol=rtol)
             if not ok:
                 reason = \
                     "'x' norm lies out of the bounds " + \
-                    "[-1/sqrt(abs(c))+eps, 1/sqrt(abs(c))-eps]"
+                    "[-1/sqrt(abs(K))+eps, 1/sqrt(abs(K))-eps]"
             else:
                 reason = None
             return ok, reason
@@ -142,20 +140,20 @@ class Universal(Manifold):
     def dist(
         self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.dist(x, y, c=self.get_c(), keepdim=keepdim, dim=dim)
+        return math.dist(x, y, K=self.get_K(), keepdim=keepdim, dim=dim)
 
     def egrad2rgrad(
         self, x: torch.Tensor, u: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.egrad2rgrad(x, u, c=self.get_c(), dim=dim)
+        return math.egrad2rgrad(x, u, K=self.get_K(), dim=dim)
 
     def retr(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         # always assume u is scaled properly
         approx = x + u
-        return math.project(approx, c=self.get_c(), dim=dim)
+        return math.project(approx, K=self.get_K(), dim=dim)
 
     def projx(self, x: torch.Tensor, dim=-1) -> torch.Tensor:
-        return math.project(x, c=self.get_c(), dim=dim)
+        return math.project(x, K=self.get_K(), dim=dim)
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
@@ -172,29 +170,29 @@ class Universal(Manifold):
     ) -> torch.Tensor:
         if v is None:
             v = u
-        return math.inner(x, u, v, c=self.get_c(), keepdim=keepdim, dim=dim)
+        return math.inner(x, u, v, K=self.get_K(), keepdim=keepdim, dim=dim)
 
     def norm(
         self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.norm(x, u, c=self.get_c(), keepdim=keepdim, dim=dim)
+        return math.norm(x, u, K=self.get_K(), keepdim=keepdim, dim=dim)
 
     def expmap(
         self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1
     ) -> torch.Tensor:
-        res = math.expmap(x, u, c=self.get_c(), dim=dim)
+        res = math.expmap(x, u, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def logmap(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.logmap(x, y, c=self.get_c(), dim=dim)
+        return math.logmap(x, y, K=self.get_K(), dim=dim)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, dim=-1):
-        return math.parallel_transport(x, y, v, c=self.get_c(), dim=dim)
+        return math.parallel_transport(x, y, v, K=self.get_K(), dim=dim)
 
 
     def transp_follow_retr(
@@ -226,117 +224,117 @@ class Universal(Manifold):
     def mobius_add(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_add(x, y, c=self.get_c(), dim=dim)
+        res = math.mobius_add(x, y, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def mobius_sub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_sub(x, y, c=self.get_c(), dim=dim)
+        res = math.mobius_sub(x, y, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def mobius_coadd(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_coadd(x, y, c=self.get_c(), dim=dim)
+        res = math.mobius_coadd(x, y, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def mobius_cosub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_coadd(x, y, c=self.get_c(), dim=dim)
+        res = math.mobius_coadd(x, y, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def mobius_scalar_mul(
         self, r: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_scalar_mul(r, x, c=self.get_c(), dim=dim)
+        res = math.mobius_scalar_mul(r, x, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def mobius_pointwise_mul(
         self, w: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_pointwise_mul(w, x, c=self.get_c(), dim=dim)
+        res = math.mobius_pointwise_mul(w, x, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def mobius_matvec(
         self, m: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_matvec(m, x, c=self.get_c(), dim=dim)
+        res = math.mobius_matvec(m, x, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def geodesic(
         self, t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.geodesic(t, x, y, c=self.get_c(), dim=dim)
+        return math.geodesic(t, x, y, K=self.get_K(), dim=dim)
 
     @__scaling__(ScalingInfo(t=-1))
     def geodesic_unit(
         self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1,
         project=True
     ) -> torch.Tensor:
-        res = math.geodesic_unit(t, x, u, c=self.get_c(), dim=dim)
+        res = math.geodesic_unit(t, x, u, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     def lambda_x(
         self, x: torch.Tensor, *, dim=-1, keepdim=False
     ) -> torch.Tensor:
-        return math.lambda_x(x, c=self.get_c(), dim=dim, keepdim=keepdim)
+        return math.lambda_x(x, K=self.get_K(), dim=dim, keepdim=keepdim)
 
     @__scaling__(ScalingInfo(1))
     def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
-        return math.dist0(x, c=self.get_c(), dim=dim, keepdim=keepdim)
+        return math.dist0(x, K=self.get_K(), dim=dim, keepdim=keepdim)
 
     @__scaling__(ScalingInfo(u=-1))
     def expmap0(self, u: torch.Tensor, *, dim=-1, project=True) -> torch.Tensor:
-        res = math.expmap0(u, c=self.get_c(), dim=dim)
+        res = math.expmap0(u, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
     @__scaling__(ScalingInfo(1))
     def logmap0(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.logmap0(x, c=self.get_c(), dim=dim)
+        return math.logmap0(x, K=self.get_K(), dim=dim)
 
     def transp0(
         self, y: torch.Tensor, u: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.parallel_transport0(y, u, c=self.get_c(), dim=dim)
+        return math.parallel_transport0(y, u, K=self.get_K(), dim=dim)
 
     def transp0back(
         self, y: torch.Tensor, u: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.parallel_transport0back(y, u, c=self.get_c(), dim=dim)
+        return math.parallel_transport0back(y, u, K=self.get_K(), dim=dim)
 
     def gyration(
         self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.gyration(x, y, z, c=self.get_c(), dim=dim)
+        return math.gyration(x, y, z, K=self.get_K(), dim=dim)
 
     @__scaling__(ScalingInfo(1))
     def dist2plane(
@@ -350,7 +348,7 @@ class Universal(Manifold):
         signed=False
     ) -> torch.Tensor:
         return math.dist2plane(
-            x, p, a, dim=dim, c=self.get_c(), keepdim=keepdim, signed=signed
+            x, p, a, dim=dim, K=self.get_K(), keepdim=keepdim, signed=signed
         )
 
     # this does not yet work with scaling
@@ -359,10 +357,10 @@ class Universal(Manifold):
         self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True,
         **kwargs
     ) -> torch.Tensor:
-        res = math.mobius_fn_apply(fn, x, *args, c=self.get_c(),
+        res = math.mobius_fn_apply(fn, x, *args, K=self.get_K(),
                                    dim=dim, **kwargs)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
@@ -371,9 +369,9 @@ class Universal(Manifold):
     def mobius_fn_apply_chain(
         self, x: torch.Tensor, *fns: callable, project=True, dim=-1
     ) -> torch.Tensor:
-        res = math.mobius_fn_apply_chain(x, *fns, c=self.get_c(), dim=dim)
+        res = math.mobius_fn_apply_chain(x, *fns, K=self.get_K(), dim=dim)
         if project:
-            return math.project(res, c=self.get_c(), dim=dim)
+            return math.project(res, K=self.get_K(), dim=dim)
         else:
             return res
 
@@ -402,7 +400,7 @@ class Universal(Manifold):
         Returns
         -------
         ManifoldTensor
-            random point on the PoincareBall manifold
+            random point on the Stereographic manifold
 
         Notes
         -----
@@ -453,7 +451,7 @@ class Universal(Manifold):
             torch.zeros(*size, dtype=dtype, device=device), manifold=self
         )
 
-class UniversalExact(Universal):
+class StereographicExact(Stereographic):
     __doc__ = r"""{}
 
     The implementation of retraction is an exact exponential map, this 
@@ -461,15 +459,15 @@ class UniversalExact(Universal):
 
     See Also
     --------
-    :class:`Universal`
+    :class:`Stereographic`
     """.format(
-        _universal_doc
+        _stereographic_doc
     )
 
     reversible = True
-    retr_transp = Universal.expmap_transp
-    transp_follow_retr = Universal.transp_follow_expmap
-    retr = Universal.expmap
+    retr_transp = Stereographic.expmap_transp
+    transp_follow_retr = Stereographic.transp_follow_expmap
+    retr = Stereographic.expmap
 
     def extra_repr(self):
         return "exact"
