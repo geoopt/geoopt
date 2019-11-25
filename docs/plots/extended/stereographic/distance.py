@@ -1,4 +1,3 @@
-import torch
 from geoopt.manifolds.stereographic import StereographicExact
 import torch
 import numpy as np
