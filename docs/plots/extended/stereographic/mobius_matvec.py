@@ -40,7 +40,7 @@ plt.title(r"Matrix multiplication $M\otimes x$")
 plt.show()
 
 
-# SPROJ OF SPHERE DISTANCE PLOT ################################################
+# SPROJ OF SPHERE MATVEC PLOT ##################################################
 
 
 sproj_of_sphere = StereographicExact(K=1.0,
