@@ -300,7 +300,7 @@ def mobius_add(x, y, *, K=1.0, dim=-1):
 
         \mathbf{0} \oplus_K x = x \oplus_K \mathbf{0}
 
-    * zero negative curvature case that is same as Euclidean addition
+    * zero curvature case that is same as Euclidean addition
 
     .. math::
 
