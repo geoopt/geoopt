@@ -1105,7 +1105,7 @@ def mobiusify(fn):
 
     return mobius_fn
 
-# TODO: check if this extends to gyrovector spaces for positive curvature
+
 def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
     r"""
     Computes the geodesic distance from :math:`x` to a hyperplane going through
@@ -1116,7 +1116,8 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
 
     .. plot:: plots/extended/universal/distance2plane.py
 
-    To form an intuition what is a hyperbolic hyperplane, let's first consider Euclidean hyperplane
+    To form an intuition what is a hyperplane in gyrovector spaces, let's first
+    consider an Euclidean hyperplane
 
     .. math::
 
@@ -1124,7 +1125,8 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
             x \in \mathbb{R}^n\;:\;\langle x, a\rangle - b = 0
         \right\},
 
-    where :math:`a\in \mathbb{R}^n\backslash \{\mathbf{0}\}` and :math:`b\in \mathbb{R}^n`.
+    where :math:`a\in \mathbb{R}^n\backslash \{\mathbf{0}\}` and
+    :math:`b\in \mathbb{R}^n`.
 
     This formulation of a hyperplane is hard to generalize,
     therefore we can rewrite :math:`\langle x, a\rangle - b`
@@ -1145,16 +1147,21 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
         \right\}\\
         = p + \{a\}^\perp
 
-    Naturally we have a set :math:`\{a\}^\perp` with applied :math:`+` operator to each element.
-    Generalizing a notion of summation to the hyperbolic space we replace :math:`+` with :math:`\oplus_K`.
+    Naturally we have a set :math:`\{a\}^\perp` with applied :math:`+` operator
+    to each element. Generalizing a notion of summation to the gyrovector space
+    we replace :math:`+` with :math:`\oplus_K`.
 
-    Next, we should figure out what is :math:`\{a\}^\perp` in the Poincare ball.
+    Next, we should figure out what is :math:`\{a\}^\perp` in the gyrovector
+    space.
 
-    First thing that we should acknowledge is that notion of orthogonality is defined for vectors in tangent spaces.
-    Let's consider now :math:`p\in \mathcal{M}_K^n` and :math:`a\in T_p\mathcal{M}_K^n\backslash \{\mathbf{0}\}`.
+    First thing that we should acknowledge is that notion of orthogonality is
+    defined for vectors in tangent spaces. Let's consider now
+    :math:`p\in \mathcal{M}_K^n` and
+    :math:`a\in T_p\mathcal{M}_K^n\backslash \{\mathbf{0}\}`.
 
-    Slightly deviating from traditional notation let's write :math:`\{a\}_p^\perp`
-    highlighting the tight relationship of :math:`a\in T_p\mathcal{M}_K^n\backslash \{\mathbf{0}\}`
+    Slightly deviating from traditional notation let's write
+    :math:`\{a\}_p^\perp` highlighting the tight relationship of
+    :math:`a\in T_p\mathcal{M}_K^n\backslash \{\mathbf{0}\}`
     with :math:`p \in \mathcal{M}_K^n`. We then define
 
     .. math::
@@ -1163,12 +1170,13 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
             z\in T_p\mathcal{M}_K^n \;:\; \langle z, a\rangle_p = 0
         \right\}
 
-    Recalling that a tangent vector :math:`z` for point :math:`p` yields :math:`x = \operatorname{Exp}^K_p(z)`
-    we rewrite the above equation as
+    Recalling that a tangent vector :math:`z` for point :math:`p` yields
+    :math:`x = \operatorname{Exp}^K_p(z)` we rewrite the above equation as
 
     .. math::
         \{a\}_p^\perp := \left\{
-            x\in \mathcal{M}_K^n \;:\; \langle \operatorname{Log}_p^K(x), a\rangle_p = 0
+            x\in \mathcal{M}_K^n \;:\; \langle
+            \operatorname{Log}_p^K(x), a\rangle_p = 0
         \right\}
 
     This formulation is something more pleasant to work with.
@@ -1178,7 +1186,8 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
 
         \tilde{H}_{a, p}^K = p + \{a\}^\perp_p\\
         = \left\{
-            x \in \mathcal{M}_K^n\;:\;\langle\operatorname{Log}^K_p(x), a\rangle_p = 0
+            x \in \mathcal{M}_K^n\;:\;\langle\operatorname{Log}^K_p(x),
+            a\rangle_p = 0
         \right\} \\
         = \left\{
             x \in \mathcal{M}_K^n\;:\;\langle -p \oplus_K x, a\rangle = 0
@@ -1200,11 +1209,11 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
     Parameters
     ----------
     x : tensor
-        point on Poincare ball
+        point on manifold to compute distance for
     a : tensor
-        vector on tangent space of :math:`p`
+        hyperplane normal vector in tangent space of :math:`p`
     p : tensor
-        point on Poincare ball lying on the hyperplane
+        point on manifold lying on the hyperplane
     K : float|tensor
         sectional curvature of manifold
     keepdim : bool
