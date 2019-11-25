@@ -8,7 +8,7 @@ from ..base import Manifold, ScalingInfo
 __all__ = ["Stereographic", "StereographicExact"]
 
 _stereographic_doc = r"""
-    Stereographic manifold model, see more in :doc:`/extended/universal`
+    Stereographic manifold model, see more in :doc:`/extended/stereographic`
     
     Parameters
     ----------
