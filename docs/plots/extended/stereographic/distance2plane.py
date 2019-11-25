@@ -69,10 +69,10 @@ plt.xlim(lo, hi)
 plt.ylim(lo, hi)
 plt.gca().set_aspect("equal")
 plt.contourf(
-    grid[..., 0], grid[..., 1], dists.numpy(), levels=100, cmap="inferno"
+    grid[..., 0], grid[..., 1], dists.log().numpy(), levels=100, cmap="inferno"
 )
 plt.colorbar()
 plt.scatter(*x, color="g")
 plt.arrow(*x, *v, color="g", width=0.01)
-plt.title(r"distance to $\tilde{H}_{a, p}$")
+plt.title(r"log distance to $\tilde{H}_{a, p}$")
 plt.show()
