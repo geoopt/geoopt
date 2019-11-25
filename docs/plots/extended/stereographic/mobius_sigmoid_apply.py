@@ -37,8 +37,7 @@ plt.title(r"Mobius function (sigmoid) apply $\sigma^\otimes(x)$")
 plt.show()
 
 
-
-# SPROJ OF SPHERE DISTANCE PLOT ################################################
+# SPROJ OF SPHERE SIGMOID APPLY PLOT ###########################################
 
 
 sproj_of_sphere = StereographicExact(K=1.0,
