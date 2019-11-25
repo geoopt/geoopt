@@ -8,13 +8,13 @@ from ..base import Manifold, ScalingInfo
 __all__ = ["Stereographic", "StereographicExact"]
 
 _stereographic_doc = r"""
-    Stereographic manifold model, see more in :doc:`/extended/stereographic`
+    Stereographic model, see more in :doc:`/extended/stereographic`
     
     Parameters
     ----------
     K : float|tensor 
         sectional curvature of manifold
-        - K<0: Poincaré ball
+        - K<0: Poincaré ball (stereographic projection of hyperboloid)
         - K>0: Stereographic projection of sphere
         - c-->0: approaches Euclidean geometry if points stay relatively close 
           to center
@@ -42,6 +42,7 @@ class Stereographic(Manifold):
     name = "Stereographic"
     __scaling__ = Manifold.__scaling__.copy()
 
+    # TODO: remove float precision
     def __init__(self,
                  K=1.0,
                  float_precision=torch.float64,
