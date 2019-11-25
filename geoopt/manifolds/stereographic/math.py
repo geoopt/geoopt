@@ -272,7 +272,7 @@ def _norm(x, u, K, keepdim: bool = False, dim: int = -1):
         dim=dim, keepdim=keepdim, p=2
     )
 
-# TODO: check numerical correctness with Gregor's paper
+
 def mobius_add(x, y, *, K=1.0, dim=-1):
     r"""
     Computes the Möbius gyrovector addition.
@@ -331,7 +331,7 @@ def mobius_add(x, y, *, K=1.0, dim=-1):
     """
     return _mobius_add(x, y, K, dim=dim)
 
-# TODO: check numerical correctness with Gregor's paper
+
 def _mobius_add(x, y, K, dim=-1):
     x2 = x.pow(2).sum(dim=dim, keepdim=True)
     y2 = y.pow(2).sum(dim=dim, keepdim=True)
