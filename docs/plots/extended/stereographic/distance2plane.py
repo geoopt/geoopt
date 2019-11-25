@@ -18,7 +18,6 @@ poincare_ball = StereographicExact(K=-1.0,
                                    keep_sign_fixed=False,
                                    min_abs_K=0.001)
 
-
 sns.set_style("white")
 radius = 1
 coords = np.linspace(-radius, radius, 100)
@@ -52,7 +51,6 @@ sproj_of_sphere = StereographicExact(K=1.0,
                                      float_precision=torch.float64,
                                      keep_sign_fixed=False,
                                      min_abs_K=0.001)
-
 
 sns.set_style("white")
 radius = 1
