@@ -10,7 +10,7 @@ rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
 rcParams["text.usetex"] = True
 
 
-# POINCARE BALL DISTANCE PLOT ##################################################
+# POINCARE BALL DIST2PLANE PLOT ################################################
 
 
 poincare_ball = StereographicExact(K=-1.0,
@@ -44,7 +44,7 @@ plt.title(r"log distance to $\tilde{H}_{a, p}$")
 plt.show()
 
 
-# SPROJ OF SPHERE DISTANCE PLOT ################################################
+# SPROJ OF SPHERE DIST2PLANE PLOT ##############################################
 
 
 sproj_of_sphere = StereographicExact(K=1.0,
