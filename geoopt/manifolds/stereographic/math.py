@@ -19,6 +19,7 @@ import torch.jit
 
 
 # Clamping safety
+# TODO: make this datatype dependent
 MIN_NORM = 1e-15
 # Ball epsilon safety border
 BALL_EPS = {torch.float32: 4e-3, torch.float64: 1e-5}
