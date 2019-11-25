@@ -23,7 +23,7 @@ sns.set_style("white")
 radius = 1
 coords = np.linspace(-radius, radius, 100)
 x = torch.tensor([-0.75, 0])
-v = torch.tensor([0.1 / 3, -1 / 3])
+v = torch.tensor([0.5, -1 / 3])
 xx, yy = np.meshgrid(coords, coords)
 dist2 = xx ** 2 + yy ** 2
 mask = dist2 <= radius ** 2
@@ -58,7 +58,7 @@ sns.set_style("white")
 radius = 1
 coords = np.linspace(-2*radius, 2*radius, 100)
 x = torch.tensor([-0.75, 0])
-v = torch.tensor([0.1 / 3, -1 / 3])
+v = torch.tensor([0.5, -1 / 3])
 xx, yy = np.meshgrid(coords, coords)
 dist2 = xx ** 2 + yy ** 2
 grid = np.stack([xx, yy], axis=-1)
