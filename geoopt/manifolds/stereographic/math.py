@@ -151,6 +151,40 @@ def _project(x, K, dim: int = -1, eps: float = None):
         return x
 
 
+def gamma_x(x, *, K=1.0, keepdim=False, dim=-1):
+    r"""
+    Computes the Lorentz factor :math:`\gamma^\kappa_x` at the point
+    :math:`x` on the manifold.
+
+    .. math::
+
+        \lambda^\kappa_x = \frac{1}{1 + \kappa \|x\|_2^2}
+
+    Parameters
+    ----------
+    x : tensor
+        point on the manifold
+    K : float|tensor
+        sectional curvature of manifold
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension
+
+    Returns
+    -------
+    tensor
+        Lorentz factor
+    """
+    return _gamma_x(x, K, keepdim=keepdim, dim=dim)
+
+
+def _gamma_x(x, K, keepdim: bool = False, dim: int = -1):
+    x_norm = x.pow(2).sum(dim=dim, keepdim=keepdim)
+    gam = 1.0/(torch.sqrt(1.0+K*x_norm).clamp_min(MIN_NORM))
+    return gam
+
+
 def lambda_x(x, *, K=1.0, keepdim=False, dim=-1):
     r"""
     Computes the conformal factor :math:`\lambda^\kappa_x` at the point
@@ -180,7 +214,7 @@ def lambda_x(x, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _lambda_x(x, K, keepdim: bool = False, dim: int = -1):
-    lam = 2/(1 + K * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
+    lam = 1/(1 + K * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
     return lam
 
 
@@ -573,7 +607,7 @@ def dist(x, y, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _dist(x, y, K, keepdim: bool = False, dim: int = -1):
-    return 2 * arctan_K(
+    return arctan_K(
         _mobius_add(-x, y, K, dim=dim).norm(dim=dim, p=2, keepdim=keepdim), K
     )
 
@@ -602,7 +636,7 @@ def dist0(x, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _dist0(x, K, keepdim: bool = False, dim: int = -1):
-    return 2 * arctan_K(x.norm(dim=dim, p=2, keepdim=keepdim), K)
+    return arctan_K(x.norm(dim=dim, p=2, keepdim=keepdim), K)
 
 
 def geodesic(t, x, y, *, K=1.0, dim=-1):
@@ -794,7 +828,7 @@ def geodesic_unit(t, x, u, *, K=1.0, dim=-1):
 
 def _geodesic_unit(t, x, u, K, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    second_term = tan_K(t/2, K) * (u / u_norm)
+    second_term = tan_K(t, K) * (u / u_norm)
     gamma_1 = _mobius_add(x, second_term, K, dim=dim)
     return gamma_1
 
@@ -1244,7 +1278,7 @@ def _dist2plane(x, a, p, K, keepdim: bool = False, signed: bool = False,
     if not signed:
         sc_diff_a = sc_diff_a.abs()
     a_norm = a.norm(dim=dim, keepdim=keepdim, p=2).clamp_min(MIN_NORM)
-    num = 2 * sc_diff_a
+    num = sc_diff_a
     denom = ((1 + K * diff_norm2) * a_norm).clamp_min(MIN_NORM)
     return arcsin_K(num / denom, K)
 
