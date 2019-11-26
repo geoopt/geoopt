@@ -60,7 +60,7 @@ plt.xlim(lo, hi)
 plt.ylim(lo, hi)
 plt.gca().set_aspect("equal")
 plt.contourf(
-    grid[..., 0], grid[..., 1], dists.numpy(), levels=100, cmap="inferno"
+    grid[..., 0], grid[..., 1], dists.log().numpy(), levels=100, cmap="inferno"
 )
 plt.colorbar()
 plt.title("distance to ($-$0.75, 0)")
