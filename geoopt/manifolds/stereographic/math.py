@@ -74,30 +74,34 @@ def arsinh(x):
 
 """
 The following functions select the appropriate trigonometric function (normal or
-hyperbolic) depending on the value of the curvature :math:`K`. The curvature may
-be a single number, or a vector equal to the number of rows in x (one neg. 
-curvature per row).
+hyperbolic) depending on the value of the curvature :math:`K`.
 """
 
-def tan_func(x, K):
-    if K < 0:
-        return tanh(x)
+def tan_K(x, K):
+    if K <= 0:
+        sqrt_minus_K = torch.sqrt(-K)
+        return (1.0/sqrt_minus_K) * tanh(sqrt_minus_K * x)
     else:
-        return torch.tan(x)
+        sqrt_K = torch.sqrt(K)
+        return (1.0/sqrt_K) * torch.tan(sqrt_K * x)
 
 
-def arctan_func(x, K):
-    if K < 0:
-        return artanh(x)
+def arctan_K(x, K):
+    if K <= 0:
+        sqrt_minus_K = torch.sqrt(-K)
+        return (1.0/sqrt_minus_K) * artanh(sqrt_minus_K * x)
     else:
-        return torch.atan(x)
+        sqrt_K = torch.sqrt(K)
+        return (1.0/sqrt_K) * torch.atan(sqrt_K * x)
 
 
-def arcsin_func(x, K):
-    if K < 0:
-        return arsinh(x)
+def arcsin_K(x, K):
+    if K <= 0:
+        sqrt_minus_K = torch.sqrt(-K)
+        return (1.0/sqrt_minus_K) * arsinh(sqrt_minus_K * x)
     else:
-        return torch.asin(x)
+        sqrt_K = torch.sqrt(K)
+        return (1.0/sqrt_K) * torch.asin(sqrt_K * x)
 
 
 # GYROVECTOR SPACE MATH ########################################################
@@ -517,8 +521,7 @@ def mobius_scalar_mul(r, x, *, K=1.0, dim=-1):
 
 def _mobius_scalar_mul(r, x, K, dim: int = -1):
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
-    sqrt_abs_K = torch.abs(K) ** 0.5
-    res_c = tan_func(r * arctan_func(sqrt_abs_K * x_norm, K), K) * x / (x_norm * sqrt_abs_K)
+    res_c = tan_K(r * arctan_K(x_norm, K), K) * (x / x_norm)
     return res_c
 
 
@@ -555,12 +558,9 @@ def dist(x, y, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _dist(x, y, K, keepdim: bool = False, dim: int = -1):
-    sqrt_abs_K = torch.abs(K) ** 0.5
-    dist_K = arctan_func(
-        sqrt_abs_K *
+    return 2 * arctan_K(
         _mobius_add(-x, y, K, dim=dim).norm(dim=dim, p=2, keepdim=keepdim), K
     )
-    return dist_K * 2 / sqrt_abs_K
 
 
 def dist0(x, *, K=1.0, keepdim=False, dim=-1):
@@ -587,9 +587,7 @@ def dist0(x, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _dist0(x, K, keepdim: bool = False, dim: int = -1):
-    sqrt_abs_K = torch.abs(K) ** 0.5
-    dist_K = arctan_func(sqrt_abs_K * x.norm(dim=dim, p=2, keepdim=keepdim), K)
-    return dist_K * 2 / sqrt_abs_K
+    return 2 * arctan_K(x.norm(dim=dim, p=2, keepdim=keepdim), K)
 
 
 def geodesic(t, x, y, *, K=1.0, dim=-1):
@@ -705,12 +703,10 @@ def expmap(x, u, *, K=1.0, dim=-1):
 
 
 def _expmap(x, u, K, dim: int = -1):
-    sqrt_abs_K = torch.abs(K) ** 0.5
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     second_term = (
-            tan_func(sqrt_abs_K / 2 * _lambda_x(x, K, keepdim=True, dim=dim) * u_norm, K)
-        * u
-        / (sqrt_abs_K * u_norm)
+            tan_K((_lambda_x(x, K, keepdim=True, dim=dim)/2) * u_norm, K)
+            * (u / u_norm)
     )
     gamma_1 = _mobius_add(x, second_term, K, dim=dim)
     return gamma_1
@@ -742,9 +738,8 @@ def expmap0(u, *, K=1.0, dim=-1):
 
 
 def _expmap0(u, K, dim: int = -1):
-    sqrt_abs_K = torch.abs(K) ** 0.5
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    gamma_1 = tan_func(sqrt_abs_K * u_norm, K) * u / (sqrt_abs_K * u_norm)
+    gamma_1 = tan_K(u_norm, K) * (u / u_norm)
     return gamma_1
 
 
@@ -779,9 +774,8 @@ def geodesic_unit(t, x, u, *, K=1.0, dim=-1):
 
 
 def _geodesic_unit(t, x, u, K, dim: int = -1):
-    sqrt_abs_K = torch.abs(K) ** 0.5
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    second_term = tan_func(sqrt_abs_K / 2 * t, K) * u / (sqrt_abs_K * u_norm)
+    second_term = tan_K(t/2, K) * (u / u_norm)
     gamma_1 = _mobius_add(x, second_term, K, dim=dim)
     return gamma_1
 
@@ -827,8 +821,7 @@ def _logmap(x, y, K, dim: int = -1):
     sub = _mobius_add(-x, y, K, dim=dim)
     sub_norm = sub.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     lam = _lambda_x(x, K, keepdim=True, dim=dim)
-    sqrt_abs_K = torch.abs(K) ** 0.5
-    return 2 / sqrt_abs_K / lam * arctan_func(sqrt_abs_K * sub_norm, K) * sub / sub_norm
+    return (2 / lam) * arctan_K(sub_norm, K) * (sub / sub_norm)
 
 
 def logmap0(y, *, K=1.0, dim=-1):
@@ -864,9 +857,8 @@ def logmap0(y, *, K=1.0, dim=-1):
 
 
 def _logmap0(y, K, dim: int = -1):
-    sqrt_abs_K = torch.abs(K) ** 0.5
     y_norm = y.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    return y / y_norm / sqrt_abs_K * arctan_func(sqrt_abs_K * y_norm, K)
+    return (y/y_norm) * arctan_K(y_norm, K)
 
 
 def mobius_matvec(m, x, *, K=1.0, dim=-1):
@@ -910,13 +902,12 @@ def _mobius_matvec(m, x, K, dim: int = -1):
             "broadcasted Möbius matvec is supported for the last dim only"
         )
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
-    sqrt_abs_K = torch.abs(K) ** 0.5
     if dim != -1 or m.dim() == 2:
         mx = torch.tensordot(x, m, dims=([dim], [1]))
     else:
         mx = torch.matmul(m, x.unsqueeze(-1)).squeeze(-1)
     mx_norm = mx.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
-    res_c = tan_func(mx_norm / x_norm * arctan_func(sqrt_abs_K * x_norm, K), K) * mx / (mx_norm * sqrt_abs_K)
+    res_c = tan_K(mx_norm / x_norm * arctan_K(x_norm, K), K) * (mx / mx_norm)
     cond = (mx == 0).prod(dim=dim, keepdim=True, dtype=torch.uint8)
     res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
     res = torch.where(cond, res_0, res_c)
@@ -959,10 +950,9 @@ def mobius_pointwise_mul(w, x, *, K=1.0, dim=-1):
 
 def _mobius_pointwise_mul(w, x, K, dim: int = -1):
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
-    sqrt_abs_K = torch.abs(K) ** 0.5
     wx = w * x
     wx_norm = wx.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
-    res_c = tan_func(wx_norm / x_norm * arctan_func(sqrt_abs_K * x_norm, K), K) * wx / (wx_norm * sqrt_abs_K)
+    res_c = tan_K(wx_norm / x_norm * arctan_K(x_norm, K), K) * (wx/wx_norm)
     cond = (wx == 0).prod(dim=dim, keepdim=True, dtype=torch.uint8)
     res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
     res = torch.where(cond, res_0, res_c)
@@ -1220,9 +1210,9 @@ def _dist2plane(x, a, p, K, keepdim: bool = False, signed: bool = False, dim: in
     if not signed:
         sc_diff_a = sc_diff_a.abs()
     a_norm = a.norm(dim=dim, keepdim=keepdim, p=2).clamp_min(MIN_NORM)
-    num = 2 * sqrt_abs_K * sc_diff_a
-    denom = (1 + K * diff_norm2) * a_norm
-    return arcsin_func(num / (denom.clamp_min(MIN_NORM)), K) / sqrt_abs_K
+    num = 2 * sc_diff_a
+    denom = ((1 + K * diff_norm2) * a_norm).clamp_min(MIN_NORM)
+    return arcsin_K(num / denom, K)
 
 
 def gyration(a, b, u, *, K=1.0, dim=-1):
