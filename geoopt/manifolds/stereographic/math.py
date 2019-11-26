@@ -53,7 +53,8 @@ class Arsinh(torch.autograd.Function):
     def forward(ctx, x):
         ctx.save_for_backward(x)
         z = x.double()
-        return (z + torch.sqrt_(1 + z.pow(2))).clamp_min_(MIN_NORM).log_().to(x.dtype)
+        res = z + torch.sqrt_(1 + z.pow(2))
+        return (res).clamp_min_(MIN_NORM).log_().to(x.dtype)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -152,8 +153,8 @@ def _project(x, K, dim: int = -1, eps: float = None):
 
 def lambda_x(x, *, K=1.0, keepdim=False, dim=-1):
     r"""
-    Computes the conformal factor :math:`\lambda^\kappa_x` at the point :math:`x` on
-    the manifold.
+    Computes the conformal factor :math:`\lambda^\kappa_x` at the point
+    :math:`x` on the manifold.
 
     .. math::
 
@@ -179,7 +180,8 @@ def lambda_x(x, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _lambda_x(x, K, keepdim: bool = False, dim: int = -1):
-    return 2 / (1 + K * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
+    lam = 2/(1 + K * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
+    return lam
 
 
 def inner(x, u, v, *, K=1.0, keepdim=False, dim=-1):
@@ -211,7 +213,8 @@ def inner(x, u, v, *, K=1.0, keepdim=False, dim=-1):
     tensor
         inner product
     """
-    return _inner(x, u, v, K, keepdim=keepdim, dim=dim)
+    inner_prod = _inner(x, u, v, K, keepdim=keepdim, dim=dim)
+    return inner_prod
 
 
 def _inner(x, u, v, K, keepdim: bool = False, dim: int = -1):
@@ -262,9 +265,11 @@ def mobius_add(x, y, *, K=1.0, dim=-1):
 
     .. math::
 
-        x \oplus_\kappa y = \frac{
-            (1 - 2 \kappa \langle x, y\rangle - \kappa \|y\|^2_2) x + (1 + \kappa \|x\|_2^2) y
-            }{
+        x \oplus_\kappa y =
+        \frac{
+            (1 - 2 \kappa \langle x, y\rangle - \kappa \|y\|^2_2) x +
+            (1 + \kappa \|x\|_2^2) y
+        }{
             1 - 2 \kappa \langle x, y\rangle + \kappa^2 \|x\|^2_2 \|y\|^2_2
         }
 
@@ -375,19 +380,24 @@ def mobius_coadd(x, y, *, K=1.0, dim=-1):
     Computes the Möbius gyrovector coaddition.
 
     The addition operation :math:`\oplus_\kappa` is neither associative, nor
-    commutative. In contrast, the coaddition :math:`\boxplus_\kappa` (or cooperation)
-    is an associative operation that is defined as follows.
+    commutative. In contrast, the coaddition :math:`\boxplus_\kappa` (or
+    cooperation) is an associative operation that is defined as follows.
 
     .. math::
 
-        a \boxplus_\kappa b = b \boxplus_\kappa a = a\operatorname{gyr}[a, -b]b\\
+        a \boxplus_\kappa b
+        =
+        b \boxplus_\kappa a
+        =
+        a\operatorname{gyr}[a, -b]b\\
         = \frac{
             (1 + \kappa \|y\|^2_2) x + (1 + \kappa \|x\|_2^2) y
             }{
             1 + \kappa^2 \|x\|^2_2 \|y\|^2_2
         },
 
-    where :math:`\operatorname{gyr}[a, b]v = \ominus_\kappa (a \oplus_\kappa b) \oplus_\kappa (a \oplus_\kappa (b \oplus_\kappa v))`
+    where :math:`\operatorname{gyr}[a, b]v = \ominus_\kappa (a \oplus_\kappa b)
+    \oplus_\kappa (a \oplus_\kappa (b \oplus_\kappa v))`
 
     The following right cancellation property holds
 
@@ -466,7 +476,9 @@ def mobius_scalar_mul(r, x, *, K=1.0, dim=-1):
 
     .. math::
 
-        r \otimes_\kappa x = \tan_\kappa(r\tan_\kappa^{-1}(\|x\|_2))\frac{x}{\|x\|_2}
+        r \otimes_\kappa x
+        =
+        \tan_\kappa(r\tan_\kappa^{-1}(\|x\|_2))\frac{x}{\|x\|_2}
 
     This operation has properties similar to the Euclidean scalar multiplication
 
@@ -480,7 +492,9 @@ def mobius_scalar_mul(r, x, *, K=1.0, dim=-1):
 
     .. math::
 
-         (r_1 + r_2) \otimes_\kappa x = r_1 \otimes_\kappa x \oplus r_2 \otimes_\kappa x
+         (r_1 + r_2) \otimes_\kappa x
+         =
+         r_1 \otimes_\kappa x \oplus r_2 \otimes_\kappa x
 
     * Scalar associativity
 
@@ -602,7 +616,9 @@ def geodesic(t, x, y, *, K=1.0, dim=-1):
 
     .. math::
 
-        \gamma_{x\to y}(t) = x \oplus_\kappa t \otimes_\kappa ((-x) \oplus_\kappa y)
+        \gamma_{x\to y}(t)
+        =
+        x \oplus_\kappa t \otimes_\kappa ((-x) \oplus_\kappa y)
 
     The properties of the geodesic are the following:
 
@@ -719,7 +735,9 @@ def expmap0(u, *, K=1.0, dim=-1):
 
     .. math::
 
-        \operatorname{Exp}^\kappa_0(u) = \tan_\kappa(\|u\|_2/2) \frac{u}{\|u\|_2}
+        \operatorname{Exp}^\kappa_0(u)
+        =
+        \tan_\kappa(\|u\|_2/2) \frac{u}{\|u\|_2}
 
     Parameters
     ----------
@@ -831,7 +849,9 @@ def logmap0(y, *, K=1.0, dim=-1):
 
     .. math::
 
-        \operatorname{Log}^\kappa_0(y) = \tan_\kappa^{-1}(\|y\|_2) \frac{y}{\|y\|_2}
+        \operatorname{Log}^\kappa_0(y)
+        =
+        \tan_\kappa^{-1}(\|y\|_2) \frac{y}{\|y\|_2}
 
     The result of the logmap at the origin is a vector :math:`u` in the tangent
     space of the origin :math:`0` such that
@@ -880,8 +900,8 @@ def mobius_matvec(m, x, *, K=1.0, dim=-1):
     Parameters
     ----------
     m : tensor
-        matrix for multiplication.
-        Batched matmul is performed if ``m.dim() > 2``, but only last dim reduction is supported
+        matrix for multiplication. Batched matmul is performed if
+        ``m.dim() > 2``, but only last dim reduction is supported
     x : tensor
         point on manifold
     K : float|tensor
@@ -966,13 +986,15 @@ def mobius_fn_apply_chain(x, *fns, K=1.0, dim=-1):
     spaces.
 
     First, a gyrovector is mapped to the tangent space (first-order approx.) via
-    :math:`\operatorname{Log}^\kappa_0` and then the sequence of functions is applied
-    to the vector in the tangent space. The resulting tangent vector is then mapped
-    back with :math:`\operatorname{Exp}^\kappa_0`.
+    :math:`\operatorname{Log}^\kappa_0` and then the sequence of functions is
+    applied to the vector in the tangent space. The resulting tangent vector is
+    then mapped back with :math:`\operatorname{Exp}^\kappa_0`.
 
     .. math::
 
-        f^{\otimes_\kappa}(x) = \operatorname{Exp}^\kappa_0(f(\operatorname{Log}^\kappa_0(y)))
+        f^{\otimes_\kappa}(x)
+        =
+        \operatorname{Exp}^\kappa_0(f(\operatorname{Log}^\kappa_0(y)))
 
     The definition of mobius function application allows chaining as
 
@@ -984,7 +1006,11 @@ def mobius_fn_apply_chain(x, *fns, K=1.0, dim=-1):
 
     .. math::
 
-        (f \circ g)^{\otimes_\kappa}(x) = \operatorname{Exp}^\kappa_0((f \circ g) (\operatorname{Log}^\kappa_0(y)))
+        (f \circ g)^{\otimes_\kappa}(x)
+        =
+        \operatorname{Exp}^\kappa_0(
+            (f \circ g) (\operatorname{Log}^\kappa_0(y))
+        )
 
     Parameters
     ----------
@@ -1023,7 +1049,9 @@ def mobius_fn_apply(fn, x, *args, K=1.0, dim=-1, **kwargs):
 
     .. math::
 
-        f^{\otimes_\kappa}(x) = \operatorname{Exp}^\kappa_0(f(\operatorname{Log}^\kappa_0(y)))
+        f^{\otimes_\kappa}(x)
+        =
+        \operatorname{Exp}^\kappa_0(f(\operatorname{Log}^\kappa_0(y)))
 
     .. plot:: plots/extended/universal/mobius_sigmoid_apply.py
 
@@ -1158,19 +1186,24 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
 
         \tilde{H}_{a, p}^\kappa = p + \{a\}^\perp_p\\
         = \left\{
-            x \in \mathcal{M}_\kappa^n\;:\;\langle\operatorname{Log}^\kappa_p(x),
+            x \in \mathcal{M}_\kappa^n\;:\;\langle
+            \operatorname{Log}^\kappa_p(x),
             a\rangle_p = 0
         \right\} \\
         = \left\{
-            x \in \mathcal{M}_\kappa^n\;:\;\langle -p \oplus_\kappa x, a\rangle = 0
+            x \in \mathcal{M}_\kappa^n\;:\;\langle -p \oplus_\kappa x, a\rangle
+            = 0
         \right\}
 
     To compute the distance :math:`d_\kappa(x, \tilde{H}_{a, p}^\kappa)` we find
 
     .. math::
 
-        d_\kappa(x, \tilde{H}_{a, p}^\kappa) = \inf_{w\in \tilde{H}_{a, p}^\kappa} d_\kappa(x, w)\\
-        = \sin^{-1}_\kappa\left\{
+        d_\kappa(x, \tilde{H}_{a, p}^\kappa)
+        =
+        \inf_{w\in \tilde{H}_{a, p}^\kappa} d_\kappa(x, w)\\
+        =
+        \sin^{-1}_\kappa\left\{
             \frac{
             2 |\langle(-p)\oplus_\kappa x, a\rangle|
             }{
@@ -1203,7 +1236,8 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
     return _dist2plane(x, a, p, K, keepdim=keepdim, signed=signed, dim=dim)
 
 
-def _dist2plane(x, a, p, K, keepdim: bool = False, signed: bool = False, dim: int = -1):
+def _dist2plane(x, a, p, K, keepdim: bool = False, signed: bool = False,
+                dim: int = -1):
     diff = _mobius_add(-p, x, K, dim=dim)
     diff_norm2 = diff.pow(2).sum(dim=dim, keepdim=keepdim).clamp_min(MIN_NORM)
     sc_diff_a = (diff * a).sum(dim=dim, keepdim=keepdim)
@@ -1220,28 +1254,35 @@ def gyration(a, b, u, *, K=1.0, dim=-1):
     Computes the gyration of :math:`u` by :math:`[a,b]`.
 
     The gyration is a special operation of gyrovector spaces. The gyrovector
-    space addition operation :math:`\oplus_\kappa` is not associative (as mentioned
-    in :func:`mobius_add`), but it is gyroassociative, which means
+    space addition operation :math:`\oplus_\kappa` is not associative (as
+    mentioned in :func:`mobius_add`), but it is gyroassociative, which means
 
     .. math::
 
-        u \oplus_\kappa (v \oplus_\kappa w) = (u\oplus_\kappa v) \oplus_\kappa \operatorname{gyr}[u, v]w,
+        u \oplus_\kappa (v \oplus_\kappa w)
+        =
+        (u\oplus_\kappa v) \oplus_\kappa \operatorname{gyr}[u, v]w,
 
     where
 
     .. math::
 
-        \operatorname{gyr}[u, v]w = \ominus (u \oplus_\kappa v) \oplus (u \oplus_\kappa (v \oplus_\kappa w))
+        \operatorname{gyr}[u, v]w
+        =
+        \ominus (u \oplus_\kappa v) \oplus (u \oplus_\kappa (v \oplus_\kappa w))
 
     We can simplify this equation using the explicit formula for the Möbius
     addition [1]. Recall,
 
     .. math::
 
-        A = - \kappa^2 \langle u, w\rangle \langle v, v\rangle - \kappa \langle v, w\rangle +
-            2 \kappa^2 \langle u, v\rangle \langle v, w\rangle\\
-        B = - \kappa^2 \langle v, w\rangle \langle u, u\rangle + \kappa \langle u, w\rangle\\
-        D = 1 - 2 \kappa \langle u, v\rangle + \kappa^2 \langle u, u\rangle \langle v, v\rangle\\
+        A = - \kappa^2 \langle u, w\rangle \langle v, v\rangle
+            - \kappa \langle v, w\rangle
+            + 2 \kappa^2 \langle u, v\rangle \langle v, w\rangle\\
+        B = - \kappa^2 \langle v, w\rangle \langle u, u\rangle
+            + \kappa \langle u, w\rangle\\
+        D = 1 - 2 \kappa \langle u, v\rangle
+            + \kappa^2 \langle u, u\rangle \langle v, v\rangle\\
 
         \operatorname{gyr}[u, v]w = w + 2 \frac{A u + B v}{D}.
 
@@ -1308,14 +1349,17 @@ def parallel_transport(x, y, v, *, K=1.0, dim=-1):
         P_{x\to y}(z) = \operatorname{gyr}[y, -x]z,
 
     where :math:`x,\:y,\:z \in \mathcal{M}_\kappa^n` and
-    :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus_\kappa b) \oplus_\kappa (a \oplus_\kappa (b \oplus_\kappa c))`
+    :math:`\operatorname{gyr}[a, b]c = \ominus (a \oplus_\kappa b)
+    \oplus_\kappa (a \oplus_\kappa (b \oplus_\kappa c))`
 
     But we want to obtain parallel transport for vectors, not for gyrovectors.
     The blessing is the isomorphism mentioned above. This mapping is given by
 
     .. math::
 
-        U^\kappa_p \: : \: T_p\mathcal{M}_\kappa^n \to \mathbb{G} = v \mapsto \lambda^\kappa_p v
+        U^\kappa_p \: : \: T_p\mathcal{M}_\kappa^n \to \mathbb{G}
+        =
+        v \mapsto \lambda^\kappa_p v
 
 
     Finally, having the points :math:`x,\:y \in \mathcal{M}_\kappa^n` and a
@@ -1323,8 +1367,11 @@ def parallel_transport(x, y, v, *, K=1.0, dim=-1):
 
     .. math::
 
-        P^\kappa_{x\to y}(v) = (U^\kappa_y)^{-1}\left(\operatorname{gyr}[y, -x] U^\kappa_x(v)\right)\\
-        = \operatorname{gyr}[y, -x] v \lambda^\kappa_x / \lambda^\kappa_y
+        P^\kappa_{x\to y}(v)
+        =
+        (U^\kappa_y)^{-1}\left(\operatorname{gyr}[y, -x] U^\kappa_x(v)\right)\\
+        =
+        \operatorname{gyr}[y, -x] v \lambda^\kappa_x / \lambda^\kappa_y
 
     .. plot:: plots/extended/universal/parallel_transport.py
 
