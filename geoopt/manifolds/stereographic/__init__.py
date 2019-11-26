@@ -8,21 +8,22 @@ from ..base import Manifold, ScalingInfo
 __all__ = ["Stereographic", "StereographicExact"]
 
 _stereographic_doc = r"""
-    Stereographic model, see more in :doc:`/extended/stereographic`
+    :math:`\kappa`-Stereographic model, see more in 
+    :doc:`/extended/stereographic`
     
     Parameters
     ----------
     K : float|tensor 
-        sectional curvature of manifold
+        sectional curvature :math:`\kappa` of the manifold
         - K<0: Poincaré ball (stereographic projection of hyperboloid)
         - K>0: Stereographic projection of sphere
-        - c-->0: approaches Euclidean geometry if points stay relatively close 
-          to center
+        - K-->0: Euclidean geometry
     
     Notes
     -----
     It is extremely recommended to work with this manifold in double precision.
-    Do not use this manifold with c=0 to get Euclidean geometry!
+    Do not use this manifold with K=0 to get Euclidean geometry! Use the
+    Euclidean manifold, or a small value of K instead.
 """
 
 
