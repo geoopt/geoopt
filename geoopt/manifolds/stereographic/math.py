@@ -80,45 +80,24 @@ curvature per row).
 """
 
 def tan_func(x, K):
-    K_size = K.shape[-1] if K.dim() > 0 else 1
-    K_smaller_zero = K < 0
-    num_smaller_zero = K_smaller_zero.sum()
-    if num_smaller_zero == K_size:
+    if K < 0:
         return tanh(x)
-    elif num_smaller_zero == 0:
-        return torch.tan(x)
     else:
-        tanh_reults = tanh(x)
-        tan_results = torch.tan(x)
-        return torch.where(K_smaller_zero, tanh_reults, tan_results)
+        return torch.tan(x)
 
 
 def arctan_func(x, K):
-    K_size = K.shape[-1] if K.dim() > 0 else 1
-    K_smaller_zero = K < 0
-    num_smaller_zero = K_smaller_zero.sum()
-    if num_smaller_zero == K_size:
+    if K < 0:
         return artanh(x)
-    elif num_smaller_zero == 0:
-        return torch.atan(x)
     else:
-        arctanh_results = artanh(x)
-        arctan_results = torch.atan(x)
-        return torch.where(K_smaller_zero, arctanh_results, arctan_results)
+        return torch.atan(x)
 
 
 def arcsin_func(x, K):
-    K_size = K.shape[-1] if K.dim() > 0 else 1
-    K_smaller_zero = K < 0
-    num_smaller_zero = K_smaller_zero.sum()
-    if num_smaller_zero == K_size:
+    if K < 0:
         return arsinh(x)
-    elif num_smaller_zero == 0:
-        return torch.asin(x)
     else:
-        arcsinh_results = arsinh(x)
-        arcsin_results = torch.asin(x)
-        return torch.where(K_smaller_zero, arcsinh_results, arcsin_results)
+        return torch.asin(x)
 
 
 # GYROVECTOR SPACE MATH ########################################################
