@@ -89,7 +89,16 @@ class Stereographic(Manifold):
 
     def get_K(self) -> torch.Tensor:
         """
-        Returns the manifold's sectional curvature according to the specified
+        Gets the manifold's sectional curvature K.
+
+        Returns
+        -------
+        Tensor
+            the manifold's curvature
+
+        Notes
+        -----
+        The curvature is computed according to the specified
         rules (keep sign fixed or not).
 
         The radius R is derived from get_K().
@@ -99,8 +108,6 @@ class Stereographic(Manifold):
 
         Note that get_K() != self.trainable_K !!! Use get_K() if you want to get
         the actual sectional curvature of the manifold.
-
-        :return: The manifold's sectional curvature K
         """
         if self.keep_sign_fixed:
             return -self.initial_sign * \
@@ -110,10 +117,29 @@ class Stereographic(Manifold):
             return -torch.sign(torch.sign(self.trainable_K)+1e-15) \
                    * self.min_abs_K + self.trainable_K
 
+    def set_K_trainable(self, is_trainable):
+        """
+        Sets the trainability of the manifold's curvature.
+
+        Parameters
+        ----------
+        is_trainable : Bool
+            whether the curvature is trainable or not
+
+        Returns
+        -------
+        None
+        """
+        self.trainable_K.requires_grad = True
+
     def get_R(self) -> torch.Tensor:
         """
         Gets the manifold's radius R.
-        :return:
+
+        Returns
+        -------
+        Tensor
+            the manifold's radius
         """
         return 1.0 / torch.sqrt(torch.abs(self.get_K()))
 
@@ -377,7 +403,9 @@ class Stereographic(Manifold):
             return res
 
     # TODO: this way of doing the random normal sampling is not yet right
-    # TODO: one has to account for the different densities
+    # TODO: one has to account for the different densities if one wants
+    # TODO: to use this for correct sampling.
+    # TODO: This method is just fine for initialization.
     def random_normal(
         self, *size, mean=0, std=1, dtype=None, device=None
     ) -> "geoopt.ManifoldTensor":
