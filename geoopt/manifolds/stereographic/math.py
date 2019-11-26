@@ -1204,7 +1204,6 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
 
 
 def _dist2plane(x, a, p, K, keepdim: bool = False, signed: bool = False, dim: int = -1):
-    sqrt_abs_K = torch.abs(K) ** 0.5
     diff = _mobius_add(-p, x, K, dim=dim)
     diff_norm2 = diff.pow(2).sum(dim=dim, keepdim=keepdim).clamp_min(MIN_NORM)
     sc_diff_a = (diff * a).sum(dim=dim, keepdim=keepdim)
