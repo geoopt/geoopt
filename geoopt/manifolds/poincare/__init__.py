@@ -166,7 +166,7 @@ class PoincareBall(Manifold):
     def mobius_cosub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_coadd(x, y, c=self.c, dim=dim)
+        res = math.mobius_cosub(x, y, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
