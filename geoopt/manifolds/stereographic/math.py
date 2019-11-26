@@ -75,7 +75,7 @@ def arsinh(x):
 
 """
 The following functions select the appropriate trigonometric function (normal or
-hyperbolic) depending on the value of the curvature :math:`K`.
+hyperbolic) depending on the value of the curvature :math:`\kappa`.
 """
 
 def tan_K(x, K):
