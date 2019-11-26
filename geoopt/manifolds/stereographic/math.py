@@ -697,7 +697,7 @@ def expmap(x, u, *, K=1.0, dim=-1):
 
     .. math::
 
-        \operatorname{Exp}^\kappa_x(u) = \gamma_{x, u}(1) = \\
+        \operatorname{exp}^\kappa_x(u) = \gamma_{x, u}(1) = \\
         x\oplus_\kappa \tan_\kappa(\|u\|_x/2) \frac{u}{\|u\|_2}
 
     Parameters
@@ -735,7 +735,7 @@ def expmap0(u, *, K=1.0, dim=-1):
 
     .. math::
 
-        \operatorname{Exp}^\kappa_0(u)
+        \operatorname{exp}^\kappa_0(u)
         =
         \tan_\kappa(\|u\|_2/2) \frac{u}{\|u\|_2}
 
@@ -805,7 +805,7 @@ def logmap(x, y, *, K=1.0, dim=-1):
 
     .. math::
 
-        \operatorname{Log}^\kappa_x(y) = \frac{2}{\lambda_x^\kappa}
+        \operatorname{log}^\kappa_x(y) = \frac{2}{\lambda_x^\kappa}
         \tan_\kappa^{-1}(\|(-x)\oplus_\kappa y\|_2)
         * \frac{(-x)\oplus_\kappa y}{\|(-x)\oplus_\kappa y\|_2}
 
@@ -814,7 +814,7 @@ def logmap(x, y, *, K=1.0, dim=-1):
 
     .. math::
 
-        y = \operatorname{Exp}^\kappa_x(\operatorname{Log}^\kappa_x(y))
+        y = \operatorname{exp}^\kappa_x(\operatorname{log}^\kappa_x(y))
 
 
     Parameters
@@ -849,7 +849,7 @@ def logmap0(y, *, K=1.0, dim=-1):
 
     .. math::
 
-        \operatorname{Log}^\kappa_0(y)
+        \operatorname{log}^\kappa_0(y)
         =
         \tan_\kappa^{-1}(\|y\|_2) \frac{y}{\|y\|_2}
 
@@ -858,7 +858,7 @@ def logmap0(y, *, K=1.0, dim=-1):
 
     .. math::
 
-        y = \operatorname{Exp}^\kappa_0(\operatorname{Log}^\kappa_0(y))
+        y = \operatorname{exp}^\kappa_0(\operatorname{log}^\kappa_0(y))
 
     Parameters
     ----------
@@ -986,21 +986,21 @@ def mobius_fn_apply_chain(x, *fns, K=1.0, dim=-1):
     spaces.
 
     First, a gyrovector is mapped to the tangent space (first-order approx.) via
-    :math:`\operatorname{Log}^\kappa_0` and then the sequence of functions is
+    :math:`\operatorname{log}^\kappa_0` and then the sequence of functions is
     applied to the vector in the tangent space. The resulting tangent vector is
-    then mapped back with :math:`\operatorname{Exp}^\kappa_0`.
+    then mapped back with :math:`\operatorname{exp}^\kappa_0`.
 
     .. math::
 
         f^{\otimes_\kappa}(x)
         =
-        \operatorname{Exp}^\kappa_0(f(\operatorname{Log}^\kappa_0(y)))
+        \operatorname{exp}^\kappa_0(f(\operatorname{log}^\kappa_0(y)))
 
     The definition of mobius function application allows chaining as
 
     .. math::
 
-        y = \operatorname{Exp}^\kappa_0(\operatorname{Log}^\kappa_0(y))
+        y = \operatorname{exp}^\kappa_0(\operatorname{log}^\kappa_0(y))
 
     Resulting in
 
@@ -1008,8 +1008,8 @@ def mobius_fn_apply_chain(x, *fns, K=1.0, dim=-1):
 
         (f \circ g)^{\otimes_\kappa}(x)
         =
-        \operatorname{Exp}^\kappa_0(
-            (f \circ g) (\operatorname{Log}^\kappa_0(y))
+        \operatorname{exp}^\kappa_0(
+            (f \circ g) (\operatorname{log}^\kappa_0(y))
         )
 
     Parameters
@@ -1043,15 +1043,15 @@ def mobius_fn_apply(fn, x, *args, K=1.0, dim=-1, **kwargs):
     Computes the generalization of function application in gyrovector spaces.
 
     First, a gyrovector is mapped to the tangent space (first-order approx.) via
-    :math:`\operatorname{Log}^\kappa_0` and then the function is applied
+    :math:`\operatorname{log}^\kappa_0` and then the function is applied
     to the vector in the tangent space. The resulting tangent vector is then
-    mapped back with :math:`\operatorname{Exp}^\kappa_0`.
+    mapped back with :math:`\operatorname{exp}^\kappa_0`.
 
     .. math::
 
         f^{\otimes_\kappa}(x)
         =
-        \operatorname{Exp}^\kappa_0(f(\operatorname{Log}^\kappa_0(y)))
+        \operatorname{exp}^\kappa_0(f(\operatorname{log}^\kappa_0(y)))
 
     .. plot:: plots/extended/universal/mobius_sigmoid_apply.py
 
@@ -1171,12 +1171,12 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
         \right\}
 
     Recalling that a tangent vector :math:`z` for point :math:`p` yields
-    :math:`x = \operatorname{Exp}^\kappa_p(z)` we rewrite the above equation as
+    :math:`x = \operatorname{exp}^\kappa_p(z)` we rewrite the above equation as
 
     .. math::
         \{a\}_p^\perp := \left\{
             x\in \mathcal{M}_\kappa^n \;:\; \langle
-            \operatorname{Log}_p^\kappa(x), a\rangle_p = 0
+            \operatorname{log}_p^\kappa(x), a\rangle_p = 0
         \right\}
 
     This formulation is something more pleasant to work with.
@@ -1187,7 +1187,7 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
         \tilde{H}_{a, p}^\kappa = p + \{a\}^\perp_p\\
         = \left\{
             x \in \mathcal{M}_\kappa^n\;:\;\langle
-            \operatorname{Log}^\kappa_p(x),
+            \operatorname{log}^\kappa_p(x),
             a\rangle_p = 0
         \right\} \\
         = \left\{
