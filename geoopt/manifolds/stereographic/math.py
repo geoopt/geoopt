@@ -434,12 +434,13 @@ def mobius_coadd(x, y, *, K=1.0, dim=-1):
 
 # TODO: check numerical stability with Gregor's paper!!!
 def _mobius_coadd(x, y, K, dim: int = -1):
-    x2 = x.pow(2).sum(dim=dim, keepdim=True)
-    y2 = y.pow(2).sum(dim=dim, keepdim=True)
-    num = (1 + K * y2) * x + (1 + K * x2) * y
-    denom = 1 - K ** 2 * x2 * y2
-    # avoid division by zero in this way
-    return num / denom.clamp_min(MIN_NORM)
+    #x2 = x.pow(2).sum(dim=dim, keepdim=True)
+    #y2 = y.pow(2).sum(dim=dim, keepdim=True)
+    #num = (1 + K * y2) * x + (1 + K * x2) * y
+    #denom = 1 - K ** 2 * x2 * y2
+    ## avoid division by zero in this way
+    #return num / denom.clamp_min(MIN_NORM)
+    return _mobius_add(x, _gyration(x, -y, y, K=K, dim=dim), K, dim=dim)
 
 
 def mobius_cosub(x, y, *, K=1.0, dim=-1):
