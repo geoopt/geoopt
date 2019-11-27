@@ -74,7 +74,8 @@ class Stereographic(Manifold):
         if self.keep_sign_fixed:
             # if we keep the sign fixed it will always be
             # sign * (min abs curv + positive value of K(via softplus))
-            K_init[0] = self._inverse_softplus(K.abs() - self.min_abs_K)
+            inv_arg = self.initial_sign*K - self.min_abs_K
+            K_init[0] = self._inverse_softplus(inv_arg)
         else:
             # if we don't keep the sign fixed it will be
             # K = sign * (min abs curv) + K
@@ -111,12 +112,12 @@ class Stereographic(Manifold):
         the actual sectional curvature of the manifold.
         """
         if self.keep_sign_fixed:
-            return -self.initial_sign * \
+            return self.initial_sign * \
                    (self.min_abs_K + self._softplus(self.trainable_K))
         else:
             # take sign twice to avoid == 0
-            return -torch.sign(torch.sign(self.trainable_K)+1e-15) \
-                   * self.min_abs_K + self.trainable_K
+            return torch.sign(torch.sign(self.trainable_K)+1e-15) * \
+                   self.min_abs_K + self.trainable_K
 
     def set_K_trainable(self, is_trainable):
         """
