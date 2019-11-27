@@ -214,7 +214,7 @@ def lambda_x(x, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _lambda_x(x, K, keepdim: bool = False, dim: int = -1):
-    lam = 1/(1 + K * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
+    lam = 1.0/(1.0+K*x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
     return lam
 
 
@@ -288,9 +288,8 @@ def norm(x, u, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _norm(x, u, K, keepdim: bool = False, dim: int = -1):
-    return _lambda_x(x, K, keepdim=keepdim, dim=dim) * u.norm(
-        dim=dim, keepdim=keepdim, p=2
-    )
+    return _lambda_x(x, K, keepdim=keepdim, dim=dim) * \
+           u.norm(dim=dim, keepdim=keepdim, p=2)
 
 
 def mobius_add(x, y, *, K=1.0, dim=-1):
@@ -755,12 +754,10 @@ def expmap(x, u, *, K=1.0, dim=-1):
 
 def _expmap(x, u, K, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    second_term = (
-            tan_K((_lambda_x(x, K, keepdim=True, dim=dim)/2) * u_norm, K)
-            * (u / u_norm)
-    )
-    gamma_1 = _mobius_add(x, second_term, K, dim=dim)
-    return gamma_1
+    lam = _lambda_x(x, K, dim=dim, keepdim=True)
+    second_term = tan_K(lam * u_norm, K) * (u/u_norm)
+    y = _mobius_add(x, second_term, K, dim=dim)
+    return y
 
 
 def expmap0(u, *, K=1.0, dim=-1):
@@ -792,7 +789,7 @@ def expmap0(u, *, K=1.0, dim=-1):
 
 def _expmap0(u, K, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    gamma_1 = tan_K(u_norm, K) * (u / u_norm)
+    gamma_1 = tan_K(u_norm, K) * (u/u_norm)
     return gamma_1
 
 
@@ -874,7 +871,7 @@ def _logmap(x, y, K, dim: int = -1):
     sub = _mobius_add(-x, y, K, dim=dim)
     sub_norm = sub.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     lam = _lambda_x(x, K, keepdim=True, dim=dim)
-    return (2 / lam) * arctan_K(sub_norm, K) * (sub / sub_norm)
+    return arctan_K(sub_norm, K) * (sub / (lam*sub_norm))
 
 
 def logmap0(y, *, K=1.0, dim=-1):
