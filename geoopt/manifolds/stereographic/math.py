@@ -252,9 +252,8 @@ def inner(x, u, v, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _inner(x, u, v, K, keepdim: bool = False, dim: int = -1):
-    return _lambda_x(x, K, keepdim=True, dim=dim) ** 2 * (u * v).sum(
-        dim=dim, keepdim=keepdim
-    )
+    return _lambda_x(x, K, keepdim=True, dim=dim) ** 2 * \
+           (u * v).sum(dim=dim, keepdim=keepdim)
 
 
 def norm(x, u, *, K=1.0, keepdim=False, dim=-1):
