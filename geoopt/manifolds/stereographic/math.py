@@ -214,7 +214,7 @@ def lambda_x(x, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _lambda_x(x, K, keepdim: bool = False, dim: int = -1):
-    lam = 1.0/(1.0+K*x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
+    lam = 2.0/(1.0+K*x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
     return lam
 
 
@@ -287,8 +287,9 @@ def norm(x, u, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _norm(x, u, K, keepdim: bool = False, dim: int = -1):
-    return _lambda_x(x, K, keepdim=keepdim, dim=dim) * \
-           u.norm(dim=dim, keepdim=keepdim, p=2)
+    lam = _lambda_x(x, K, keepdim=keepdim, dim=dim)
+    u_norm = u.norm(dim=dim, keepdim=keepdim, p=2)
+    return lam * u_norm
 
 
 def mobius_add(x, y, *, K=1.0, dim=-1):
@@ -605,7 +606,7 @@ def dist(x, y, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _dist(x, y, K, keepdim: bool = False, dim: int = -1):
-    return arctan_K(
+    return 2.0 * arctan_K(
         _mobius_add(-x, y, K, dim=dim).norm(dim=dim, p=2, keepdim=keepdim), K
     )
 
@@ -634,7 +635,7 @@ def dist0(x, *, K=1.0, keepdim=False, dim=-1):
 
 
 def _dist0(x, K, keepdim: bool = False, dim: int = -1):
-    return arctan_K(x.norm(dim=dim, p=2, keepdim=keepdim), K)
+    return 2.0 * arctan_K(x.norm(dim=dim, p=2, keepdim=keepdim), K)
 
 
 def geodesic(t, x, y, *, K=1.0, dim=-1):
@@ -754,7 +755,7 @@ def expmap(x, u, *, K=1.0, dim=-1):
 def _expmap(x, u, K, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     lam = _lambda_x(x, K, dim=dim, keepdim=True)
-    second_term = tan_K(lam * u_norm, K) * (u/u_norm)
+    second_term = tan_K((lam/2.0) * u_norm, K) * (u/u_norm)
     y = _mobius_add(x, second_term, K, dim=dim)
     return y
 
@@ -824,7 +825,7 @@ def geodesic_unit(t, x, u, *, K=1.0, dim=-1):
 
 def _geodesic_unit(t, x, u, K, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    second_term = tan_K(t, K) * (u / u_norm)
+    second_term = tan_K(t/2.0, K) * (u / u_norm)
     gamma_1 = _mobius_add(x, second_term, K, dim=dim)
     return gamma_1
 
@@ -870,7 +871,7 @@ def _logmap(x, y, K, dim: int = -1):
     sub = _mobius_add(-x, y, K, dim=dim)
     sub_norm = sub.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     lam = _lambda_x(x, K, keepdim=True, dim=dim)
-    return arctan_K(sub_norm, K) * (sub / (lam*sub_norm))
+    return 2.0*arctan_K(sub_norm, K) * (sub / (lam*sub_norm))
 
 
 def logmap0(y, *, K=1.0, dim=-1):
@@ -1274,7 +1275,7 @@ def _dist2plane(x, a, p, K, keepdim: bool = False, signed: bool = False,
     if not signed:
         sc_diff_a = sc_diff_a.abs()
     a_norm = a.norm(dim=dim, keepdim=keepdim, p=2).clamp_min(MIN_NORM)
-    num = sc_diff_a
+    num = 2.0 * sc_diff_a
     denom = ((1 + K * diff_norm2) * a_norm).clamp_min(MIN_NORM)
     return arcsin_K(num / denom, K)
 
