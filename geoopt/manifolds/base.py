@@ -81,9 +81,11 @@ class ScalingStorage(dict):
                     return res
     """
 
-    def __call__(self, scaling_info: ScalingInfo):
+    def __call__(self, scaling_info: ScalingInfo, *aliases):
         def register(fn):
             self[fn.__name__] = scaling_info
+            for alias in aliases:
+                self[alias] = scaling_info
             return fn
 
         return register

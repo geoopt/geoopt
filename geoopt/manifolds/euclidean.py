@@ -107,7 +107,7 @@ class Euclidean(Manifold):
         target_shape = broadcast_shapes(x.shape, y.shape, v.shape)
         return v.expand(target_shape)
 
-    @__scaling__(ScalingInfo(std=-1))
+    @__scaling__(ScalingInfo(std=-1), "random")
     def random_normal(
         self, *size, mean=0.0, std=1.0, device=None, dtype=None
     ) -> "geoopt.ManifoldTensor":
