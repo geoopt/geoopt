@@ -7,7 +7,7 @@ import geoopt.linalg.batch_linalg
 
 __all__ = ["Sphere", "SphereExact"]
 
-EPS = {torch.float32: 1e-4, torch.float64: 1e-8}
+EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
 
 _sphere_doc = r"""
     Sphere manifold induced by the following constraint
@@ -147,12 +147,16 @@ class Sphere(Manifold):
     def logmap(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         u = self.proju(x, y - x)
         dist = self.dist(x, y, keepdim=True)
-        # If the two points are "far apart", correct the norm.
-        cond = dist.gt(EPS[dist.dtype])
-        return torch.where(cond, u * dist / u.norm(dim=-1, keepdim=True), u)
+        cond = dist.gt(EPS[x.dtype])
+        result = torch.where(
+            cond, u * dist / u.norm(dim=-1, keepdim=True).clamp_min(EPS[x.dtype]), u
+        )
+        return result
 
     def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
-        inner = self.inner(x, x, y, keepdim=keepdim).clamp(-0.9999, 0.9999)
+        inner = self.inner(x, x, y, keepdim=keepdim).clamp(
+            -1 + EPS[x.dtype], 1 - EPS[x.dtype]
+        )
         return torch.acos(inner)
 
     egrad2rgrad = proju

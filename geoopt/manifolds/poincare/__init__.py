@@ -62,6 +62,11 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         return math.dist(x, y, c=self.c, keepdim=keepdim, dim=dim)
 
+    def dist2(
+        self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, dim=-1
+    ) -> torch.Tensor:
+        return math.dist(x, y, c=self.c, keepdim=keepdim, dim=dim) ** 2
+
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, c=self.c, dim=dim)
 
@@ -93,7 +98,7 @@ class PoincareBall(Manifold):
     def norm(
         self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.norm(x, u, keepdim=keepdim, dim=dim)
+        return math.norm(x, u, c=self.c, keepdim=keepdim, dim=dim)
 
     def expmap(
         self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1
@@ -281,6 +286,7 @@ class PoincareBall(Manifold):
         else:
             return res
 
+    @__scaling__(ScalingInfo(std=-1), "random")
     def random_normal(
         self, *size, mean=0, std=1, dtype=None, device=None
     ) -> "geoopt.ManifoldTensor":

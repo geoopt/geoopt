@@ -1,6 +1,6 @@
 from typing import Union, Tuple, Optional
 import torch
-from .base import Manifold
+from .base import Manifold, ScalingInfo
 from ..utils import size2shape, broadcast_shapes
 import geoopt
 
@@ -19,6 +19,7 @@ class Euclidean(Manifold):
         as inner products, etc will respect the :attr:`ndim`.
     """
 
+    __scaling__ = Manifold.__scaling__.copy()
     name = "Euclidean"
     ndim = 0
     reversible = True
@@ -106,6 +107,7 @@ class Euclidean(Manifold):
         target_shape = broadcast_shapes(x.shape, y.shape, v.shape)
         return v.expand(target_shape)
 
+    @__scaling__(ScalingInfo(std=-1), "random")
     def random_normal(
         self, *size, mean=0.0, std=1.0, device=None, dtype=None
     ) -> "geoopt.ManifoldTensor":
