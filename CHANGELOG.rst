@@ -1,5 +1,15 @@
 This file tracks important changes in PRs
 
+geoopt v.0.1.2
+==============
+
+Bug Fixes
+---------
+* Fix scaling issues with random methods
+* Fix poincare methods ``cosub`` and ``norm`` that were working not properly
+* Fix Sphere distance for small values
+
+
 geoopt v.0.1.1
 ==============
 
