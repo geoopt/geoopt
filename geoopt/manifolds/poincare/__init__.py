@@ -98,7 +98,7 @@ class PoincareBall(Manifold):
     def norm(
         self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.norm(x, u, keepdim=keepdim, dim=dim)
+        return math.norm(x, u, c=self.c, keepdim=keepdim, dim=dim)
 
     def expmap(
         self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1
@@ -171,7 +171,7 @@ class PoincareBall(Manifold):
     def mobius_cosub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_coadd(x, y, c=self.c, dim=dim)
+        res = math.mobius_cosub(x, y, c=self.c, dim=dim)
         if project:
             return math.project(res, c=self.c, dim=dim)
         else:
