@@ -103,7 +103,7 @@ class Stereographic(Manifold):
         The curvature is computed according to the specified
         rules (keep sign fixed or not).
 
-        The radius R is derived from get_K().
+        The R R is derived from get_K().
 
         Softplus (and its inverse) are used to get better-behaved gradients
         for the trainable part of the curvature K (self.trainable_K).
@@ -136,12 +136,12 @@ class Stereographic(Manifold):
 
     def get_R(self) -> torch.Tensor:
         """
-        Gets the manifold's radius R.
+        Gets the manifold's R R.
 
         Returns
         -------
         Tensor
-            the manifold's radius
+            the manifold's R
         """
         return 1.0 / torch.sqrt(torch.abs(self.get_K()))
 
