@@ -48,7 +48,7 @@ for K in tqdm(get_interpolation_Ks()):
     plt.plot(*path.t().numpy(), color="g")
 
     # add plot title
-    plt.title("Parallel Transport $P^\kappa_{x \to y}$")
+    plt.title("Parallel Transport $P^\kappa_{x \\to y}$")
 
     # add curvature box
     add_K_box(plt, K)
@@ -56,7 +56,6 @@ for K in tqdm(get_interpolation_Ks()):
     # convert plot to image array
     img = get_img_from_fig(fig, 'tmp/parallel-transport.png')
     imgs.append(img)
-    plt.show()
 
 # save img sequence as infinite boomerang gif
 save_img_sequence_as_boomerang_gif(imgs, 'out/parallel-transport.gif')
