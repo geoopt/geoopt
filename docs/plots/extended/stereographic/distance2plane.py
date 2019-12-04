@@ -1,78 +1,73 @@
 from geoopt.manifolds.stereographic import StereographicExact
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from matplotlib import rcParams
+from geoopt.manifolds.stereographic.utils import \
+    setup_plot, get_interpolation_Ks, get_img_from_fig, \
+    save_img_sequence_as_boomerang_gif
+from tqdm import tqdm
 
+n_grid_evals = 1000
+imgs = []
 
-rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
-rcParams["text.usetex"] = True
+# for every K of the interpolation sequence
+for K in tqdm(get_interpolation_Ks()):
 
+    # create manifold for K
+    manifold = StereographicExact(K=K,
+                                  float_precision=torch.float64,
+                                  keep_sign_fixed=False,
+                                  min_abs_K=0.001)
 
-# POINCARE BALL DIST2PLANE PLOT ################################################
+    # set up plot
+    fig, plt, (lo, hi) = setup_plot(manifold, lo=-3.0)
 
+    # get manifold properties
+    K = manifold.get_K().item()
+    R = manifold.get_R().item()
 
-poincare_ball = StereographicExact(K=-1.0,
-                                   float_precision=torch.float64,
-                                   keep_sign_fixed=False,
-                                   min_abs_K=0.001)
+    # create point on plane x and normal vector v
+    x = torch.tensor([-0.75, 0])
+    v = torch.tensor([0.5, -1 / 3])
 
-sns.set_style("white")
-radius = 1
-coords = np.linspace(-radius, radius, 100)
-x = torch.tensor([-0.75, 0])
-v = torch.tensor([0.5, -1 / 3])
-xx, yy = np.meshgrid(coords, coords)
-dist2 = xx ** 2 + yy ** 2
-mask = dist2 <= radius ** 2
-grid = np.stack([xx, yy], axis=-1)
-dists = poincare_ball.dist2plane(torch.from_numpy(grid).float(), x, v)
-dists[(~mask).nonzero()] = np.nan
-circle = plt.Circle((0, 0), 1, fill=False, color="b")
-plt.gca().add_artist(circle)
-plt.xlim(-1.1, 1.1)
-plt.ylim(-1.1, 1.1)
-plt.gca().set_aspect("equal")
-plt.contourf(
-    grid[..., 0], grid[..., 1], dists.log().numpy(), levels=100, cmap="inferno"
-)
-plt.colorbar()
-plt.scatter(*x, color="g")
-plt.arrow(*x, *v, color="g", width=0.01)
-plt.title(r"log distance to $\tilde{H}_{a, p}$")
-plt.show()
+    # create grid mesh
+    coords = None
+    if K < 0:
+        coords = np.linspace(lo, hi, n_grid_evals)
+    else:
+        coords = np.linspace(lo, hi, n_grid_evals)
+    xx, yy = np.meshgrid(coords, coords)
+    grid = np.stack([xx, yy], axis=-1)
 
+    # compute distances to hyperplane
+    dists = manifold.dist2plane(torch.from_numpy(grid).float(), x, v)
 
-# SPROJ OF SPHERE DIST2PLANE PLOT ##############################################
+    # zero-out points outside of Poincaré ball
+    if K < 0:
+        dist2 = xx ** 2 + yy ** 2
+        mask = dist2 <= R ** 2
+        dists[(~mask).nonzero()] = np.nan
 
+    # add contour plot
+    plt.contourf(
+        grid[..., 0],
+        grid[..., 1],
+        dists.log().numpy(),
+        levels=np.linspace(-14, 3, 100),
+        cmap="inferno"
+    )
+    plt.colorbar()
 
-sproj_of_sphere = StereographicExact(K=1.0,
-                                     float_precision=torch.float64,
-                                     keep_sign_fixed=False,
-                                     min_abs_K=0.001)
+    # plot x
+    plt.scatter(*x, color="g")
 
-sns.set_style("white")
-radius = 1
-coords = np.linspace(-2*radius, 2*radius, 100)
-x = torch.tensor([-0.75, 0])
-v = torch.tensor([0.5, -1 / 3])
-xx, yy = np.meshgrid(coords, coords)
-dist2 = xx ** 2 + yy ** 2
-grid = np.stack([xx, yy], axis=-1)
-dists = sproj_of_sphere.dist2plane(torch.from_numpy(grid).float(), x, v)
-circle = plt.Circle((0, 0), 1, fill=False, color="b")
-plt.gca().add_artist(circle)
-lo = -2*radius-0.1
-hi = -lo
-plt.xlim(lo, hi)
-plt.ylim(lo, hi)
-plt.gca().set_aspect("equal")
-plt.contourf(
-    grid[..., 0], grid[..., 1], dists.log().numpy(), levels=100, cmap="inferno"
-)
-plt.colorbar()
-plt.scatter(*x, color="g")
-plt.arrow(*x, *v, color="g", width=0.01)
-plt.title(r"log distance to $\tilde{H}_{a, p}$")
-plt.show()
+    # plot vector from x to v
+    plt.arrow(*x, *v, color="g", width=0.01)
+
+    plt.title(r"Log Distance to $\tilde{H}_{p, w}$")
+
+    # convert plot to image array
+    img = get_img_from_fig(fig, 'tmp/distance2plane.png')
+    imgs.append(img)
+
+# save img sequence as infinite boomerang gif
+save_img_sequence_as_boomerang_gif(imgs, 'out/distance2plane.gif')
