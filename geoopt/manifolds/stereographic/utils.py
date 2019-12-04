@@ -2,10 +2,11 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-import io
-import imageio
 import seaborn as sns
 from matplotlib import rcParams
+import imageio
+from pygifsicle import optimize
+
 
 def setup_plot(manifold, lo=None):
 
@@ -147,9 +148,21 @@ def get_interpolation_Ks():
 
 
 # define a function which returns an image as numpy array from figure
-def get_img_from_fig(fig, alias, dpi=180):
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=180)
-    fig.savefig(alias+'tmp.png', dpi=180)
-    img = imageio.imread(alias+'tmp.png')
+def get_img_from_fig(fig, tmp_file, dpi=180):
+    fig.savefig(tmp_file, dpi=dpi)
+    img = imageio.imread(tmp_file)
     return img
+
+
+def save_img_sequence_as_boomerang_gif(imgs, out_filename, fps=24):
+
+    # invert image sequence
+    l2 = list(imgs)
+    l2.reverse()
+    boomerang = imgs + l2
+
+    # save gif
+    imageio.mimsave(out_filename, boomerang, fps=fps)
+
+    # optimize gif file size
+    optimize(out_filename)
