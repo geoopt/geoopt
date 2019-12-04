@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from geoopt.manifolds.stereographic.utils import \
     setup_plot, get_interpolation_Ks, get_img_from_fig, \
-    save_img_sequence_as_boomerang_gif
+    save_img_sequence_as_boomerang_gif, add_K_box
 from tqdm import tqdm
 
 n_grid_evals = 1000
@@ -55,6 +55,12 @@ for K in tqdm(get_interpolation_Ks()):
         cmap="inferno"
     )
     plt.colorbar()
+
+    # add plot title
+    plt.title(r"Log Distance to $x$")
+
+    # add curvature box
+    add_K_box(plt, K)
 
     # convert plot to image array
     img = get_img_from_fig(fig, 'tmp/distance.png')

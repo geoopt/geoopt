@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from geoopt.manifolds.stereographic.utils import \
     setup_plot, get_interpolation_Ks, get_img_from_fig, \
-    save_img_sequence_as_boomerang_gif
+    save_img_sequence_as_boomerang_gif, add_K_box
 from tqdm import tqdm
 
 imgs = []
@@ -55,7 +55,11 @@ for K in tqdm(get_interpolation_Ks()):
     plot_gv(ygv2, color="b")
     plt.plot(*path.t().numpy(), color="g")
 
+    # add plot title
     plt.title(r"Gyrovector Parallel Transport $P^\kappa_{x\to y}$")
+
+    # add curvature box
+    add_K_box(plt, K)
 
     # convert plot to image array
     img = get_img_from_fig(fig, 'tmp/gyrovector-parallel-transport.png')

@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from geoopt.manifolds.stereographic.utils import \
     setup_plot, get_interpolation_Ks, get_img_from_fig, \
-    save_img_sequence_as_boomerang_gif
+    save_img_sequence_as_boomerang_gif, add_K_box
 from tqdm import tqdm
 
 n_grid_evals = 1000
@@ -47,11 +47,16 @@ for K in tqdm(get_interpolation_Ks()):
     plt.arrow(*y, *yv2, width=0.01, color="b")
     plt.plot(*path.t().numpy(), color="g")
 
-    plt.title(r"Parallel Transport $P^\kappa_{x\to y}$")
+    # add plot title
+    plt.title("Parallel Transport $P^\kappa_{x \to y}$")
+
+    # add curvature box
+    add_K_box(plt, K)
 
     # convert plot to image array
     img = get_img_from_fig(fig, 'tmp/parallel-transport.png')
     imgs.append(img)
+    plt.show()
 
 # save img sequence as infinite boomerang gif
 save_img_sequence_as_boomerang_gif(imgs, 'out/parallel-transport.gif')

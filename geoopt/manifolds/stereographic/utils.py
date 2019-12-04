@@ -139,6 +139,13 @@ def add_geodesic_grid(plt, manifold, lo, hi):
             plot_geodesic(-y_geodesic)
 
 
+def add_K_box(plt, K):
+    props = dict(pad=10.0, facecolor='white', edgecolor='black', linewidth=0.5)
+    plt.gca().text(0.05, 0.95, f"$\kappa={K:1.3f}$",
+                   transform=plt.gca().transAxes,
+                   verticalalignment='top', bbox=props)
+
+
 def get_interpolation_Ks():
     # S-curve going through zero
     x = np.linspace(-1.0, 1.7, num=200)
