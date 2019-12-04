@@ -41,7 +41,6 @@ for K in tqdm(get_interpolation_Ks()):
     ygv1 = manifold.geodesic_unit(t, y, yv1)
     ygv2 = manifold.geodesic_unit(t, y, yv2)
 
-
     def plot_gv(gv, **kwargs):
         plt.plot(*gv.t().numpy(), **kwargs)
         plt.arrow(*gv[-2], *(gv[-1] - gv[-2]), width=0.01, **kwargs)
