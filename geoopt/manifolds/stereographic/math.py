@@ -502,7 +502,12 @@ def mobius_cosub(x, y, *, K=1.0, dim=-1):
 def _mobius_cosub(x, y, K, dim: int = -1):
     return _mobius_coadd(x, -y, K, dim=dim)
 
-
+# TODO: can we make this operation somehow safer by breaking up the
+# TODO: scalar multiplication for K>0 when the argument to the
+# TODO: tan function gets close to pi/2+k*pi for k in Z?
+# TODO: one could use the scalar associative law
+# TODO: s_1 (X) s_2 (X) x = (s_1*s_2) (X) x
+# TODO: to implement a more stable Möbius scalar mult
 def mobius_scalar_mul(r, x, *, K=1.0, dim=-1):
     r"""
     Computes the Möbius scalar multiplication.
