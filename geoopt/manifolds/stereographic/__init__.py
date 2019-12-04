@@ -119,6 +119,16 @@ class Stereographic(Manifold):
             return torch.sign(torch.sign(self.trainable_K)+1e-15) * \
                    self.min_abs_K + self.trainable_K
 
+    def get_trainable_K(self):
+        """
+        Gets the trainable K parameter
+
+        Returns
+        -------
+        trainable K parameter
+        """
+        return self.trainable_K
+
     def set_K_trainable(self, is_trainable):
         """
         Sets the trainability of the manifold's curvature.
