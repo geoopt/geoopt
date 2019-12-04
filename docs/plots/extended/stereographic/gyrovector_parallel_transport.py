@@ -63,4 +63,4 @@ for K in tqdm(get_interpolation_Ks()):
     imgs.append(img)
 
 # save img sequence as infinite boomerang gif
-save_img_sequence_as_boomerang_gif(imgs, 'out/gyrovector-parallel-transport.png')
+save_img_sequence_as_boomerang_gif(imgs, 'out/gyrovector-parallel-transport.gif')
