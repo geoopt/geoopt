@@ -19,7 +19,7 @@ for K in tqdm(get_interpolation_Ks()):
                                   min_abs_K=0.001)
 
     # set up plot
-    fig, plt, (lo, hi) = setup_plot(manifold, lo=-3.0)
+    fig, plt, (lo, hi) = setup_plot(manifold, lo=-3.0, grid_line_width=0.25)
 
     # get manifold properties
     K = manifold.get_K().item()
@@ -51,27 +51,34 @@ for K in tqdm(get_interpolation_Ks()):
     plt.contourf(
         grid[..., 0],
         grid[..., 1],
-        dists.log().numpy(),
-        levels=np.linspace(-14, 3, 100),
+        dists.sqrt().numpy(),
+        levels=np.linspace(0, 5, 30),
         cmap="inferno"
     )
-    plt.colorbar()
+    cbar = plt.colorbar(fraction=0.046, pad=0.04)
+    cbar.set_ticks([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
 
     # plot x
-    plt.scatter(*x, color="g")
+    plt.scatter(*x, color="#bfffbf")
 
     # plot vector from x to v
-    plt.arrow(*x, *v, color="g", width=0.01)
+    plt.arrow(*x, *v, color="#bfffbf", width=0.03)
 
     # add plot title
-    plt.title(r"Log Distance to $\tilde{H}_{p, w}$")
+    plt.title(r"Square Root of Distance to $\tilde{H}_{p, w}$")
 
     # add curvature box
     add_K_box(plt, K)
 
+    # use tight layout
+    plt.tight_layout()
+
     # convert plot to image array
     img = get_img_from_fig(fig, 'tmp/distance2plane.png')
     imgs.append(img)
+
+    # close plot to avoid warnings
+    plt.close()
 
 # save img sequence as infinite boomerang gif
 save_img_sequence_as_boomerang_gif(imgs, 'out/distance2plane.gif')
