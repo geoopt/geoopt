@@ -8,12 +8,22 @@ import imageio
 from pygifsicle import optimize
 
 
-def setup_plot(manifold, lo=None):
+class COLORS:
+    SHINY_GREEN = "#ffc7c7"
+    SHINY_BLUE = "#a9e7ff"
+    MAT_RED = "#ffc7c7"
+    MAT_YELLOW = "#ffffbd"
+    NEON_PINK = "#ff3ea0"
+    BACKGROUND_BLUE = "#1e0c45"
+    TEXT_COLOR = "#ffffff"
+
+
+def setup_plot(manifold, lo=None, width=7, height=7, grid_line_width=0.3, with_background=True):
 
     # define figure parameters
     rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
     rcParams["text.usetex"] = True
-    rcParams['figure.figsize'] = 7, 7
+    rcParams['figure.figsize'] = width, height
     sns.set_style("white")
 
     # create figure
@@ -24,8 +34,17 @@ def setup_plot(manifold, lo=None):
     R = manifold.get_R()
 
     # add circle
-    circle = plt.Circle((0, 0), R, fill=False, color="b")
+    circle = plt.Circle((0, 0), R, fill=with_background, color=COLORS.BACKGROUND_BLUE)
     plt.gca().add_artist(circle)
+    if K > 0:
+        circle_border = plt.Circle((0, 0), R, fill=False, color="gray",
+                                   linewidth=2.0)
+        plt.gca().add_artist(circle_border)
+
+
+    # add background color
+    if K > 0 and with_background:
+        plt.gca().set_facecolor(COLORS.BACKGROUND_BLUE)
 
     # set up plot axes and aspect ratio
     if lo==None:
@@ -39,7 +58,7 @@ def setup_plot(manifold, lo=None):
     plt.gca().set_aspect("equal")
 
     # add grid of geodesics
-    add_geodesic_grid(plt, manifold, lo, hi)
+    add_geodesic_grid(plt, manifold, lo, hi, line_width=grid_line_width)
 
     return fig, plt, (lo, hi)
 
@@ -62,13 +81,13 @@ def get_maximal_numerical_distance(manifold):
     return dist0
 
 
-def add_geodesic_grid(plt, manifold, lo, hi):
+def add_geodesic_grid(plt, manifold, lo, hi, line_width = 0.1):
 
     # define geodesic grid parameters
     N_EVALS_PER_GEODESIC = 10000
     STYLE = "--"
     COLOR = "gray"
-    LINE_WIDTH = 0.1
+    LINE_WIDTH = line_width
 
     # get manifold properties
     K = manifold.get_K().item()
@@ -146,9 +165,9 @@ def add_K_box(plt, K):
                    verticalalignment='top', bbox=props)
 
 
-def get_interpolation_Ks():
+def get_interpolation_Ks(num=200):
     # S-curve going through zero
-    x = np.linspace(-1.0, 1.7, num=200)
+    x = np.linspace(-1.0, 1.7, num=num)
     Ks = (x**3).tolist()
     Ks = [K for K in Ks if abs(K) > 0.001]
     return Ks

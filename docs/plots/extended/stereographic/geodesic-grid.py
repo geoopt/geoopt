@@ -11,7 +11,7 @@ for K in [-1.0, 1.0]:
 
     fig, plt, (lo, hi) = setup_plot(manifold, lo=-2.0)
 
-    plt.title(f"Grid of Geodesics at Equidistant Intervals ($\kappa={K:1.3f}$)")
+    #plt.title(f"Grid of Geodesics at Equidistant Intervals ($\kappa={K:1.3f}$)")
 
     # use tight layout
     plt.tight_layout()

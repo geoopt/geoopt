@@ -19,7 +19,7 @@ for K in tqdm(get_interpolation_Ks()):
                                   min_abs_K=0.001)
 
     # set up plot
-    fig, plt, (lo, hi) = setup_plot(manifold, lo=-3.0, grid_line_width=0.25)
+    fig, plt, (lo, hi) = setup_plot(manifold, lo=-3.0, grid_line_width=0.25, with_background=False)
 
     # get manifold properties
     K = manifold.get_K().item()
@@ -65,7 +65,7 @@ for K in tqdm(get_interpolation_Ks()):
     plt.arrow(*x, *v, color="#bfffbf", width=0.03)
 
     # add plot title
-    plt.title(r"Square Root of Distance to $\tilde{H}_{p, w}$")
+    # plt.title(r"Square Root of Distance to $\tilde{H}_{p, w}$")
 
     # add curvature box
     add_K_box(plt, K)
