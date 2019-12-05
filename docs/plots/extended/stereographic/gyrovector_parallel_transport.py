@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from geoopt.manifolds.stereographic.utils import \
     setup_plot, get_interpolation_Ks, get_img_from_fig, \
-    save_img_sequence_as_boomerang_gif, add_K_box
+    save_img_sequence_as_boomerang_gif, add_K_box, COLORS
 from tqdm import tqdm
 
 imgs = []
@@ -43,27 +43,34 @@ for K in tqdm(get_interpolation_Ks()):
 
     def plot_gv(gv, **kwargs):
         plt.plot(*gv.t().numpy(), **kwargs)
-        plt.arrow(*gv[-2], *(gv[-1] - gv[-2]), width=0.01, **kwargs)
+        plt.arrow(*gv[-2], *(gv[-1] - gv[-2]), width=0.02, **kwargs)
 
-    plt.annotate("$x$", x - 0.09, fontsize=15)
-    plt.annotate("$y$", y - 0.09, fontsize=15)
-    plt.annotate(r"$\vec{v}$", x + xy, fontsize=15)
-    plot_gv(xgv1, color="r")
-    plot_gv(xgv2, color="b")
-    plt.arrow(*x, *xy, width=0.01, color="g")
-    plot_gv(ygv1, color="r")
-    plot_gv(ygv2, color="b")
-    plt.plot(*path.t().numpy(), color="g")
+    plt.annotate("$x$", x - 0.15, fontsize=15, color=COLORS.TEXT_COLOR)
+    plt.annotate("$y$", y + torch.tensor([0.05, -0.15]), fontsize=15, color=COLORS.TEXT_COLOR)
+    plt.annotate(r"$\vec{v}$", x + xy+ 0.05, fontsize=15, color=COLORS.TEXT_COLOR)
+
+    plot_gv(xgv1, color=COLORS.MAT_RED)
+    plot_gv(xgv2, color=COLORS.SHINY_BLUE)
+    plt.arrow(*x, *xy, width=0.01, color=COLORS.SHINY_GREEN)
+    plot_gv(ygv1, color=COLORS.MAT_RED)
+    plot_gv(ygv2, color=COLORS.SHINY_BLUE)
+    plt.plot(*path.t().numpy(), color=COLORS.MAT_YELLOW)
 
     # add plot title
-    plt.title(r"Gyrovector Parallel Transport $P^\kappa_{x\to y}$")
+    #plt.title(r"Gyrovector Parallel Transport $P^\kappa_{x\to y}$")
 
     # add curvature box
     add_K_box(plt, K)
 
+    # use tight layout
+    plt.tight_layout()
+
     # convert plot to image array
     img = get_img_from_fig(fig, 'tmp/gyrovector-parallel-transport.png')
     imgs.append(img)
+
+    # close plot to avoid warnings
+    plt.close()
 
 # save img sequence as infinite boomerang gif
 save_img_sequence_as_boomerang_gif(imgs, 'out/gyrovector-parallel-transport.gif')
