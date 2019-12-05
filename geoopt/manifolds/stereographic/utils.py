@@ -9,7 +9,7 @@ from pygifsicle import optimize
 
 
 class COLORS:
-    SHINY_GREEN = "#ffc7c7"
+    SHINY_GREEN = "#bfffbf"
     SHINY_BLUE = "#a9e7ff"
     MAT_RED = "#ffc7c7"
     MAT_YELLOW = "#ffffbd"
