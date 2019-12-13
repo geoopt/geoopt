@@ -6,27 +6,29 @@ from ..utils import make_tuple
 
 __all__ = ["BirkhoffPolytope"]
 
-_birkhoff_doc = r"""
-    Manifold induced by the Doubly Stochastic matrices as described in 
-    A. Douik and B. Hassibi, "Manifold Optimization Over the Set 
+
+class BirkhoffPolytope(Manifold):
+    r"""
+    Manifold induced by the Doubly Stochastic matrices as described in
+    A. Douik and B. Hassibi, "Manifold Optimization Over the Set
     of Doubly Stochastic Matrices: A Second-Order Geometry"
     ArXiv:1802.02628, 2018.
     Link to the paper: https://arxiv.org/abs/1802.02628.
 
     @Techreport{Douik2018Manifold,
-       Title   = {Manifold Optimization Over the Set of Doubly Stochastic 
+       Title   = {Manifold Optimization Over the Set of Doubly Stochastic
                   Matrices: {A} Second-Order Geometry},
        Author  = {Douik, A. and Hassibi, B.},
        Journal = {Arxiv preprint ArXiv:1802.02628},
        Year    = {2018}
     }
-    
+
     Please also cite:
     Tolga Birdal, Umut Şimşekli,
     "Probabilistic Permutation Synchronization using the Riemannian Structure of the BirkhoffPolytope Polytope"
     IEEE Conference on Computer Vision and Pattern Recognition, CVPR, 2019
     Link to the paper: https://arxiv.org/abs/1904.05814
-    
+
     @inproceedings{birdal2019probabilistic,
     title={Probabilistic Permutation Synchronization using the Riemannian Structure of the Birkhoff Polytope},
     author={Birdal, Tolga and Simsekli, Umut},
@@ -34,23 +36,16 @@ _birkhoff_doc = r"""
     pages={11105--11116},
     year={2019}
     }
-    
+
     This implementation is by Tolga Birdal and Haowen Deng.
-"""
+    """
 
-
-class BirkhoffPolytope(Manifold):
-    __doc__ = r"""
-    {}
-    """.format(
-        _birkhoff_doc
-    )
     name = "BirkhoffPolytope"
 
-    ## batch_size \times n \times n
-    ndim = 3
+    ndim = 2
 
     def __init__(self, maxiter=100, tol=1e-3, epsilon=1e-12):
+        super().__init__()
         self.maxiter = maxiter
         self.tol = tol
         self.epsilon = epsilon
@@ -99,6 +94,7 @@ class BirkhoffPolytope(Manifold):
         return True, None
 
     def projx(self, x):
+        # TODO: refactor to vectorize without reshape
         iter = 0
         x_shape = x.shape
         x_reshaped = x.reshape(-1, x_shape[-2], x_shape[-1])
