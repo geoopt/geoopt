@@ -1,8 +1,8 @@
 import torch
-
+from typing import Union, Tuple, Optional
 from .base import Manifold
 from .. import linalg
-from ..utils import strip_tuple, make_tuple, size2shape
+from ..utils import size2shape
 from ..tensor import ManifoldTensor
 
 
@@ -28,7 +28,7 @@ class Stiefel(Manifold):
     ----------
     canonical : bool
         Use canonical inner product instead of euclidean one (defaults to canonical)
-    
+
     See Also
     --------
     :class:`CanonicalStiefel`, :class:`EuclideanStiefel`, :class:`EuclideanStiefelExact`
@@ -46,7 +46,9 @@ class Stiefel(Manifold):
         else:
             return super().__new__(cls)
 
-    def _check_shape(self, shape, name):
+    def _check_shape(
+        self, shape: Tuple[int], name: str
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         ok, reason = super()._check_shape(shape, name)
         if not ok:
             return False, reason
@@ -60,7 +62,9 @@ class Stiefel(Manifold):
             )
         return True, None
 
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         xtx = x.transpose(-1, -2) @ x
         # less memory usage for substract diagonal
         xtx[..., torch.arange(x.shape[-1]), torch.arange(x.shape[-1])] -= 1
@@ -69,21 +73,25 @@ class Stiefel(Manifold):
             return False, "`X^T X != I` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
+    def _check_vector_on_tangent(
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+    ) -> Union[Tuple[bool, Optional[str]], bool]:
         diff = u.transpose(-1, -2) @ x + x.transpose(-1, -2) @ u
         ok = torch.allclose(diff, diff.new((1,)).fill_(0), atol=atol, rtol=rtol)
         if not ok:
             return False, "`u^T x + x^T u !=0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
-    def projx(self, x):
+    def projx(self, x: torch.Tensor) -> torch.Tensor:
         U, _, V = linalg.batch_linalg.svd(x)
         return torch.einsum("...ik,...jk->...ij", U, V)
 
-    def random_naive(self, *size, dtype=None, device=None):
+    def random_naive(self, *size, dtype=None, device=None) -> torch.Tensor:
         """
-        Naive approach to get random matrix on stiefel manifold. The measure is
-        non-uniform for this method, but fast to compute
+        Naive approach to get random matrix on Stiefel manifold.
+
+        A helper function to sample a random point on the Stiefel manifold.
+        The measure is non-uniform for this method, but fast to compute.
 
         Parameters
         ----------
@@ -103,6 +111,32 @@ class Stiefel(Manifold):
         tens = torch.randn(*size, device=device, dtype=dtype)
         return ManifoldTensor(linalg.qr(tens)[0], manifold=self)
 
+    random = random_naive
+
+    def origin(self, *size, dtype=None, device=None, seed=42) -> torch.Tensor:
+        """
+        Identity matrix point origin.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            ignored
+
+        Returns
+        -------
+        ManifoldTensor
+        """
+        self._assert_check_shape(size2shape(*size), "x")
+        eye = torch.zeros(*size, dtype=dtype, device=device)
+        eye[..., torch.arange(eye.shape[-1]), torch.arange(eye.shape[-1])] += 1
+        return ManifoldTensor(eye, manifold=self)
+
 
 class CanonicalStiefel(Stiefel):
     __doc__ = r"""Stiefel Manifold with Canonical inner product
@@ -116,10 +150,12 @@ class CanonicalStiefel(Stiefel):
     reversible = True
 
     @staticmethod
-    def _amat(x, u):
+    def _amat(x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def inner(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
+    ) -> torch.Tensor:
         # <u, v>_x = tr(u^T(I-1/2xx^T)v)
         # = tr(u^T(v-1/2xx^Tv))
         # = tr(u^Tv-1/2u^Txx^Tv)
@@ -136,7 +172,9 @@ class CanonicalStiefel(Stiefel):
             [-1, -2], keepdim=keepdim
         )
 
-    def _transp_follow_one(self, x, v, *, u):
+    def _transp_follow_one(
+        self, x: torch.Tensor, v: torch.Tensor, *, u: torch.Tensor
+    ) -> torch.Tensor:
         a = self._amat(x, u)
         rhs = v + 1 / 2 * a @ v
         lhs = -1 / 2 * a
@@ -144,37 +182,31 @@ class CanonicalStiefel(Stiefel):
         qv, _ = torch.solve(rhs, lhs)
         return qv
 
-    def _transp_follow_many(self, x, *vs, u):
-        """
-        An optimized transp_many for Stiefel Manifold
-        """
-        vs = torch.cat(vs, -1)
-        qvs = self._transp_follow_one(x, vs, u=u).view(x.shape[:-1] + (-1, x.shape[-1]))
-        return qvs.unbind(-2)
-
-    def transp_follow_retr(self, x, u, v, *more):
-        return strip_tuple(self._transp_follow_many(x, v, *more, u=u))
+    def transp_follow_retr(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
+        return self._transp_follow_one(x, v, u=u)
 
     transp_follow_expmap = transp_follow_retr
 
-    def retr_transp(self, x, u, v, *more):
-        """
-        An optimized retr_transp for Stiefel Manifold
-        """
-        xvs = torch.cat((x, v) + more, -1)
+    def retr_transp(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        xvs = torch.cat((x, v), -1)
         qxvs = self._transp_follow_one(x, xvs, u=u).view(
-            x.shape[:-1] + (-1, x.shape[-1])
+            x.shape[:-1] + (2, x.shape[-1])
         )
-        return qxvs.unbind(-2)
+        new_x, new_v = qxvs.unbind(-2)
+        return new_x, new_v
 
     expmap_transp = retr_transp
 
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return u - x @ u.transpose(-1, -2) @ x
 
     egrad2rgrad = proju
 
-    def retr(self, x, u):
+    def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return self._transp_follow_one(x, x, u=u)
 
     expmap = retr
@@ -191,59 +223,42 @@ class EuclideanStiefel(Stiefel):
     name = "Stiefel(euclidean)"
     reversible = False
 
-    def proju(self, x, u):
+    def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
 
     egrad2rgrad = proju
 
-    def transp(self, x, y, v, *more):
-        result = tuple(self.proju(y, _v) for _v in (v,) + more)
-        return strip_tuple(result)
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+        return self.proju(y, v)
 
-    def retr_transp(self, x, u, v, *more):
-        y = self.retr(x, u)
-        vs = self.transp(x, y, v, *more)
-        return (y,) + make_tuple(vs)
-
-    def inner(self, x, u, v=None, *, keepdim=False):
+    def inner(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
+    ) -> torch.Tensor:
         if v is None:
             v = u
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
-    def retr(self, x, u):
+    def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         q, r = linalg.batch_linalg.qr(x + u)
         unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
 
-    def expmap(self, x, u):
+    def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         xtu = x.transpose(-1, -2) @ u
         utu = u.transpose(-1, -2) @ u
         eye = torch.zeros_like(utu)
         eye[..., torch.arange(utu.shape[-2]), torch.arange(utu.shape[-2])] += 1
-        logw = linalg.block_matrix([[xtu, -utu], [eye, xtu]])
+        logw = linalg.block_matrix(((xtu, -utu), (eye, xtu)))
         w = linalg.expm(logw)
         z = torch.cat((linalg.expm(-xtu), torch.zeros_like(utu)), dim=-2)
         y = torch.cat((x, u), dim=-1) @ w @ z
         return y
 
-    def expmap_transp(self, x, u, v, *more):
-        y = self.expmap(x, u)
-        vs = self.transp(x, y, v, *more)
-        return (y,) + make_tuple(vs)
-
-    def transp_follow_expmap(self, x, u, v, *more):
-        y = self.expmap(x, u)
-        return self.transp(x, y, v, *more)
-
-    def transp_follow_retr(self, x, u, v, *more):
-        y = self.retr(x, u)
-        return self.transp(x, y, v, *more)
-
 
 class EuclideanStiefelExact(EuclideanStiefel):
     __doc__ = r"""{}
-    
+
     Notes
     -----
     The implementation of retraction is an exact exponential map, this retraction will be used in optimization

@@ -10,7 +10,7 @@ Methods”`_ ICLR2019 and more.
 
 Installation
 ------------
-Make sure you have pytorch>=1.1.0 installed
+Make sure you have pytorch>=1.2.0 installed
 
 There are two ways to install geoopt:
 
@@ -29,6 +29,12 @@ There are two ways to install geoopt:
 
 The preferred way to install geoopt will change once stable project stage is achieved.
 Now, pypi is behind master as we actively develop and implement new features.
+
+
+PyTorch Support
+~~~~~~~~~~~~~~~
+Geoopt supports 2 latest stable versions of pytorch upstream or the latest major release.
+We also test against the nightly build, but do not be 100% sure about compatibility.
 
 What is done so far
 -------------------
@@ -56,9 +62,8 @@ points on a certain manifold
    projected, they are assumed to be already projected.
 -  ``.retr(u)`` – retraction map following vector ``u``
 -  ``.expmap(u)`` – exponential map following vector ``u`` (if expmap is not available in closed form, best approximation is used)
--  ``.transp(v, u, *more)`` – transport vector ``v`` (and possibly
-   more vectors) with direction ``u``
--  ``.retr_transp(v, u, *more)`` – transport ``self``, vector ``v``
+-  ``.transp(v, u)`` – transport vector ``v``  with direction ``u``
+-  ``.retr_transp(v, u)`` – transport ``self``, vector ``v``
    (and possibly more vectors) with direction ``u``
    (returns are plain tensors)
 
@@ -71,6 +76,8 @@ Manifolds
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
 -  ``geoopt.PoincareBall`` - Poincare ball model (`wiki <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_)
+-  ``geoopt.ProductManifold`` - Product manifold constructor
+-  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``
 
 
 All manifolds implement methods necessary to manipulate tensors on manifolds and
@@ -91,6 +98,23 @@ Samplers
 -  ``geoopt.samplers.RHMC`` – Riemannian Hamiltonian Monte-Carlo
 -  ``geoopt.samplers.SGRHMC`` – Stochastic Gradient Riemannian
    Hamiltonian Monte-Carlo
+
+
+Citing Geoopt
+~~~~~~~~~~~~~
+If you find this project useful in your research, please kindly add this bibtex entry in references and cite.
+
+.. code::
+
+    @misc{geoopt,
+        author = {Max Kochurov and Sergey Kozlukov and Rasul Karimov and Viktor Yanush},
+        title = {Geoopt: Adaptive Riemannian optimization in PyTorch},
+        year = {2019},
+        publisher = {GitHub},
+        journal = {GitHub repository},
+        howpublished = {\url{https://github.com/geoopt/geoopt}},
+    }
+
 
 .. _“Riemannian Adaptive Optimization Methods”: https://openreview.net/forum?id=r1eiqi09K7
 .. _documentation: https://geoopt.readthedocs.io/en/latest/manifolds.html

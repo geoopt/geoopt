@@ -3,29 +3,30 @@ python:
     - "3.6"
 
 env:
-  - PYTHON_VERSION=3.6 PYTORCH='pytorch' COVERAGE='--cov geoopt'
-  - PYTHON_VERSION=3.6 PYTORCH='pytorch-nightly' COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.3.1' COVERAGE='--cov geoopt'
+  - PYTHON_VERSION=3.7 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.3.1' COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.2.0' COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
 
 matrix:
   allow_failures:
-    - env: PYTHON_VERSION=3.6 PYTORCH='pytorch-nightly' COVERAGE=''
+    - env: PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
 
 before_install:
   - docker pull conda/miniconda3
   - docker --version
 
 install:
-  - . ./scripts/container.sh --build
+  - make docker
   # Print conda details
   - docker run --rm geoopt:latest bash -c "conda info -a"
   # Print conda environment details
   - docker run --rm geoopt:latest bash -c "conda list && pip freeze"
   # install coverage if needed
-  - if [[ $COVERAGE ]]; then pip install coveralls black; fi
+  - if [[ $COVERAGE ]]; then pip install -r requirements-dev.txt; fi
 
 script:
-  - if [[ $COVERAGE ]]; then black --check --diff geoopt tests; fi
-  - ./scripts/container.sh --test
+  - make docker-test
 
 after_success:
   - echo $(pwd)

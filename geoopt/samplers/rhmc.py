@@ -11,7 +11,8 @@ __all__ = ["RHMC"]
 
 
 class RHMC(Sampler):
-    r"""Riemannian Hamiltonian Monte-Carlo
+    r"""
+    Riemannian Hamiltonian Monte-Carlo.
 
     Parameters
     ----------
@@ -43,15 +44,6 @@ class RHMC(Sampler):
         r.set_(r_)
 
     def step(self, closure):
-        """Performs a single sampling step.
-
-        Arguments
-        ---------
-        closure: callable
-            A closure that reevaluates the model
-            and returns the log probability.
-        """
-
         logp = closure()
         logp.backward()
 

@@ -10,7 +10,8 @@ __all__ = ["SGRHMC"]
 
 
 class SGRHMC(Sampler):
-    r"""Stochastic Gradient Riemannian Hamiltonian Monte-Carlo
+    r"""
+    Stochastic Gradient Riemannian Hamiltonian Monte-Carlo.
 
     Parameters
     ----------
@@ -30,14 +31,6 @@ class SGRHMC(Sampler):
         self.n_steps = n_steps
 
     def step(self, closure):
-        """Performs a single sampling step.
-
-        Arguments
-        ---------
-        closure: callable
-            A closure that reevaluates the model
-            and returns the log probability.
-        """
         H_old = 0.0
         H_new = 0.0
 

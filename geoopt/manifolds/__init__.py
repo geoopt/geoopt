@@ -4,4 +4,7 @@ from .stiefel import Stiefel, EuclideanStiefel, CanonicalStiefel, EuclideanStief
 from .sphere import Sphere, SphereExact
 from .poincare import PoincareBall, PoincareBallExact
 from .birkhoff_polytope import BirkhoffPolytope
+from .product import ProductManifold
 from . import poincare
+from . import scaled
+from .scaled import Scaled

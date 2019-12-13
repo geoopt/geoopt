@@ -27,6 +27,7 @@ manifold_shapes = {
     geoopt.manifolds.Euclidean: (10,),
     geoopt.manifolds.Sphere: (10,),
     geoopt.manifolds.SphereExact: (10,),
+    geoopt.manifolds.ProductManifold: (10 + 3 + 6 + 1,),
 }
 
 
@@ -163,8 +164,64 @@ def sphere_case():
     yield case
 
 
+def product_case():
+    torch.manual_seed(42)
+    ex = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
+    ev = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
+    manifolds = [
+        geoopt.Sphere(),
+        geoopt.PoincareBall(),
+        geoopt.Stiefel(),
+        geoopt.Euclidean(),
+    ]
+    x = [manifolds[i].projx(ex[i]) for i in range(len(manifolds))]
+    v = [manifolds[i].proju(x[i], ev[i]) for i in range(len(manifolds))]
+
+    product_manifold = geoopt.ProductManifold(
+        *((manifolds[i], ex[i].shape) for i in range(len(ex)))
+    )
+
+    yield UnaryCase(
+        manifold_shapes[geoopt.ProductManifold],
+        product_manifold.pack_point(*x),
+        product_manifold.pack_point(*ex),
+        product_manifold.pack_point(*v),
+        product_manifold.pack_point(*ev),
+        product_manifold,
+    )
+    # + 1 case without stiefel
+    torch.manual_seed(42)
+    ex = [torch.randn(10), torch.randn(3) / 10, torch.randn(())]
+    ev = [torch.randn(10), torch.randn(3) / 10, torch.randn(())]
+    manifolds = [
+        geoopt.Sphere(),
+        geoopt.PoincareBall(),
+        # geoopt.Stiefel(),
+        geoopt.Euclidean(),
+    ]
+    x = [manifolds[i].projx(ex[i]) for i in range(len(manifolds))]
+    v = [manifolds[i].proju(x[i], ev[i]) for i in range(len(manifolds))]
+
+    product_manifold = geoopt.ProductManifold(
+        *((manifolds[i], ex[i].shape) for i in range(len(ex)))
+    )
+
+    yield UnaryCase(
+        manifold_shapes[geoopt.ProductManifold],
+        product_manifold.pack_point(*x),
+        product_manifold.pack_point(*ex),
+        product_manifold.pack_point(*v),
+        product_manifold.pack_point(*ev),
+        product_manifold,
+    )
+
+
+@pytest.fixture(params=[True, False], ids=["Scaled", "NotScaled"])
+def scaled(request):
+    return request.param
+
+
 @pytest.fixture(
-    "module",
     params=itertools.chain(
         euclidean_case(),
         sphere_case(),
@@ -173,11 +230,22 @@ def sphere_case():
         euclidean_stiefel_case(),
         canonical_stiefel_case(),
         poincare_case(),
+        product_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )
-def unary_case(request):
+def unary_case_base(request):
     return request.param
+
+
+@pytest.fixture
+def unary_case(unary_case_base, scaled):
+    if scaled:
+        return unary_case_base._replace(
+            manifold=geoopt.Scaled(unary_case_base.manifold, 2)
+        )
+    else:
+        return unary_case_base
 
 
 def test_projection_identity(unary_case):
@@ -257,50 +325,6 @@ def test_broadcast_transp(unary_case):
         np.testing.assert_allclose(q, qq, atol=1e-5)
 
 
-def test_broadcast_transp_many(unary_case):
-    pX = torch.stack([unary_case.x] * 4)
-    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    F = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    pU = unary_case.manifold.proju(pX, U)
-    pV = unary_case.manifold.proju(pX, V)
-    pF = unary_case.manifold.proju(pX, F)
-    Y = unary_case.manifold.retr(pX, pU)
-    Q, P = unary_case.manifold.transp_follow_retr(pX, pU, pV, pF)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, Q)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, P)
-    for y, q, p in zip(Y, Q, P):
-        unary_case.manifold.assert_check_vector_on_tangent(y, q)
-        unary_case.manifold.assert_check_vector_on_tangent(y, p)
-    for px, pu, pv, pf, y, q, p in zip(pX, pU, pV, pF, Y, Q, P):
-        qq, pp = unary_case.manifold.transp_follow_retr(px, pu, pv, pf)
-        np.testing.assert_allclose(q, qq, atol=1e-5)
-        np.testing.assert_allclose(p, pp, atol=1e-5)
-
-
-def test_broadcast_retr_transp_many(unary_case):
-    pX = torch.stack([unary_case.x] * 4)
-    U = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    V = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    F = torch.randn(4, *unary_case.shape, dtype=unary_case.x.dtype)
-    pU = unary_case.manifold.proju(pX, U)
-    pV = unary_case.manifold.proju(pX, V)
-    pF = unary_case.manifold.proju(pX, F)
-    Y = unary_case.manifold.retr(pX, pU)
-    Z, Q, P = unary_case.manifold.retr_transp(pX, pU, pV, pF)
-    np.testing.assert_allclose(Z, Y, atol=1e-5)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, Q)
-    unary_case.manifold.assert_check_vector_on_tangent(Y, P)
-    for y, q, p in zip(Y, Q, P):
-        unary_case.manifold.assert_check_vector_on_tangent(y, q)
-        unary_case.manifold.assert_check_vector_on_tangent(y, p)
-    for px, pu, pv, pf, y, q, p in zip(pX, pU, pV, pF, Y, Q, P):
-        zz, qq, pp = unary_case.manifold.retr_transp(px, pu, pv, pf)
-        np.testing.assert_allclose(zz, y, atol=1e-5)
-        np.testing.assert_allclose(q, qq, atol=1e-5)
-        np.testing.assert_allclose(p, pp, atol=1e-5)
-
-
 def test_reversibility(unary_case):
     if unary_case.manifold.reversible:
         pX = torch.stack([unary_case.x] * 4)
@@ -317,7 +341,7 @@ def test_reversibility(unary_case):
         )
 
 
-def test_logmap_many(unary_case):
+def test_logmap(unary_case):
     try:
         pX = torch.stack([unary_case.x] * 4)
         U = torch.randn(*unary_case.shape, dtype=unary_case.x.dtype)
@@ -326,7 +350,20 @@ def test_logmap_many(unary_case):
         Y = unary_case.manifold.expmap(pX, U)
         Uh = unary_case.manifold.logmap(pX, Y)
         Yh = unary_case.manifold.expmap(pX, Uh)
-
         np.testing.assert_allclose(Yh, Y, atol=1e-6, rtol=1e-6)
+        Zero = unary_case.manifold.logmap(pX, pX)
+        np.testing.assert_allclose(Zero, 0.0, atol=1e-6, rtol=1e-6)
     except NotImplementedError:
         pytest.skip("logmap was not implemented for {}".format(unary_case.manifold))
+
+
+def test_dist(unary_case):
+    tangent = unary_case.v
+    point = unary_case.x
+    tangent_norm = unary_case.manifold.norm(point, tangent)
+    new_point = unary_case.manifold.expmap(point, tangent)
+    try:
+        dist = unary_case.manifold.dist(point, new_point)
+    except NotImplementedError:
+        pytest.skip("dist is not implemented for {}".format(unary_case.manifold))
+    np.testing.assert_allclose(dist, tangent_norm)
