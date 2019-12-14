@@ -77,7 +77,7 @@ def egrad2rgrad(x, grad, *, dim=-1):
 
 
 def _egrad2rgrad(x, grad, dim: int = -1):
-    grad.narrow(dim, 0, 1).mul_(-1.)
+    grad.narrow(dim, 0, 1).mul_(-1.0)
     grad.addcmul_(_ldot(x, grad, dim=dim, keepdim=True).expand_as(x), x)
     return grad
 
@@ -106,6 +106,7 @@ def inner(x, u, v, *, keepdim=False, dim=-1):
     """
     return _inner(x, u, v, keepdim=keepdim, dim=dim)
 
+
 def _inner(x, u, v, keepdim: bool = False, dim: int = -1):
     return ldot(u, v)
 
@@ -133,7 +134,7 @@ def logmap(x, y, *, dim=-1):
 def _logmap(x, y, *, dim: int = -1):
     xy = ldot(x, y, keepdim=True)
     denom = th.sqrt(xy * xy - 1)
-    v = (Acosh.apply(-xy, self.eps) / tmp ) * th.addcmul(y, xy, x)
+    v = (Acosh.apply(-xy, self.eps) / tmp) * th.addcmul(y, xy, x)
     return v
 
 

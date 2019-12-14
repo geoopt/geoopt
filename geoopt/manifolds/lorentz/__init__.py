@@ -25,7 +25,7 @@ class Lorentz(Manifold):
         x = x ** 2
         quad_form = -x[0] + x[1:].sum()
         ok = torch.allclose(
-            quad_form, quad_form.new((1,)).fill_(-1.), atol=atol, rtol=rtol
+            quad_form, quad_form.new((1,)).fill_(-1.0), atol=atol, rtol=rtol
         )
         if not ok:
             reason = "'x' minkowski quadratic form is not equal to 1"
@@ -69,13 +69,18 @@ class Lorentz(Manifold):
     def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.logmap(x, y, c=self.c, dim=dim)
 
-
-    def inner(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False, dim=-1) -> torch.Tensor:
+    def inner(
+        self,
+        x: torch.Tensor,
+        u: torch.Tensor,
+        v: torch.Tensor = None,
+        *,
+        keepdim=False,
+        dim=-1
+    ) -> torch.Tensor:
         return math.inner(x, u, v)
-
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, dim=dim)
-
 
     retr = expmap
