@@ -15,9 +15,9 @@ class Lorentz(Manifold):
     ndim = 1
     name = "Hyperboloid"
 
-    def __init__(self):
+    def __init__(self, k=1.0):
         super().__init__()
-        # TODO add curvature
+        self.register_buffer("k", torch.as_tensor(k, dtype=torch.get_default_dtype()))
 
     def _check_point_on_manifold(
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
@@ -25,11 +25,9 @@ class Lorentz(Manifold):
         dn = x.size(0)
         x = x ** 2
         quad_form = -x[0] + x[1:].sum()
-        ok = torch.allclose(
-            quad_form, quad_form.new((1,)).fill_(-1.0), atol=atol, rtol=rtol
-        )
+        ok = torch.allclose(quad_form, -self.k, atol=atol, rtol=rtol)
         if not ok:
-            reason = "'x' minkowski quadratic form is not equal to 1"
+            reason = f"'x' minkowski quadratic form is not equal to {-self.k.item()}"
         else:
             reason = None
         return ok, reason
@@ -42,7 +40,7 @@ class Lorentz(Manifold):
     def dist(
         self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.dist(x, y, keepdim=keepdim, dim=dim)
+        return math.dist(x, y, k=self.k, keepdim=keepdim, dim=dim)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, dim=dim)
@@ -77,7 +75,7 @@ class Lorentz(Manifold):
         v: torch.Tensor = None,
         *,
         keepdim=False,
-        dim=-1
+        dim=-1,
     ) -> torch.Tensor:
         return math.inner(x, u, v)
 

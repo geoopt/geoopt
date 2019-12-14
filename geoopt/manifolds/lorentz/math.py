@@ -43,57 +43,113 @@ def arcosh(x):
     return Arcosh.apply(x)
 
 
-def ldot(u, v, *, dim: int = -1, keepdim=False):
+def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-3):
+    r"""
+    Compute geodesic distance on the Poincare ball.
+
+    .. math::
+
+        d_{\mathcal{L}}^{k}(\mathbf{x}, \mathbf{y})=\sqrt{k} \operatorname{arcosh}\left(-\langle\mathbf{x}, \mathbf{y}\rangle_{\mathcal{L}} / k\right)
+
+    Parameters
+    ----------
+    x : tensor
+        point on Hyperboloid
+    y : tensor
+        point on Hyperboloid
+    k : float|tensor
+        manifold negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension
+    eps : float
+        stability parameter for arcosh
+
+    Returns
+    -------
+    tensor
+        geodesic distance between :math:`x` and :math:`y`
     """
-        Lorentzian Scalar Product
-    """
-    return _ldot(u, v, dim=dim, keepdim=keepdim)
+    return _dist(x, y, k=k, keepdim=keepdim, dim=dim, eps=eps)
 
 
-def _ldot(u, v, dim: int = -1, keepdim=False):
+def _dist(x, y, k, keepdim: bool = False, dim: int = -1, eps=1e-3):
+    d = -inner(x, y, dim=dim, keepdim=keepdim)
+    return th.sqrt(k) * arcosh(d / k, eps)
+
+
+def project(x, *, k=1.0, dim=-1):
+    r"""
+    Projection on the hyperboloid
+
+    Parameters
+    ----------
+    x: tensor
+        point on the Hyperboloid
+    k: float|tensor
+        hyperboloid negative curvature
+    dim : int
+        reduction dimension to compute norm
+
+    Returns
+    -------
+    tensor
+        projected vector on the manifold
+    """
+    return _project(x, dim)
+
+
+def _project(x, dim: int = -1):
+    dn = x.size(dim) - 1
+    left_ = th.sqrt(1.0 + th.norm(x.narrow(dim, 0, dn), dim=dim) ** 2).unsqueeze(dim)
+    right_ = x.narrow(dim, 0, dn)
+    proj = torch.cat((left_, right_), dim=dim)
+    return proj
+
+
+def inner(u, v, *, keepdim=False, dim=-1):
+    r"""
+    Minkowski inner product
+
+    .. math::
+        \langle\mathbf{u}, \mathbf{v}\rangle_{\mathcal{L}}:=-u_{0} v_{0}+u_{1} v_{1}+\ldots+u_{d} v_{d}
+
+    Parameters
+    ----------
+    u : tensor
+        vector in ambient space
+    v : tensor
+        vector in ambient space
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension
+
+    Returns
+    -------
+    tensor
+        inner product
+    """
+    return _inner(u, v, keepdim=keepdim, dim=dim)
+
+
+def _inner(u, v, keepdim: bool = False, dim: int = -1):
     d = u.size(dim) - 1
     uv = u * v
     uv = th.cat((-uv.narrow(dim, 0, 1), uv.narrow(dim, 1, d)), dim=dim)
     return th.sum(uv, dim=dim, keepdim=keepdim)
 
 
-def dist(x, y, *, keepdim=False, dim=-1, eps=1e-3):
+def norm(u, *, keepdim=False, dim=-1):
     """
-        docs: ...
+        TODO: docs
     """
-    return _dist(x, y, keepdim=keepdim, dim=dim, eps=eps)
+    return _norm(u, keepdim=keepdim, dim=dim)
 
 
-def _dist(x, y, keepdim: bool = False, dim: int = -1, eps=1e-3):
-    d = -ldot(x, y, dim=dim, keepdim=keepdim)
-    return arcosh(d, eps)
-
-
-def project(x, *, dim=-1, eps=None):
-    """
-        docs
-    """
-    return _project(x, dim, eps)
-
-
-def _project(x, dim: int = -1, eps: float = None):
-    dn = x.size(dim) - 1
-    d = x.narrow(dim, 0, dn)
-    d = d / th.norm(d, dim=dim, keepdim=True)
-    r = x.narrow(dim, -1, 1)
-    proj = torch.cat((torch.cosh(r), torch.sinh(r) * d), dim=dim)
-    return proj
-
-
-def inner(x, u, v, *, keepdim=False, dim=-1):
-    """
-        docs
-    """
-    return _inner(x, u, v, keepdim=keepdim, dim=dim)
-
-
-def _inner(x, u, v, keepdim: bool = False, dim: int = -1):
-    return ldot(u, v)
+def _norm(u, keepdim: bool = False, dim: int = -1):
+    return th.sqrt(th.inner(u, u))
 
 
 def normalize_tan(x_all, v_all, dim=-1):
@@ -108,43 +164,43 @@ def normalize_tan(x_all, v_all, dim=-1):
     return th.cat((xv / tmp, v_all.narrow(dim, 1, d)), dim=dim)
 
 
-def norm(x, u, *, keepdim=False, dim=-1):
+def norm(u, *, keepdim=False, dim=-1):
+    r"""
+        ...
+    """
+    return _norm(u, keepdim=keepdim, dim=dim)
+
+
+def _norm(u, keepdim=False, dim=-1):
+    return th.sqrt(inner(u, u, keepdim=keepdim, dim=dim))
+
+
+def expmap(x, u, *, k=1.0, dim=-1):
     """
         docs
     """
-    return _norm(x, u, keepdim=keepdim, dim=dim)
+    return _expmap(x, u, k=k, dim=dim)
 
 
-def _norm(x, u, keepdim=False, dim=-1):
-    return th.sqrt(ldot(u, u, keepdim=keepdim, dim=dim))
-
-
-def expmap(x, u, *, dim=-1):
-    """
-        docs
-    """
-    return _expmap(x, u, dim=dim)
-
-
-def _expmap(x, u, dim: int = -1):
+def _expmap(x, u, k, dim: int = -1):
     u = normalize_tan(x, u, dim=dim)
-    denom = norm(x, u, keepdim=True, dim=dim)
-    p = (th.cosh(denom) * x) + (th.sinh(denom) * u / denom)
+    denom = norm(u, keepdim=True, dim=dim)
+    p = (th.cosh(denom / th.sqrt(k)) * x) + th.sqrt(k) * (th.sinh(denom / th.sqrt(k)) * u / denom)
     return p
 
 
-def logmap(x, y, *, dim=-1):
+def logmap(x, y, *, k=1.0, dim=-1, eps=1e-3):
     """
         docs
     """
-    return _logmap(x, y, dim=dim)
+    return _logmap(x, y, k=k, dim=dim, eps=eps)
 
 
-def _logmap(x, y, *, dim: int = -1, eps=1e-3):
-    xy = ldot(x, y, keepdim=True, dim=dim)
-    denom = th.sqrt(xy * xy - 1.0)
-    v = (Arcosh.apply(-xy, eps) / denom) * th.addcmul(y, xy, x)
-    return v
+def _logmap(x, y, k, dim: int = -1, eps=1e-3):
+    dist_ = dist(x, y, k, dim=dim, keepdim=True)
+    nomin = y + 1. / k * inner(x, y) * x
+    denom = norm(nomin)
+    return dist_ * nomin / denom
 
 
 def egrad2rgrad(x, grad, *, dim=-1):
@@ -156,19 +212,19 @@ def egrad2rgrad(x, grad, *, dim=-1):
 
 def _egrad2rgrad(x, grad, dim: int = -1):
     grad = grad.narrow(dim, 0, 1).mul(-1.0)
-    grad = grad.addcmul(ldot(x, grad, dim=dim, keepdim=True).expand_as(x), x)
+    grad = grad.addcmul(inner(x, grad, dim=dim, keepdim=True).expand_as(x), x)
     return grad
 
 
 def parallel_transport(x, y, v, *, dim=-1):
     """
-
+        docs
     """
     return _parallel_transport(x, y, v, dim=dim)
 
 
 def _parallel_transport(x, y, v, dim: int = -1):
-    nom = ldot(logmap(x, y, dim=dim), v)
+    nom = inner(logmap(x, y, dim=dim), v)
     denom = dist(x, y, dim=dim) ** 2
     p = v - nom / denom * (logmap(x, y, dim=dim) + logmap(y, x, dim=dim))
     return p
@@ -182,7 +238,7 @@ def geodesic_unit(t, x, u, *, dim=-1):
 
 
 def _geodesic_unit(t, x, u, dim: int = -1):
-    return th.cosh(t) * x + th.sinh(t) * u
+    return th.cosh(t / th.sqrt(k)) * x + th.sqrt(k) * th.sinh(t / th.sqrt(k)) * u
 
 
 ###
