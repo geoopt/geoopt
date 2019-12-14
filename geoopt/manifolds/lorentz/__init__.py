@@ -21,7 +21,9 @@ class Lorentz(Manifold):
     def _check_point_on_manifold(
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
     ) -> Tuple[bool, Optional[str]]:
-        quad_form = -x[:, -1] ** 2 + (x[:,:-1]**2).sum()
+        dn = x.size(0)
+        x = x ** 2
+        quad_form = -x[0] + x[1:].sum()
         ok = torch.allclose(
             quad_form, quad_form.new((1,)).fill_(-1.), atol=atol, rtol=rtol
         )

@@ -92,9 +92,12 @@ def project(x, *, dim=-1, eps=None):
 def _project(x, dim: int = -1, eps: float = None):
     if x.dim() != 2:
         raise RuntimeError("dimension of input should be atleast 2")
-    d = x[:, :-1] / torch.norm(x[:, :-1], dim=-1, keepdim=True)
-    r = x[:, -1][..., None]
-    return torch.cat((torch.sinh(r) * d, torch.cosh(r)), dim=-1)
+    dn = x.size(dim) - 1
+    d = x.narrow(dim, 0, dn)
+    d = d / th.norm(d, dim=dim, keepdim=True)
+    r = x.narrow(dim, -1, 1)
+    proj = torch.cat((torch.cosh(r), torch.sinh(r) * d), dim=dim)
+    return proj
 
 
 def inner(x, u, v, *, keepdim=False, dim=-1):
