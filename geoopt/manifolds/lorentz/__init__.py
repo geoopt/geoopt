@@ -1,3 +1,4 @@
+import torch as th
 import torch.nn
 from typing import Tuple, Optional
 from . import math
@@ -67,7 +68,7 @@ class Lorentz(Manifold):
             return res
 
     def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.logmap(x, y, c=self.c, dim=dim)
+        return math.logmap(x, y, dim=dim)
 
     def inner(
         self,
@@ -82,5 +83,17 @@ class Lorentz(Manifold):
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, dim=dim)
+
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, dim=-1):
+        return math.parallel_transport(x, y, v, dim=dim)
+
+    def geodesic_unit(
+        self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1, project=True
+    ) -> torch.Tensor:
+        res = math.geodesic_unit(t, x, u, dim=dim)
+        if project:
+            return math.project(res, dim=dim)
+        else:
+            return res
 
     retr = expmap

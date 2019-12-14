@@ -27,7 +27,7 @@ class Arsinh(torch.autograd.Function):
     def forward(ctx, x):
         ctx.save_for_backward(x)
         z = x.double()
-        return (z + torch.sqrt_(1 + z.pow(2))).clamp_min_(MIN_NORM).log_().to(x.dtype)
+        return (z + torch.sqrt(1 + z.pow(2))).clamp_min(MIN_NORM).log().to(x.dtype)
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -69,19 +69,6 @@ def _dist(x, y, keepdim: bool = False, dim: int = -1, eps=1e-3):
     return arcosh(d, eps)
 
 
-def egrad2rgrad(x, grad, *, dim=-1):
-    """
-        docs:
-    """
-    return _egrad2rgrad(x, grad, dim=dim)
-
-
-def _egrad2rgrad(x, grad, dim: int = -1):
-    grad.narrow(dim, 0, 1).mul_(-1.0)
-    grad.addcmul_(_ldot(x, grad, dim=dim, keepdim=True).expand_as(x), x)
-    return grad
-
-
 def project(x, *, dim=-1, eps=None):
     """
         docs
@@ -90,8 +77,6 @@ def project(x, *, dim=-1, eps=None):
 
 
 def _project(x, dim: int = -1, eps: float = None):
-    if x.dim() != 2:
-        raise RuntimeError("dimension of input should be atleast 2")
     dn = x.size(dim) - 1
     d = x.narrow(dim, 0, dn)
     d = d / th.norm(d, dim=dim, keepdim=True)
@@ -111,6 +96,29 @@ def _inner(x, u, v, keepdim: bool = False, dim: int = -1):
     return ldot(u, v)
 
 
+def normalize_tan(x_all, v_all, dim=-1):
+    """
+        docs
+    """
+    d = v_all.size(dim) - 1
+    x = x_all.narrow(dim, 1, d)
+    xv = th.sum(x * v_all.narrow(dim, 1, d), dim=dim, keepdim=True)
+    tmp = 1 + th.sum(th.pow(x_all.narrow(dim, 1, d), 2), dim=dim, keepdim=True)
+    tmp = th.sqrt(tmp)
+    return th.cat((xv / tmp, v_all.narrow(dim, 1, d)), dim=dim)
+
+
+def norm(x, u, *, keepdim=False, dim=-1):
+    """
+        docs
+    """
+    return _norm(x, u, keepdim=keepdim, dim=dim)
+
+
+def _norm(x, u, keepdim=False, dim=-1):
+    return th.sqrt(ldot(u, u, keepdim=keepdim, dim=dim))
+
+
 def expmap(x, u, *, dim=-1):
     """
         docs
@@ -118,9 +126,10 @@ def expmap(x, u, *, dim=-1):
     return _expmap(x, u, dim=dim)
 
 
-def _expmap(x, u, c, dim: int = -1):
-    denom = th.sqrt(ldot(u, u, keepdim=True))
-    p = (th.cosh(t) * p) + (th.sinh(t) * p / denom)
+def _expmap(x, u, dim: int = -1):
+    u = normalize_tan(x, u, dim=dim)
+    denom = norm(x, u, keepdim=True, dim=dim)
+    p = (th.cosh(denom) * x) + (th.sinh(denom) * u / denom)
     return p
 
 
@@ -131,10 +140,10 @@ def logmap(x, y, *, dim=-1):
     return _logmap(x, y, dim=dim)
 
 
-def _logmap(x, y, *, dim: int = -1):
-    xy = ldot(x, y, keepdim=True)
-    denom = th.sqrt(xy * xy - 1)
-    v = (Acosh.apply(-xy, self.eps) / tmp) * th.addcmul(y, xy, x)
+def _logmap(x, y, *, dim: int = -1, eps=1e-3):
+    xy = ldot(x, y, keepdim=True, dim=dim)
+    denom = th.sqrt(xy * xy - 1.0)
+    v = (Arcosh.apply(-xy, eps) / denom) * th.addcmul(y, xy, x)
     return v
 
 
@@ -146,6 +155,50 @@ def egrad2rgrad(x, grad, *, dim=-1):
 
 
 def _egrad2rgrad(x, grad, dim: int = -1):
-    grad.narrow(-1, 0, 1).mul_(-1)
-    grad.addcmul_(self.ldot(x, grad, keepdim=True).expand_as(x), x)
+    grad = grad.narrow(dim, 0, 1).mul(-1.0)
+    grad = grad.addcmul(ldot(x, grad, dim=dim, keepdim=True).expand_as(x), x)
     return grad
+
+
+def parallel_transport(x, y, v, *, dim=-1):
+    """
+
+    """
+    return _parallel_transport(x, y, v, dim=dim)
+
+
+def _parallel_transport(x, y, v, dim: int = -1):
+    nom = ldot(logmap(x, y, dim=dim), v)
+    denom = dist(x, y, dim=dim) ** 2
+    p = v - nom / denom * (logmap(x, y, dim=dim) + logmap(y, x, dim=dim))
+    return p
+
+
+def geodesic_unit(t, x, u, *, dim=-1):
+    """
+        docs
+    """
+    return _geodesic_unit(t, x, u, dim=dim)
+
+
+def _geodesic_unit(t, x, u, dim: int = -1):
+    return th.cosh(t) * x + th.sinh(t) * u
+
+
+###
+
+
+def lorentz_to_poincare(x, dim=-1):
+    """
+        docs
+    """
+    dn = x.size(dim) - 1
+    return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + 1.0)
+
+
+def poincare_to_lorentz(x, dim=-1, eps=1e-3):
+    """
+        docs
+    """
+    x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
+    return th.cat((1.0 + x_norm_square, 2 * x), dim=dim) / (1 - x_norm_square + eps)
