@@ -274,6 +274,33 @@ def _expmap(x, u, k, dim: int = -1):
     return p
 
 
+def expmap0(u, *, k=1.0, dim=-1):
+    r"""
+    Compute exponential map for Hyperboloid from :math:`0`.
+
+    Parameters
+    ----------
+    u : tensor
+        speed vector on Hyperboloid
+    k : float|tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        :math:`\gamma_{0, u}(1)` end point
+    """
+    return _expmap0(u, c, dim=dim)
+
+
+def _expmap0(u, k, dim: int = -1):
+    nomin = norm(u, keepdim=True, dim=dim)
+    p = th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+    return p
+
+
 def logmap(x, y, *, k=1.0, dim=-1):
     r"""
     Compute logarithmic map for two points :math:`x` and :math:`y` on the manifold.
@@ -398,7 +425,7 @@ def geodesic_unit(t, x, u, k=1.0):
     x : tensor
         initial point
     u : tensor
-        direction
+        unit direction vector
     k : float|tensor
         manifold negative curvature
 
@@ -459,4 +486,4 @@ def poincare_to_lorentz(x, dim=-1, eps=1e-3):
         points on the Hyperboloid
     """
     x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
-    return th.cat((1.0 + x_norm_square, 2 * x), dim=dim) / (1 - x_norm_square + eps)
+    return th.cat((1.0 + x_norm_square, 2 * x), dim=dim) / (1. - x_norm_square + eps)
