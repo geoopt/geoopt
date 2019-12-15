@@ -25,7 +25,6 @@ class Lorentz(Manifold):
         dn = x.size(0)
         x = x ** 2
         quad_form = -x[0] + x[1:].sum()
-        print(quad_form)
         ok = torch.allclose(quad_form, -self.k, atol=atol, rtol=rtol)
         if not ok:
             reason = f"'x' minkowski quadratic form is not equal to {-self.k.item()}"

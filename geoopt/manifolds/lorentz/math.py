@@ -373,7 +373,7 @@ def parallel_transport(x, y, v, *, k=1.0, dim=-1):
     tensor
         transported vector
     """
-    return _parallel_transport(x, y, v, dim=dim)
+    return _parallel_transport(x, y, v, k=k, dim=dim)
 
 
 def _parallel_transport(x, y, v, k=1.0, dim: int = -1):
