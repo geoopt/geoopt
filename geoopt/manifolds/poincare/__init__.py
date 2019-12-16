@@ -315,7 +315,8 @@ class PoincareBall(Manifold):
         -----
         The device and dtype will match the device and dtype of the Manifold
         """
-        self._assert_check_shape(size2shape(*size), "x")
+        size = size2shape(*size)
+        self._assert_check_shape(size, "x")
         if device is not None and device != self.c.device:
             raise ValueError(
                 "`device` does not match the projector `device`, set the `device` argument to None"
@@ -324,7 +325,7 @@ class PoincareBall(Manifold):
             raise ValueError(
                 "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
             )
-        tens = torch.randn(*size, device=self.c.device, dtype=self.c.dtype) * std + mean
+        tens = torch.randn(size, device=self.c.device, dtype=self.c.dtype) * std / size[-1] ** 0.5 + mean
         return geoopt.ManifoldTensor(self.expmap0(tens), manifold=self)
 
     random = random_normal
