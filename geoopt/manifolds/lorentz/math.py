@@ -39,7 +39,7 @@ def _arsinh(x):
     return Arsinh.apply(x)
 
 
-def _arcosh(x, eps):
+def _arcosh(x, eps=1e-3):
     return Arcosh.apply(x, eps)
 
 
@@ -140,7 +140,9 @@ def _project_polar(x, k=1.0, dim: int = -1):
     dn = x.size(dim) - 1
     d = x.narrow(dim, 0, dn)
     r = x.narrow(dim, -1, 1)
-    res = th.cat((th.cosh(r / th.sqrt(k)), th.sqr(k) * th.sinh(r / th.sqrt(k)) * d), dim=dim)
+    res = th.cat(
+        (th.cosh(r / th.sqrt(k)), th.sqr(k) * th.sinh(r / th.sqrt(k)) * d), dim=dim
+    )
     return res
 
 
@@ -173,7 +175,6 @@ def project_u(x, v, *, k=1.0, dim=-1):
 
 def _project_u(x, v, k=1.0, dim=-1):
     return v.addcmul(inner(x, v, dim=dim, keepdim=True).expand_as(x), x / k)
-
 
 
 def inner(u, v, *, keepdim=False, dim=-1):
@@ -237,7 +238,7 @@ def norm(u, *, keepdim=False, dim=-1):
 
 
 def _norm(u, keepdim: bool = False, dim: int = -1):
-    return th.sqrt(inner(u, u))
+    return th.sqrt(inner(u, u, keepdim=keepdim))
 
 
 def expmap(x, u, *, k=1.0, dim=-1):
@@ -270,7 +271,10 @@ def expmap(x, u, *, k=1.0, dim=-1):
 
 def _expmap(x, u, k, dim: int = -1):
     nomin = norm(u, keepdim=True, dim=dim)
-    p = th.cosh(nomin / th.sqrt(k)) * x + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+    p = (
+        th.cosh(nomin / th.sqrt(k)) * x
+        + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+    )
     return p
 
 
@@ -292,7 +296,7 @@ def expmap0(u, *, k=1.0, dim=-1):
     tensor
         :math:`\gamma_{0, u}(1)` end point
     """
-    return _expmap0(u, c, dim=dim)
+    return _expmap0(u, k, dim=dim)
 
 
 def _expmap0(u, k, dim: int = -1):
@@ -341,7 +345,7 @@ def logmap(x, y, *, k=1.0, dim=-1):
 
 def _logmap(x, y, k, dim: int = -1):
     dist_ = dist(x, y, k=k, dim=dim, keepdim=True)
-    nomin = y + 1. / k * inner(x, y) * x
+    nomin = y + 1.0 / k * inner(x, y) * x
     denom = norm(nomin)
     return dist_ * nomin / denom
 
@@ -441,7 +445,7 @@ def _geodesic_unit(t, x, u, k=1.0):
     return th.cosh(t / th.sqrt(k)) * x + th.sqrt(k) * th.sinh(t / th.sqrt(k)) * u
 
 
-def lorentz_to_poincare(x, dim=-1):
+def lorentz_to_poincare(x, k=1.0, dim=-1):
     r"""
     Diffeomorphism that maps from Hyperboloid to Poincare disk
 
@@ -465,7 +469,7 @@ def lorentz_to_poincare(x, dim=-1):
     return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + 1.0)
 
 
-def poincare_to_lorentz(x, dim=-1, eps=1e-3):
+def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-3):
     r"""
     Diffeomorphism that maps from Poincare disk to Hyperboloid
 
@@ -486,4 +490,4 @@ def poincare_to_lorentz(x, dim=-1, eps=1e-3):
         points on the Hyperboloid
     """
     x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
-    return th.cat((1.0 + x_norm_square, 2 * x), dim=dim) / (1. - x_norm_square + eps)
+    return th.cat((1.0 + x_norm_square, 2 * x), dim=dim) / (1.0 - x_norm_square + eps)
