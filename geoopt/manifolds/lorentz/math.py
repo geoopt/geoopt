@@ -39,11 +39,11 @@ def _arsinh(x):
     return Arsinh.apply(x)
 
 
-def _arcosh(x, eps=1e-3):
+def _arcosh(x, eps=1e-6):
     return Arcosh.apply(x, eps)
 
 
-def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-3):
+def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
     r"""
     Compute geodesic distance on the Hyperboloid
 
@@ -74,7 +74,7 @@ def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-3):
     return _dist(x, y, k=k, keepdim=keepdim, dim=dim, eps=eps)
 
 
-def _dist(x, y, k, keepdim: bool = False, dim: int = -1, eps=1e-3):
+def _dist(x, y, k, keepdim: bool = False, dim: int = -1, eps=1e-6):
     d = -inner(x, y, dim=dim, keepdim=keepdim)
     return th.sqrt(k) * _arcosh(d / k, eps)
 
@@ -469,13 +469,13 @@ def lorentz_to_poincare(x, k=1.0, dim=-1):
     return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + 1.0)
 
 
-def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-3):
+def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):
     r"""
     Diffeomorphism that maps from Poincare disk to Hyperboloid
 
     .. math::
 
-        \Pi_{\mathbb{D}^{d, 1} \rightarrow \mathbb{H}^{d d, 1}}\left(x_{1}, \ldots, x_{d}\right)=\frac{\left(1+|| \mathbf{x}||_{2}^{2}, 2 x_{1}, \ldots, 2 x_{d}\right)}{1-\|\mathbf{x}\|_{2}^{2}}
+        \Pi_{\mathbb{D}^{d, k} \rightarrow \mathbb{H}^{d d, 1}}\left(x_{1}, \ldots, x_{d}\right)=\frac{\left(1+|| \mathbf{x}||_{2}^{2}, 2 x_{1}, \ldots, 2 x_{d}\right)}{1-\|\mathbf{x}\|_{2}^{2}}
 
     Parameters
     ----------
@@ -490,4 +490,5 @@ def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-3):
         points on the Hyperboloid
     """
     x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
-    return th.cat((1.0 + x_norm_square, 2 * x), dim=dim) / (1.0 - x_norm_square + eps)
+    res = th.sqrt(k) * th.cat((1 + x_norm_square, 2 * x), dim=dim) / (1.0 - x_norm_square + eps)
+    return res

@@ -1,5 +1,6 @@
 import torch as th
 import torch.nn
+import numpy as np
 from typing import Tuple, Optional
 from . import math
 import geoopt
@@ -35,6 +36,7 @@ class Lorentz(Manifold):
         dn = x.size(0)
         x = x ** 2
         quad_form = -x[0] + x[1:].sum()
+        print(quad_form)
         ok = torch.allclose(quad_form, -self.k, atol=atol, rtol=rtol)
         if not ok:
             reason = f"'x' minkowski quadratic form is not equal to {-self.k.item()}"
@@ -122,7 +124,7 @@ class Lorentz(Manifold):
         else:
             return res
 
-    def random_uniform(self, *size, dtype=None, device=None) -> "geoopt.ManifoldTensor":
+    def random_uniform(self, size, dim=-1, dtype=None, device=None) -> "geoopt.ManifoldTensor":
         """
         Uniform sampling in hyperbolic space
 
@@ -154,9 +156,19 @@ class Lorentz(Manifold):
             raise ValueError(
                 "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
             )
-        elems = torch.rand(*size)
-        r = math._arcosh(1. + elems * (th.cosh(self.k) - 1.))
-        return r
+        assert size[dim] >= 2, "dimension of random samples should be at least 2"
+        size = list(size)
+        size[dim] -= 1
+
+        rds = th.randn(*size)
+        rds = rds / rds.norm(dim=dim, keepdim=True)
+        dm = size[dim]
+        size[dim] = 1
+        rdii = th.rand(*size) * (1 / dm)
+        ps = (rds * rdii)
+
+        proj = math.poincare_to_lorentz(ps, k=self.k, dim=dim)
+        return proj
 
     def origin(
         self, *size, dtype=None, device=None, seed=42
