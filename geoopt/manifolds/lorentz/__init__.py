@@ -36,7 +36,6 @@ class Lorentz(Manifold):
         dn = x.size(0)
         x = x ** 2
         quad_form = -x[0] + x[1:].sum()
-        print(quad_form)
         ok = torch.allclose(quad_form, -self.k, atol=atol, rtol=rtol)
         if not ok:
             reason = f"'x' minkowski quadratic form is not equal to {-self.k.item()}"
@@ -118,7 +117,7 @@ class Lorentz(Manifold):
     def geodesic_unit(
         self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.geodesic_unit(t, x, u, k=self.k, dim=dim)
+        res = math.geodesic_unit(t, x, u, k=self.k)
         if project:
             return math.project(res, k=self.k, dim=dim)
         else:
