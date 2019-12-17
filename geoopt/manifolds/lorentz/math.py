@@ -3,13 +3,12 @@ import torch.jit
 import torch as th
 
 MIN_NORM = 1e-15
-_eps = 1e-10
 
 
 class Arcosh(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, eps):
-        z = th.sqrt(th.clamp(x * x - 1 + eps, _eps))
+        z = th.sqrt(th.clamp(x * x - 1., MIN_NORM))
         ctx.save_for_backward(z)
         ctx.eps = eps
         return th.log(x + z)
@@ -20,23 +19,6 @@ class Arcosh(torch.autograd.Function):
         z = th.clamp(z, min=ctx.eps)
         z = g / z
         return z, None
-
-
-class Arsinh(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, x):
-        ctx.save_for_backward(x)
-        z = x.double()
-        return (z + torch.sqrt(1 + z.pow(2))).clamp_min(MIN_NORM).log().to(x.dtype)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        (input,) = ctx.saved_tensors
-        return grad_output / (1 + input ** 2) ** 0.5
-
-
-def _arsinh(x):
-    return Arsinh.apply(x)
 
 
 def _arcosh(x, eps=1e-6):
@@ -345,7 +327,7 @@ def logmap(x, y, *, k=1.0, dim=-1):
 
 def _logmap(x, y, k, dim: int = -1):
     dist_ = dist(x, y, k=k, dim=dim, keepdim=True)
-    nomin = y + 1.0 / k * inner(x, y) * x
+    nomin = y + 1.0 / k * inner(x, y, keepdim=True) * x
     denom = norm(nomin, keepdim=True)
     return dist_ * nomin / denom
 
@@ -409,7 +391,7 @@ def parallel_transport(x, y, v, *, k=1.0, dim=-1):
 
 def _parallel_transport(x, y, v, k=1.0, dim: int = -1):
     nom = inner(logmap(x, y, k=k, dim=dim), v)
-    denom = dist(x, y, k=k, dim=dim) ** 2
+    denom = dist(x, y, k=k, dim=dim, keepdim=True) ** 2
     p = v - nom / denom * (logmap(x, y, k=k, dim=dim) + logmap(y, x, k=k, dim=dim))
     return p
 
