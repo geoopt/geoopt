@@ -323,7 +323,7 @@ class PoincareBall(Manifold):
             )
         if dtype is not None and dtype != self.c.dtype:
             raise ValueError(
-                "`dtype` does not match the manifold `dtype`, set the `dtype` arguement to None"
+                "`dtype` does not match the manifold `dtype`, set the `dtype` argument to None"
             )
         tens = (
             torch.randn(size, device=self.c.device, dtype=self.c.dtype)
