@@ -174,7 +174,7 @@ def get_interpolation_Ks(num=200):
 
 
 # define a function which returns an image as numpy array from figure
-def get_img_from_fig(fig, tmp_file, dpi=180):
+def get_img_from_fig(fig, tmp_file, dpi=90):
     fig.savefig(tmp_file, dpi=dpi)
     img = imageio.imread(tmp_file)
     return img
@@ -189,6 +189,15 @@ def save_img_sequence_as_boomerang_gif(imgs, out_filename, fps=24):
 
     # save gif
     imageio.mimsave(out_filename, boomerang, fps=fps)
+
+    # optimize gif file size
+    optimize(out_filename)
+
+
+def save_img_sequence_as_gif(imgs, out_filename, fps=24):
+
+    # save gif
+    imageio.mimsave(out_filename, imgs, fps=fps)
 
     # optimize gif file size
     optimize(out_filename)
