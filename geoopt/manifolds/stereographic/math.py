@@ -1243,7 +1243,7 @@ def dist2plane(x, p, a, *, K=1.0, keepdim=False, signed=False, dim=-1):
             \frac{
             2 |\langle(-p)\oplus_\kappa x, a\rangle|
             }{
-            (1+\kappa\|(-p)\oplus_\kappa x\|^2_2)\|a\|_2
+            (1+\kappa\|(-p)\oplus_\kappa \|x\|^2_2)\|a\|_2
             }
         \right\}
 
@@ -1283,6 +1283,151 @@ def _dist2plane(x, a, p, K, keepdim: bool = False, signed: bool = False,
     num = 2.0 * sc_diff_a
     denom = ((1 + K * diff_norm2) * a_norm).clamp_min(MIN_NORM)
     return arcsin_K(num / denom, K)
+
+
+def sproj(x, K):
+    factor = 1.0 / (1.0 + torch.sqrt(K.abs())*x[:,-1])
+    proj = factor[:, None] * x[:,:-1]
+    return proj
+
+
+def inv_sproj(x, K):
+    lam_x = _lambda_x(x, K, keepdim=True, dim=-1)
+    A = lam_x[:, None] * x
+    B = 1.0/torch.sqrt(K.abs())*(lam_x - 1.0).unsqueeze(dim=-1)
+    proj = torch.cat((A,B), dim=-1)
+    return proj
+
+
+def antipode(x, K, dim: int = -1):
+    r"""
+    Computes the antipode of a point :math:`x_1,...,x_n` for :math:`\kappa > 0`.
+
+    Let :math:`x` be a point on some sphere. Then :math:`-x` is its antipode.
+    Since we're dealing with stereographic projections, for :math:`sproj(x)` we
+    get the antipode :math:`sproj(-x)`. Which is given as follows:
+
+    .. math::
+
+        \text{antipode}(x)
+        =
+        \frac{1+\kappa\|x\|^2_2}{2\kappa\|x\|^2_2}{}(-x)
+
+    Parameters
+    ----------
+    x : tensor
+        points :math:`x_1,...,x_n` on manifold to compute antipode for
+    K : float|tensor
+        sectional curvature of manifold
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        antipode
+    """
+    return _antipode(x, K, dim=dim)
+
+
+def _antipode(x, K, dim=-1):
+    # TODO: add implementation that uses stereographic projections!!!
+    # TODO: this one is correct, but it could be more efficient!!!
+    v = x/x.norm(p=2, dim=-1)
+    R = 1.0/torch.sqrt(K.abs())
+    import math
+    return _geodesic_unit(math.pi*R, x, v, K, dim=-1)
+
+
+def weighted_midpoint(x, a, *, K=1.0, keepdim=False, dim=-1):
+    r"""
+    Computes the weighted Möbius gyromidpoint of a set of points
+    :math:`x_1,...,x_n` according to weights :math:`\alpha_1,...,\alpha_n`.
+
+    The gyromidpoint looks as follows:
+
+    .. plot:: plots/extended/universal/midpoint.py
+
+    The weighted Möbius gyromidpoint is computed as follows
+
+    .. math::
+
+        m_{\kappa}(x_1,\ldots,x_n,\alpha_1,\ldots,\alpha_n)
+        =
+        \frac{1}{2}
+        \otimes_\kappa
+        \left(
+        \sum_{i=1}^n
+        \frac{
+        \alpha_i\lambda_{x_i}^\kappa
+        }{
+        \sum_{j=1}^n\alpha_j(\lambda_{x_j}^\kappa-1)
+        }
+        x_i
+        \right)
+
+    where the weights :math:`\alpha_1,...,\alpha_n` do not necessarily need
+    to sum to 1 (only their relative weight matters). Note that this formula
+    also requires to choose between the midpoint and its antipode for
+    :math:`\kappa > 0`.
+
+    Parameters
+    ----------
+    x : tensor
+        points :math:`x_1,...,x_n` on manifold to compute weighted Möbius
+        gyromidpoint for
+    a : tensor
+        scalar midpoint weights :math:`\alpha_1,...,\alpha_n`
+    K : float|tensor
+        sectional curvature of manifold
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        weighted Möbius gyromidpoint
+    """
+    return _weighted_midpoint(x, a, K, keepdim=keepdim, dim=dim)
+
+
+def _weighted_midpoint(x, w, K, keepdim: bool = False, dim: int = -1):
+    lam_x = _lambda_x(x, K, keepdim=False, dim=dim)
+    w_times_lam_x = w * lam_x
+    denominator = (w_times_lam_x - w).sum()
+
+    # min-clamp denominator
+    s = torch.sign(torch.sign(denominator) + 0.1)
+    if denominator.abs() < MIN_NORM:
+        denominator = s * MIN_NORM
+    linear_weights = w_times_lam_x / denominator
+
+    # multiply rows of X by linear weights
+    # TODO: incorporate dimension independence in next two lines
+    x = x.t()
+    rhs = torch.matmul(x, linear_weights).t()
+    x = x.t()   # restore
+    # TODO: remove dimension appropriately (the specified one)
+    if not keepdim:
+        rhs = rhs.squeeze()
+
+    # determine midpoint
+    midpoint = None
+    m = _mobius_scalar_mul(0.5, rhs, K, dim=dim)
+    # also compute and compare to antipode of m for positive curvature
+    if K > 0:
+        m_a = _antipode(m, K, dim=dim)
+        # determine whether m or m_a minimizes the sum of distances
+        d = _dist(x, m, K, keepdim=keepdim, dim=dim).sum(dim=dim, keepdim=False)
+        d_a = _dist(x, m_a, K, keepdim=keepdim, dim=dim).sum(dim=dim, keepdim=False)
+        # use midpoint that has smaller sum of squared distances
+        midpoint = m if d < d_a else m_a
+    else:
+        midpoint = m
+
+    return midpoint
 
 
 def gyration(a, b, u, *, K=1.0, dim=-1):
