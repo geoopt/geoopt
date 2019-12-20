@@ -390,6 +390,27 @@ class Stereographic(Manifold):
             x, p, a, dim=dim, K=self.get_K(), keepdim=keepdim, signed=signed
         )
 
+    def midpoint(
+        self,
+        x: torch.Tensor,
+        *,
+        dim=-1,
+        keepdim=False,
+    ) -> torch.Tensor:
+        ones = torch.ones(1, device=x.device, dtype=x.dtype)
+        return self.weighted_midpoint(x, ones, K=self.get_K(),
+                                      keepdim=keepdim, dim=dim)
+
+    def weighted_midpoint(
+        self,
+        x: torch.Tensor,
+        a: torch.Tensor,
+        *,
+        dim=-1,
+        keepdim=False,
+    ) -> torch.Tensor:
+        return math.weighted_midpoint(x, a, K=self.get_K(), keepdim=keepdim, dim=dim)
+
     # this does not yet work with scaling
     @__scaling__(ScalingInfo.NotCompatible)
     def mobius_fn_apply(
