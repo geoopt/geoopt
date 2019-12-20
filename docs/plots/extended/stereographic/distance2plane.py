@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from geoopt.manifolds.stereographic.utils import \
     setup_plot, get_interpolation_Ks, get_img_from_fig, \
-    save_img_sequence_as_boomerang_gif, add_K_box
+    save_img_sequence_as_boomerang_gif, add_K_box, COLORS
 from tqdm import tqdm
 
 n_grid_evals = 1000
@@ -52,17 +52,20 @@ for K in tqdm(get_interpolation_Ks()):
         grid[..., 0],
         grid[..., 1],
         dists.sqrt().numpy(),
-        levels=np.linspace(0, 5, 30),
+        levels=np.linspace(0, 5, 50),
         cmap="inferno"
     )
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
     cbar.set_ticks([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
 
     # plot x
-    plt.scatter(*x, color="#bfffbf")
+    plt.annotate("$p$", x + torch.tensor([-0.15, 0.05]), fontsize=15,color=COLORS.TEXT_COLOR)
+    plt.scatter(*x, s=20.0, color=COLORS.TEXT_COLOR)
 
     # plot vector from x to v
-    plt.arrow(*x, *v, color="#bfffbf", width=0.03)
+    plt.annotate("$\\vec{w}$", x + v +torch.tensor([-0.0, 0.12]), fontsize=15,
+                 color=COLORS.TEXT_COLOR)
+    plt.arrow(*x, *v, color=COLORS.TEXT_COLOR, width=0.02)
 
     # add plot title
     # plt.title(r"Square Root of Distance to $\tilde{H}_{p, w}$")
