@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from geoopt.manifolds.stereographic.utils import \
     setup_plot, get_interpolation_Ks, get_img_from_fig, \
-    save_img_sequence_as_boomerang_gif, add_K_box
+    save_img_sequence_as_boomerang_gif, add_K_box, COLORS
 from tqdm import tqdm
 
 n_grid_evals = 1000
@@ -36,9 +36,10 @@ for K in tqdm(get_interpolation_Ks()):
     yv1 = manifold.transp(x, y, v1)
     yv2 = manifold.transp(x, y, v2)
 
-    plt.annotate("$x$", x - 0.12, fontsize=15)
-    plt.annotate("$y$", y - 0.12, fontsize=15)
-    plt.annotate(r"$\vec{v}$", x + xy + 0.07, fontsize=15)
+    plt.annotate("$x$", x - 0.12, fontsize=15, color=COLORS.TEXT_COLOR)
+    plt.annotate("$y$", y - 0.12, fontsize=15, color=COLORS.TEXT_COLOR)
+    plt.annotate(r"$\vec{v}$", x + xy + 0.07, fontsize=15,
+                 color=COLORS.TEXT_COLOR)
 
     plt.arrow(*x, *v1, width=0.01, color="r")
     plt.arrow(*x, *xy, width=0.01, color="g")
@@ -48,14 +49,20 @@ for K in tqdm(get_interpolation_Ks()):
     plt.plot(*path.t().numpy(), color="g")
 
     # add plot title
-    plt.title("Parallel Transport $P^\kappa_{x \\to y}$")
+    #plt.title("Parallel Transport $P^\kappa_{x \\to y}$")
 
     # add curvature box
     add_K_box(plt, K)
 
+    # use tight layout
+    plt.tight_layout()
+
     # convert plot to image array
     img = get_img_from_fig(fig, 'tmp/parallel-transport.png')
     imgs.append(img)
+
+    # close plot to avoid warnings
+    plt.close()
 
 # save img sequence as infinite boomerang gif
 save_img_sequence_as_boomerang_gif(imgs, 'out/parallel-transport.gif')
