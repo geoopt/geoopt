@@ -9,8 +9,14 @@
 language : shell
 
 env:
-  - CONDA_PYTHON=3.6
-  - CONDA_PYTHON=3.7
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.3.1' COVERAGE='--cov geoopt'
+  - PYTHON_VERSION=3.7 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.3.1' COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.2.0' COVERAGE=''
+  - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
+
+matrix:
+  allow_failures:
+    - env: PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
 
 os:
   - linux
@@ -22,6 +28,8 @@ before_install:
 
 install:
   - source ./scripts/install_nix_win.sh
+  - source ./scripts/install_deps.sh
+  - python setup.py develop
 
 script:
   - conda --version && python --version && pip --version;
