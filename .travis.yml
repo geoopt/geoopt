@@ -10,7 +10,7 @@ matrix:
         - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/miniconda.sh
         - bash $HOME/miniconda.sh -b -p $HOME/miniconda
         - export PATH="$HOME/miniconda/bin:$PATH"
-        - conda create -ny test python=3.6 pip wheel
+        - conda create --yes -n test python=3.6 pip wheel
         - conda activate test
     - os: linux
       dist: bionic
@@ -22,7 +22,7 @@ matrix:
         - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/miniconda.sh
         - bash $HOME/miniconda.sh -b -p $HOME/miniconda
         - export PATH="$HOME/miniconda/bin:$PATH"
-        - conda create -ny test python=3.7 pip wheel
+        - conda create --yes -n test python=3.7 pip wheel
         - conda activate test
     - os: osx
       language: sh
@@ -33,7 +33,7 @@ matrix:
         - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O $HOME/miniconda.sh
         - bash $HOME/miniconda.sh -b -p $HOME/miniconda
         - export PATH="$HOME/miniconda/bin:$PATH"
-        - conda create -ny test python=3.6 pip wheel
+        - conda create --yes -n test python=3.6 pip wheel
         - conda activate test
     - os: osx
       language: sh
@@ -44,7 +44,7 @@ matrix:
         - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O $HOME/miniconda.sh
         - bash $HOME/miniconda.sh -b -p $HOME/miniconda
         - export PATH="$HOME/miniconda/bin:$PATH"
-        - conda create -ny test python=3.7 pip wheel
+        - conda create --yes -n test python=3.7 pip wheel
         - conda activate test
     - os: windows
       language: sh
@@ -53,7 +53,7 @@ matrix:
       before_install:
         - choco install python3 --params "/InstallDir:C:\\Python"
         - export PATH="/c/Python:/c/Python/Scripts:$PATH"
-        - conda create -ny test python=3.6 pip
+        - conda create --yes -n test python=3.6 pip wheel
         - conda activate test
     - os: windows
       language: sh
@@ -62,7 +62,7 @@ matrix:
       before_install:
         - choco install python3 --params "/InstallDir:C:\\Python"
         - export PATH="/c/Python:/c/Python/Scripts:$PATH"
-        - conda create -ny test python=3.7 pip
+        - conda create --yes -n test python=3.7 pip wheel
         - conda activate test
 install:
   # Get newer pip and wheel for binary caching support
