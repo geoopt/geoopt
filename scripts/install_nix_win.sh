@@ -33,7 +33,7 @@ conda info -a
 # See if test-environment already available
 # As necessary, apply python module recipies
 echo "create test-environment";
-conda env create -n test-environment;
+conda env create -n test-environment python=${CONDA_PYTHON};
 
 conda activate test-environment
 
