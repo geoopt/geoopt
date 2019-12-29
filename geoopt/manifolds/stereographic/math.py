@@ -1,16 +1,3 @@
-"""
-Poincare ball and stereographic projection of sphere math functions.
-
-The functions for the mathematics in gyrovector spaces are mostly taken from the
-papers by Ganea et al. (2018) [1]_, TODO et al. (2019) [2]_ and the book of
-Ungar (2005) [3]_.
-
-.. [1] Octavian-Eugen Ganea et al., Hyperbolic Neural Networks, NIPS 2018
-.. [2] TODO: add paper!
-.. [3] Ungar, Abraham A. Analytic hyperbolic geometry: Mathematical foundations
-       and applications. World Scientific, 2005.
-"""
-
 import functools
 import torch.jit
 
