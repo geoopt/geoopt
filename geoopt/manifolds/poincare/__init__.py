@@ -53,7 +53,7 @@ class PoincareBall(Manifold):
         return ok, reason
 
     def _check_vector_on_tangent(
-        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5, dim=-1
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
