@@ -33,13 +33,13 @@ conda info -a
 # See if test-environment already available
 # As necessary, apply python module recipies
 echo "create test-environment";
-conda env create -n test-environment -f ./tests/environment.${CONDA_PYTHON}.yml;
+conda env create -n test-environment;
 
 conda activate test-environment
-conda list
 
 # python 3.7.4 linux h265db76_0 might have cython filename issue
 if [[ $(conda list | grep ^python.*3.7.4.*h265db76_0) ]]; then
     conda install python=3.7.4;
 fi;
+conda list
 # end python 3.7.4 h265db76_0

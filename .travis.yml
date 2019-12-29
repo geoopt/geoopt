@@ -18,10 +18,10 @@ os:
   - osx
 
 before_install:
-  - source ./tests/before_install_nix_win.sh
+  - source ./scripts/before_install_nix_win.sh
 
 install:
-  - source ./tests/install_nix_win.sh
+  - source ./scripts/install_nix_win.sh
 
 script:
   - conda --version && python --version && pip --version;
