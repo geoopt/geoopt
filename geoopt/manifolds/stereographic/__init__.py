@@ -25,6 +25,10 @@ _stereographic_doc = r"""
     Do not use this manifold with K=0 to get Euclidean geometry! Use the
     Euclidean manifold, or a small value of K instead.
     
+    Documentation & Illustration
+    -----    
+    http://andbloch.github.io/K-Stereographic-Model/
+    
     References
     -----
     The functions for the mathematics in gyrovector spaces are taken from the
