@@ -8,10 +8,11 @@ MIN_NORM = 1e-15
 class Arcosh(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, eps):
-        z = th.sqrt(th.clamp(x * x - 1., MIN_NORM))
+        z = th.sqrt(th.clamp_min(x.pow(2) - 1., MIN_NORM))
         ctx.save_for_backward(z)
         ctx.eps = eps
-        return th.log(x + z)
+        asd = th.log(x + z)
+        return asd
 
     @staticmethod
     def backward(ctx, g):
@@ -53,6 +54,8 @@ def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
     tensor
         geodesic distance between :math:`x` and :math:`y`
     """
+    if isinstance(k, float):
+        k = th.Tensor([k])
     return _dist(x, y, k=k, keepdim=keepdim, dim=dim, eps=eps)
 
 
@@ -86,7 +89,7 @@ def project(x, *, k=1.0, dim=-1):
     return _project(x, k=k, dim=dim)
 
 
-def _project(x, k=1.0, dim: int = -1):
+def _project(x, k, dim: int = -1):
     dn = x.size(dim) - 1
     left_ = th.sqrt(k + th.norm(x.narrow(dim, 1, dn), dim=dim) ** 2).unsqueeze(dim)
     right_ = x.narrow(dim, 1, dn)
@@ -115,10 +118,12 @@ def project_polar(x, *, k=1.0, dim=-1):
     tensor
         projected vector on the manifold
     """
+    if isinstance(k, float):
+        k = th.Tensor([k])
     return _project_polar(x, k=k, dim=dim)
 
 
-def _project_polar(x, k=1.0, dim: int = -1):
+def _project_polar(x, k, dim: int = -1):
     dn = x.size(dim) - 1
     d = x.narrow(dim, 0, dn)
     r = x.narrow(dim, -1, 1)
@@ -155,7 +160,7 @@ def project_u(x, v, *, k=1.0, dim=-1):
     return _project_u(x, v, k=k, dim=dim)
 
 
-def _project_u(x, v, k=1.0, dim=-1):
+def _project_u(x, v, k, dim=-1):
     return v.addcmul(inner(x, v, dim=dim, keepdim=True).expand_as(x), x / k)
 
 
@@ -248,15 +253,19 @@ def expmap(x, u, *, k=1.0, dim=-1):
     tensor
         :math:`\gamma_{x, u}(1)` end point
     """
+    if isinstance(k, float):
+        k = th.Tensor([k])
     return _expmap(x, u, k=k, dim=dim)
 
 
 def _expmap(x, u, k, dim: int = -1):
     nomin = norm(u, keepdim=True, dim=dim)
+    nomin = nomin.double()
     p = (
         th.cosh(nomin / th.sqrt(k)) * x
         + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
     )
+    print(p)
     return p
 
 
@@ -278,6 +287,8 @@ def expmap0(u, *, k=1.0, dim=-1):
     tensor
         :math:`\gamma_{0, u}(1)` end point
     """
+    if isinstance(k, float):
+        k = th.Tensor([k])
     return _expmap0(u, k, dim=dim)
 
 
@@ -359,7 +370,7 @@ def egrad2rgrad(x, grad, *, k=1.0, dim=-1):
     return _egrad2rgrad(x, grad, k=k, dim=dim)
 
 
-def _egrad2rgrad(x, grad, k=1.0, dim: int = -1):
+def _egrad2rgrad(x, grad, k, dim: int = -1):
     grad = grad.addcmul(inner(x, grad, dim=dim, keepdim=True).expand_as(x), x / k)
     return grad
 
@@ -389,8 +400,8 @@ def parallel_transport(x, y, v, *, k=1.0, dim=-1):
     return _parallel_transport(x, y, v, k=k, dim=dim)
 
 
-def _parallel_transport(x, y, v, k=1.0, dim: int = -1):
-    nom = inner(logmap(x, y, k=k, dim=dim), v)
+def _parallel_transport(x, y, v, k, dim: int = -1):
+    nom = inner(logmap(x, y, k=k, dim=dim), v, keepdim=True)
     denom = dist(x, y, k=k, dim=dim, keepdim=True) ** 2
     p = v - nom / denom * (logmap(x, y, k=k, dim=dim) + logmap(y, x, k=k, dim=dim))
     return p
@@ -420,10 +431,12 @@ def geodesic_unit(t, x, u, k=1.0):
     tensor
         the point on geodesic line
     """
+    if isinstance(k, float):
+        k = th.Tensor([k])
     return _geodesic_unit(t, x, u, k=k)
 
 
-def _geodesic_unit(t, x, u, k=1.0):
+def _geodesic_unit(t, x, u, k):
     return th.cosh(t / th.sqrt(k)) * x + th.sqrt(k) * th.sinh(t / th.sqrt(k)) * u
 
 
@@ -471,6 +484,8 @@ def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):
     tensor
         points on the Hyperboloid
     """
+    if isinstance(k, float):
+        k = th.Tensor([k])
     x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
     res = th.sqrt(k) * th.cat((1 + x_norm_square, 2 * x), dim=dim) / (1.0 - x_norm_square + eps)
     return res
