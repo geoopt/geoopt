@@ -64,6 +64,41 @@ def _dist(x, y, k, keepdim: bool = False, dim: int = -1, eps=1e-6):
     return th.sqrt(k) * _arcosh(d / k, eps)
 
 
+def dist0(x, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
+    r"""
+    Compute geodesic distance on the Hyperboloid to zero.
+
+    Parameters
+    ----------
+    x : tensor
+        point on Hyperboloid
+    k : float|tensor
+        manifold negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension
+    eps : float
+        stability parameter for arcosh
+
+    Returns
+    -------
+    tensor
+        geodesic distance between :math:`x` and :math:`0`
+    """
+    if isinstance(k, float):
+        k = th.Tensor([k])
+    return _dist0(x, k, keepdim=keepdim, dim=dim)
+
+
+def _dist0(x, k, keepdim: bool = False, dim: int = -1):
+    zp = th.ones_like(x)
+    d = zp.size(dim) - 1
+    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
+    d = -inner(x, zp, dim=dim, keepdim=keepdim)
+    return th.sqrt(k) * _arcosh(d / k, eps)
+
+
 def project(x, *, k=1.0, dim=-1):
     r"""
     Projection on the Hyperboloid
@@ -260,12 +295,10 @@ def expmap(x, u, *, k=1.0, dim=-1):
 
 def _expmap(x, u, k, dim: int = -1):
     nomin = norm(u, keepdim=True, dim=dim)
-    nomin = nomin.double()
     p = (
         th.cosh(nomin / th.sqrt(k)) * x
         + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
     )
-    print(p)
     return p
 
 
@@ -293,8 +326,11 @@ def expmap0(u, *, k=1.0, dim=-1):
 
 
 def _expmap0(u, k, dim: int = -1):
+    zp = th.ones_like(u)
+    d = zp.size(dim) - 1
+    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
     nomin = norm(u, keepdim=True, dim=dim)
-    p = th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+    p = th.cosh(nomin / th.sqrt(k)) * zp + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
     return p
 
 
@@ -339,6 +375,38 @@ def logmap(x, y, *, k=1.0, dim=-1):
 def _logmap(x, y, k, dim: int = -1):
     dist_ = dist(x, y, k=k, dim=dim, keepdim=True)
     nomin = y + 1.0 / k * inner(x, y, keepdim=True) * x
+    denom = norm(nomin, keepdim=True)
+    return dist_ * nomin / denom
+
+
+def logmap0(y, *, k=1.0, dim=-1):
+    r"""
+    Compute logarithmic map for :math:`y` from :math:`0` on the manifold.
+
+    Parameters
+    ----------
+    y : tensor
+        target point on Hyperboloid
+    k : float|tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        tangent vector that transports :math:`0` to :math:`y`
+    """
+    return _logmap0(y, k=k, dim=dim)
+
+
+def _logmap0(y, k, dim: int = -1):
+    zp = th.ones_like(y)
+    d = zp.size(dim) - 1
+    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
+
+    dist_ = dist(zp, y, k=k, dim=dim, keepdim=True)
+    nomin = y + 1.0 / k * inner(zp, y, keepdim=True) * zp
     denom = norm(nomin, keepdim=True)
     return dist_ * nomin / denom
 

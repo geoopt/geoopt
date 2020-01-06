@@ -91,6 +91,9 @@ class Lorentz(Manifold):
     def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.logmap(x, y, k=self.k, dim=dim)
 
+    def logmap0(self, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.logmap0(y, k=self.k, dim=dim)
+
     def inner(
         self,
         x: torch.Tensor,
