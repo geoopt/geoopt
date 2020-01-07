@@ -1,4 +1,3 @@
-import functools
 import torch.jit
 import torch as th
 

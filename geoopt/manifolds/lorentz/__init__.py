@@ -120,8 +120,13 @@ class Lorentz(Manifold):
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, k=self.k, dim=dim)
 
-    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, dim=-1):
+    def transp(
+        self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, dim=-1
+    ) -> torch.Tensor:
         return math.parallel_transport(x, y, v, k=self.k, dim=dim)
+
+    def transp0(self, y: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.parallel_transport0(y, u, k=self.k, dim=dim)
 
     def transp_follow_expmap(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1, project=True
