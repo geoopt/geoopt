@@ -22,6 +22,7 @@ _lorentz_ball_doc = r"""
     It is extremely recommended to work with this manifold in double precision
 """
 
+
 class Lorentz(Manifold):
     __doc__ = r"""{}
     """
@@ -204,9 +205,13 @@ class Lorentz(Manifold):
         """
         zero_point = torch.ones(*size, dtype=dtype, device=device)
         d = zero_point.size(-1) - 1
-        zero_point = torch.cat((zero_point.narrow(-1, 0, 1) * torch.sqrt(self.k), zero_point.narrow(-1, 1, d) * 0.), dim=-1)
-        return geoopt.ManifoldTensor(
-            zero_point, manifold=self
+        zero_point = torch.cat(
+            (
+                zero_point.narrow(-1, 0, 1) * torch.sqrt(self.k),
+                zero_point.narrow(-1, 1, d) * 0.0,
+            ),
+            dim=-1,
         )
+        return geoopt.ManifoldTensor(zero_point, manifold=self)
 
     retr = expmap

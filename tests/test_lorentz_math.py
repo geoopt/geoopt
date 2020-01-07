@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from geoopt.manifolds import lorentz
 
+
 @pytest.fixture("function", autouse=True, params=range(30, 40))
 def seed(request):
     seed = request.param
@@ -21,7 +22,7 @@ def dtype(request):
 @pytest.fixture
 def k(seed, dtype):
     # test broadcasted and non broadcasted versions
-    return torch.Tensor([1. + 1e-10])
+    return torch.Tensor([1.0 + 1e-10])
 
 
 @pytest.fixture
@@ -81,10 +82,12 @@ def test_parallel_transport0_preserves_inner_products(a, k):
 
     zero = torch.ones_like(a)
     d = zero.size(1) - 1
-    zero = torch.cat((zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.), dim=1)
+    zero = torch.cat(
+        (zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.0), dim=1
+    )
 
-    v_0 = lorentz.math.project_u(zero, v_0) # project on tangent plane
-    u_0 = lorentz.math.project_u(zero, u_0) # project on tangent plane
+    v_0 = lorentz.math.project_u(zero, v_0)  # project on tangent plane
+    u_0 = lorentz.math.project_u(zero, u_0)  # project on tangent plane
 
     v_a = lorentz.math.parallel_transport0(a, v_0, k=k)
     u_a = lorentz.math.parallel_transport0(a, u_0, k=k)
@@ -100,7 +103,9 @@ def test_parallel_transport0_is_same_as_usual(a, k):
 
     zero = torch.ones_like(a)
     d = zero.size(1) - 1
-    zero = torch.cat((zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.), dim=1)
+    zero = torch.cat(
+        (zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.0), dim=1
+    )
 
     v_a = lorentz.math.parallel_transport0(a, v_0, k=k)
     v_a1 = lorentz.math.parallel_transport(zero, a, v_0, k=k)
@@ -113,8 +118,8 @@ def test_parallel_transport_a_b(a, b, k):
     v_0 = torch.rand_like(a)
     u_0 = torch.rand_like(a)
 
-    v_0 = lorentz.math.project_u(a, v_0) # project on tangent plane
-    u_0 = lorentz.math.project_u(a, u_0) # project on tangent plane
+    v_0 = lorentz.math.project_u(a, v_0)  # project on tangent plane
+    u_0 = lorentz.math.project_u(a, u_0)  # project on tangent plane
 
     v_1 = lorentz.math.parallel_transport(a, b, v_0, k=k)
     u_1 = lorentz.math.parallel_transport(a, b, u_0, k=k)

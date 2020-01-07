@@ -8,7 +8,7 @@ MIN_NORM = 1e-15
 class Arcosh(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, eps):
-        z = th.sqrt(th.clamp_min(x.pow(2) - 1., MIN_NORM))
+        z = th.sqrt(th.clamp_min(x.pow(2) - 1.0, MIN_NORM))
         ctx.save_for_backward(z)
         ctx.eps = eps
         asd = th.log(x + z)
@@ -94,7 +94,9 @@ def dist0(x, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
 def _dist0(x, k, keepdim: bool = False, dim: int = -1, eps=1e-6):
     zp = th.ones_like(x)
     d = zp.size(dim) - 1
-    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
+    zp = th.cat(
+        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    )
     d = -inner(x, zp, dim=dim, keepdim=keepdim)
     return th.sqrt(k) * _arcosh(d / k, eps)
 
@@ -328,9 +330,14 @@ def expmap0(u, *, k=1.0, dim=-1):
 def _expmap0(u, k, dim: int = -1):
     zp = th.ones_like(u)
     d = zp.size(dim) - 1
-    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
+    zp = th.cat(
+        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    )
     nomin = norm(u, keepdim=True, dim=dim)
-    p = th.cosh(nomin / th.sqrt(k)) * zp + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+    p = (
+        th.cosh(nomin / th.sqrt(k)) * zp
+        + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+    )
     return p
 
 
@@ -403,7 +410,9 @@ def logmap0(y, *, k=1.0, dim=-1):
 def _logmap0(y, k, dim: int = -1):
     zp = th.ones_like(y)
     d = zp.size(dim) - 1
-    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
+    zp = th.cat(
+        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    )
 
     dist_ = dist(zp, y, k=k, dim=dim, keepdim=True)
     nomin = y + 1.0 / k * inner(zp, y, keepdim=True) * zp
@@ -501,7 +510,9 @@ def parallel_transport0(y, v, *, k=1.0, dim=-1):
 def _parallel_transport0(y, v, k, dim: int = -1):
     zp = th.ones_like(y)
     d = zp.size(dim) - 1
-    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
+    zp = th.cat(
+        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    )
 
     nom = inner(logmap(zp, y, k=k, dim=dim), v, keepdim=True)
     denom = dist(zp, y, k=k, dim=dim, keepdim=True) ** 2
@@ -589,5 +600,9 @@ def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):
     if isinstance(k, float):
         k = th.Tensor([k])
     x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
-    res = th.sqrt(k) * th.cat((1 + x_norm_square, 2 * x), dim=dim) / (1.0 - x_norm_square + eps)
+    res = (
+        th.sqrt(k)
+        * th.cat((1 + x_norm_square, 2 * x), dim=dim)
+        / (1.0 - x_norm_square + eps)
+    )
     return res
