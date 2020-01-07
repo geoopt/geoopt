@@ -16,6 +16,10 @@ _lorentz_ball_doc = r"""
     ----------
     k : float|tensor
         manifold negative curvature
+
+    Notes
+    -----
+    It is extremely recommended to work with this manifold in double precision
 """
 
 class Lorentz(Manifold):
@@ -25,6 +29,7 @@ class Lorentz(Manifold):
     ndim = 1
     reversible = False
     name = "Hyperboloid"
+    __scaling__ = Manifold.__scaling__.copy()
 
     def __init__(self, k=1.0):
         super().__init__()
@@ -72,6 +77,10 @@ class Lorentz(Manifold):
         v = math.project_u(x, v, k=self.k, dim=dim)
         return v
 
+    @__scaling__(ScalingInfo(1))
+    def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
+        return math.dist0(x, k=self.k, dim=dim, keepdim=keepdim)
+
     def expmap(
         self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1
     ) -> torch.Tensor:
@@ -81,6 +90,7 @@ class Lorentz(Manifold):
         else:
             return res
 
+    @__scaling__(ScalingInfo(u=-1))
     def expmap0(self, u: torch.Tensor, *, project=True, dim=-1) -> torch.Tensor:
         res = math.expmap0(u, k=self.k, dim=dim)
         if project:
@@ -91,6 +101,7 @@ class Lorentz(Manifold):
     def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.logmap(x, y, k=self.k, dim=dim)
 
+    @__scaling__(ScalingInfo(1))
     def logmap0(self, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.logmap0(y, k=self.k, dim=dim)
 
@@ -117,6 +128,7 @@ class Lorentz(Manifold):
         y = self.expmap(x, u, dim=dim, project=project)
         return self.transp(x, y, v, dim=dim)
 
+    @__scaling__(ScalingInfo(t=-1))
     def geodesic_unit(
         self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
@@ -126,15 +138,22 @@ class Lorentz(Manifold):
         else:
             return res
 
-    def random_uniform(self, size, dim=-1, dtype=None, device=None) -> "geoopt.ManifoldTensor":
+    @__scaling__(ScalingInfo(std=-1), "random")
+    def random_normal(
+        self, *size, mean=0, std=1, dtype=None, device=None
+    ) -> "geoopt.ManifoldTensor":
         """
-        Uniform sampling in hyperbolic space
+        Create a point on the manifold, measure is induced by Normal distribution on the tangent space of zero.
 
         Parameters
 
         ----------
         size : shape
             the desired shape
+        mean : float|tensor
+            mean value for the Normal distribution
+        std : float|tensor
+            std value for the Normal distribution
         dtype: torch.dtype
             target dtype for sample, if not None, should match Manifold dtype
         device: torch.device
@@ -158,19 +177,8 @@ class Lorentz(Manifold):
             raise ValueError(
                 "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
             )
-        assert size[dim] >= 2, "dimension of random samples should be at least 2"
-        size = list(size)
-        size[dim] -= 1
-
-        rds = th.randn(*size)
-        rds = rds / rds.norm(dim=dim, keepdim=True)
-        dm = size[dim]
-        size[dim] = 1
-        rdii = th.rand(*size) * (1 / dm)
-        ps = (rds * rdii)
-
-        proj = math.poincare_to_lorentz(ps, k=self.k, dim=dim)
-        return proj
+        tens = torch.randn(*size, device=self.k.device, dtype=self.k.dtype) * std + mean
+        return geoopt.ManifoldTensor(self.expmap0(tens), manifold=self)
 
     def origin(
         self, *size, dtype=None, device=None, seed=42
@@ -194,9 +202,11 @@ class Lorentz(Manifold):
         ManifoldTensor
             zero point on the manifold
         """
+        zero_point = torch.ones(*size, dtype=dtype, device=device)
+        d = zero_point.size(-1) - 1
+        zero_point = torch.cat((zero_point.narrow(-1, 0, 1) * torch.sqrt(self.k), zero_point.narrow(-1, 1, d) * 0.), dim=-1)
         return geoopt.ManifoldTensor(
-            torch.zeros(*size, dtype=dtype, device=device), manifold=self
+            zero_point, manifold=self
         )
-
 
     retr = expmap
