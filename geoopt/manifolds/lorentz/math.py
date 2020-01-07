@@ -88,10 +88,10 @@ def dist0(x, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
     """
     if isinstance(k, float):
         k = th.Tensor([k])
-    return _dist0(x, k, keepdim=keepdim, dim=dim)
+    return _dist0(x, k, keepdim=keepdim, dim=dim, eps=eps)
 
 
-def _dist0(x, k, keepdim: bool = False, dim: int = -1):
+def _dist0(x, k, keepdim: bool = False, dim: int = -1, eps=1e-6):
     zp = th.ones_like(x)
     d = zp.size(dim) - 1
     zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
@@ -472,6 +472,40 @@ def _parallel_transport(x, y, v, k, dim: int = -1):
     nom = inner(logmap(x, y, k=k, dim=dim), v, keepdim=True)
     denom = dist(x, y, k=k, dim=dim, keepdim=True) ** 2
     p = v - nom / denom * (logmap(x, y, k=k, dim=dim) + logmap(y, x, k=k, dim=dim))
+    return p
+
+
+def parallel_transport0(y, v, *, k=1.0, dim=-1):
+    r"""
+    Perform parallel transport from zero point.
+
+    Parameters
+    ----------
+    y : tensor
+        end point
+    v : tensor
+        tangent vector to be transported
+    c : float|tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        transported vector
+    """
+    return _parallel_transport0(y, v, k=k, dim=dim)
+
+
+def _parallel_transport0(y, v, k, dim: int = -1):
+    zp = th.ones_like(y)
+    d = zp.size(dim) - 1
+    zp = th.cat((zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.), dim=dim)
+
+    nom = inner(logmap(zp, y, k=k, dim=dim), v, keepdim=True)
+    denom = dist(zp, y, k=k, dim=dim, keepdim=True) ** 2
+    p = v - nom / denom * (logmap(zp, y, k=k, dim=dim) + logmap(y, zp, k=k, dim=dim))
     return p
 
 

@@ -61,6 +61,53 @@ def test_expmap_logmap(a, b, k):
     np.testing.assert_allclose(bh, b, **tolerance[k.dtype])
 
 
+def test_expmap0_logmap0(a, k):
+    a = lorentz.math.project(a, k=k)
+    v = lorentz.math.logmap0(a, k=k)
+    norm = lorentz.math.norm(v, keepdim=True)
+    dist = lorentz.math.dist0(a, k=k, keepdim=True)
+    bh = lorentz.math.expmap0(v, k=k)
+    tolerance = {torch.float32: dict(rtol=1e-6, atol=1e-6), torch.float64: dict()}
+    np.testing.assert_allclose(bh, a, **tolerance[k.dtype])
+    np.testing.assert_allclose(norm, dist, **tolerance[k.dtype])
+
+
+def test_parallel_transport0_preserves_inner_products(a, k):
+    # pointing to the center
+    a = lorentz.math.project(a, k=k)
+
+    v_0 = torch.rand_like(a) + 1e-5
+    u_0 = torch.rand_like(a) + 1e-5
+
+    zero = torch.ones_like(a)
+    d = zero.size(1) - 1
+    zero = torch.cat((zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.), dim=1)
+
+    v_0 = lorentz.math.project_u(zero, v_0) # project on tangent plane
+    u_0 = lorentz.math.project_u(zero, u_0) # project on tangent plane
+
+    v_a = lorentz.math.parallel_transport0(a, v_0, k=k)
+    u_a = lorentz.math.parallel_transport0(a, u_0, k=k)
+    # compute norms
+    vu_0 = lorentz.math.inner(v_0, u_0, keepdim=True)
+    vu_a = lorentz.math.inner(v_a, u_a, keepdim=True)
+    np.testing.assert_allclose(vu_a, vu_0, atol=1e-6, rtol=1e-6)
+
+
+def test_parallel_transport0_is_same_as_usual(a, k):
+    a = lorentz.math.project(a, k=k)
+    v_0 = torch.rand_like(a) + 1e-5
+
+    zero = torch.ones_like(a)
+    d = zero.size(1) - 1
+    zero = torch.cat((zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.), dim=1)
+
+    v_a = lorentz.math.parallel_transport0(a, v_0, k=k)
+    v_a1 = lorentz.math.parallel_transport(zero, a, v_0, k=k)
+    # compute norms
+    np.testing.assert_allclose(v_a, v_a1, atol=1e-6, rtol=1e-6)
+
+
 def test_parallel_transport_a_b(a, b, k):
     # pointing to the center
     v_0 = torch.rand_like(a)
