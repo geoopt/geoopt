@@ -23,6 +23,7 @@ def use_floatX(request):
 manifold_shapes = {
     geoopt.manifolds.PoincareBall: (3,),
     geoopt.manifolds.EuclideanStiefel: (10, 5),
+    geoopt.manifolds.BirkhoffPolytope: (4, 4),
     geoopt.manifolds.CanonicalStiefel: (10, 5),
     geoopt.manifolds.Euclidean: (10,),
     geoopt.manifolds.Sphere: (10,),
@@ -63,6 +64,71 @@ def euclidean_stiefel_case():
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
     manifold = geoopt.manifolds.EuclideanStiefelExact()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def proju_original(x, u):
+    import geoopt.linalg as linalg
+
+    # takes batch data
+    # batch_size, n, _ = x.shape
+    x_shape = x.shape
+    x = x.reshape(-1, x_shape[-2], x_shape[-1])
+    batch_size, n = x.shape[0:2]
+
+    e = torch.ones(batch_size, n, 1, dtype=x.dtype)
+    I = torch.unsqueeze(torch.eye(x.shape[-1], dtype=x.dtype), 0).repeat(
+        batch_size, 1, 1
+    )
+
+    mu = x * u
+
+    A = linalg.block_matrix([[I, x], [torch.transpose(x, 1, 2), I]])
+
+    B = A[:, :, 1:]
+    b = torch.cat(
+        [
+            torch.sum(mu, dim=2, keepdim=True),
+            torch.transpose(torch.sum(mu, dim=1, keepdim=True), 1, 2),
+        ],
+        dim=1,
+    )
+
+    zeta, _ = torch.solve(B.transpose(1, 2) @ (b - A[:, :, 0:1]), B.transpose(1, 2) @ B)
+    alpha = torch.cat(
+        [torch.ones(batch_size, 1, 1, dtype=x.dtype), zeta[:, 0 : n - 1]], dim=1
+    )
+    beta = zeta[:, n - 1 : 2 * n - 1]
+    rgrad = mu - (alpha @ e.transpose(1, 2) + e @ beta.transpose(1, 2)) * x
+
+    rgrad = rgrad.reshape(x_shape)
+    return rgrad
+
+
+def birkhoff_case():
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.BirkhoffPolytope]
+    ex = torch.randn(*shape, dtype=torch.float64).abs()
+    ev = torch.randn(*shape, dtype=torch.float64)
+    max_iter = 100
+    eps = 1e-12
+    tol = 1e-3
+    iter = 0
+    c = 1.0 / (torch.sum(ex, dim=-2, keepdim=True) + eps)
+    r = 1.0 / (torch.matmul(ex, c.transpose(-1, -2)) + eps)
+    while iter < max_iter:
+        iter += 1
+        cinv = torch.matmul(r.transpose(-1, -2), ex)
+        if torch.max(torch.abs(cinv * c - 1)) <= tol:
+            break
+        c = 1.0 / (cinv + eps)
+        r = 1.0 / ((ex @ c.transpose(-1, -2)) + eps)
+    x = ex * (r @ c)
+
+    v = proju_original(x, ev)
+    manifold = geoopt.manifolds.BirkhoffPolytope()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
@@ -231,6 +297,7 @@ def scaled(request):
         canonical_stiefel_case(),
         poincare_case(),
         product_case(),
+        birkhoff_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )
@@ -251,14 +318,26 @@ def unary_case(unary_case_base, scaled):
 def test_projection_identity(unary_case):
     x = unary_case.x
     px = unary_case.manifold.projx(x)
-    np.testing.assert_allclose(x, px, atol=1e-6)
+    if not isinstance(
+        geoopt.utils.canonical_manifold(unary_case.manifold),
+        geoopt.manifolds.BirkhoffPolytope,
+    ):
+        np.testing.assert_allclose(x, px, atol=1e-6)
+    else:
+        np.testing.assert_allclose(x, px, atol=1e-4)
 
 
 def test_projection_via_assert(unary_case):
     ex = unary_case.ex
     px = unary_case.manifold.projx(ex)
     unary_case.manifold.assert_check_point_on_manifold(px)
-    np.testing.assert_allclose(unary_case.x, px, atol=1e-6)
+    if not isinstance(
+        geoopt.utils.canonical_manifold(unary_case.manifold),
+        geoopt.manifolds.BirkhoffPolytope,
+    ):
+        np.testing.assert_allclose(unary_case.x, px, atol=1e-6)
+    else:
+        np.testing.assert_allclose(unary_case.x, px, atol=1e-4)
 
 
 def test_vector_projection_via_assert(unary_case):

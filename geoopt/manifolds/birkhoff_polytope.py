@@ -2,6 +2,7 @@ import torch
 
 from .base import Manifold
 from .. import linalg
+import torch.jit
 from ..utils import make_tuple
 
 __all__ = ["BirkhoffPolytope"]
@@ -44,11 +45,11 @@ class BirkhoffPolytope(Manifold):
 
     ndim = 2
 
-    def __init__(self, maxiter=100, tol=1e-3, epsilon=1e-12):
+    def __init__(self, max_iter=100, tol=1e-5, eps=1e-12):
         super().__init__()
-        self.maxiter = maxiter
+        self.max_iter = max_iter
         self.tol = tol
-        self.epsilon = epsilon
+        self.eps = eps
 
     def _check_shape(self, shape, name):
         ok, reason = super()._check_shape(shape, name)
@@ -94,23 +95,9 @@ class BirkhoffPolytope(Manifold):
         return True, None
 
     def projx(self, x):
-        # TODO: refactor to vectorize without reshape
-        iter = 0
-        x_shape = x.shape
-        x_reshaped = x.reshape(-1, x_shape[-2], x_shape[-1])
-        c = 1.0 / (torch.sum(x_reshaped, dim=-2, keepdim=True) + self.epsilon)
-        r = 1.0 / (torch.matmul(x_reshaped, torch.transpose(c, -1, -2)) + self.epsilon)
-        while iter < self.maxiter:
-            iter += 1
-            cinv = torch.matmul(r.permute(0, 2, 1), x_reshaped)
-            if torch.max(torch.abs(cinv * c - 1)) <= self.tol:
-                break
-            c = 1.0 / (cinv + self.epsilon)
-            r = 1.0 / (
-                torch.matmul(x_reshaped, torch.Tensor.permute(c, 0, 2, 1))
-                + self.epsilon
-            )
-        return (x_reshaped * torch.matmul(r, c)).reshape(x_shape)
+        return proj_doubly_stochastic(
+            x=x, max_iter=self.max_iter, eps=self.eps, tol=self.tol
+        )
         # x = x.reshape(x_shape)
         # return x
 
@@ -121,8 +108,10 @@ class BirkhoffPolytope(Manifold):
         x = x.reshape(-1, x_shape[-2], x_shape[-1])
         batch_size, n = x.shape[0:2]
 
-        e = torch.ones(batch_size, n, 1)
-        I = torch.unsqueeze(torch.eye(x.shape[-1]), 0).repeat(batch_size, 1, 1)
+        e = torch.ones(batch_size, n, 1, dtype=x.dtype)
+        I = torch.unsqueeze(torch.eye(x.shape[-1], dtype=x.dtype), 0).repeat(
+            batch_size, 1, 1
+        )
 
         mu = x * u
 
@@ -140,7 +129,9 @@ class BirkhoffPolytope(Manifold):
         zeta, _ = torch.solve(
             B.transpose(1, 2) @ (b - A[:, :, 0:1]), B.transpose(1, 2) @ B
         )
-        alpha = torch.cat([torch.ones(batch_size, 1, 1), zeta[:, 0 : n - 1]], dim=1)
+        alpha = torch.cat(
+            [torch.ones(batch_size, 1, 1, dtype=x.dtype), zeta[:, 0 : n - 1]], dim=1
+        )
         beta = zeta[:, n - 1 : 2 * n - 1]
         rgrad = mu - (alpha @ e.transpose(1, 2) + e @ beta.transpose(1, 2)) * x
 
@@ -181,3 +172,20 @@ class BirkhoffPolytope(Manifold):
     def transp_follow_expmap(self, x, u, v):
         y = self.expmap(x, u)
         return self.transp(x, y, v)
+
+
+@torch.jit.script
+def proj_doubly_stochastic(
+    x, max_iter: int = 300, eps: float = 1e-5, tol: float = 1e-3
+):
+    iter = 0
+    c = 1.0 / (x.sum(dim=-2, keepdim=True) + eps)
+    r = 1.0 / ((x @ c.transpose(-1, -2)) + eps)
+    while iter < max_iter:
+        iter += 1
+        cinv = torch.matmul(r.transpose(-1, -2), x)
+        if torch.max(torch.abs(cinv * c - 1)) <= tol:
+            break
+        c = 1.0 / (cinv + eps)
+        r = 1.0 / ((x @ c.transpose(-1, -2)) + eps)
+    return x * (r @ c)

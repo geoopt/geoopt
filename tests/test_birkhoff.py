@@ -11,7 +11,7 @@ import pytest
 
 @pytest.mark.parametrize("params", [dict(lr=1e-2)])
 def test_adam_birkhoff(params):
-    birkhoff = geoopt.manifolds.BirkhoffPolytope()
+    birkhoff = geoopt.manifolds.BirkhoffPolytope(tol=1e-5)
     torch.manual_seed(42)
     with torch.no_grad():
         X = geoopt.ManifoldParameter(torch.rand(1, 5, 5), manifold=birkhoff).proj_()
@@ -28,7 +28,7 @@ def test_adam_birkhoff(params):
         loss.backward()
         return loss.item()
 
-    optim = geoopt.optim.RiemannianAdam([X], stabilize=4500, **params)
+    optim = geoopt.optim.RiemannianAdam([X], stabilize=1000, **params)
 
     assert (X - Xstar).norm() > 1e-3
     for _ in range(10000):
