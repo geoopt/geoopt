@@ -133,7 +133,7 @@ def _project(x, k, dim: int = -1, eps: float = None):
     return torch.where(cond, projected, x)
 
 
-def lambda_x(x, *, k=1.0, keepdim=False, dim=-1):
+def lambda_x(x, *, k=-1.0, keepdim=False, dim=-1):
     r"""
     Compute the conformal factor :math:`\lambda^c_x` for a point on the ball.
 
