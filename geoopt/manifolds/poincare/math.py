@@ -66,7 +66,10 @@ def tan_k(x: torch.Tensor, k: torch.Tensor):
     scaled_x = x * k_sqrt
     return (
         k_sqrt.reciprocal()
-        * (scaled_x.tan() * k_sign.gt(0) + scaled_x.tanh() * k_sign.lt(0))
+        * (
+            torch.where(k_sign.gt(0), scaled_x.tan(), k.new_zeros(()))
+            + torch.where(k_sign.lt(0), tanh(scaled_x), k.new_zeros(()))
+        )
         + x * k_zero
     )
 
@@ -80,7 +83,10 @@ def artan_k(x: torch.Tensor, k: torch.Tensor):
     scaled_x = x * k_sqrt
     return (
         k_sqrt.reciprocal()
-        * (scaled_x.atan() * k_sign.gt(0) + artanh(scaled_x) * k_sign.lt(0))
+        * (
+            torch.where(k_sign.gt(0), scaled_x.atan(), k.new_zeros(()))
+            + torch.where(k_sign.lt(0), artanh(scaled_x), k.new_zeros(()))
+        )
         + x * k_zero
     )
 
@@ -94,7 +100,10 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
     scaled_x = x * k_sqrt
     return (
         k_sqrt.reciprocal()
-        * (scaled_x.asin() * k_sign.gt(0) + arsinh(scaled_x) * k_sign.lt(0))
+        * (
+            torch.where(k_sign.gt(0), scaled_x.asin(), k.new_zeros(()))
+            + torch.where(k_sign.lt(0), arsinh(scaled_x), k.new_zeros(()))
+        )
         + x * k_zero
     )
 
