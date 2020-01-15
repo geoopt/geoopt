@@ -200,13 +200,13 @@ def _inner(x, u, v, k, keepdim: bool = False, dim: int = -1):
     )
 
 
-def norm(x, u, *, c=1.0, keepdim=False, dim=-1):
+def norm(x, u, *, k=0, keepdim=False, dim=-1):
     r"""
     Compute vector norm on the tangent space w.r.t Riemannian metric on the Poincare ball.
 
     .. math::
 
-        \|u\|_x = \lambda^c_x \|u\|_2
+        \|u\|_x = \lambda^\kappa_x \|u\|_2
 
     Parameters
     ----------
@@ -214,8 +214,8 @@ def norm(x, u, *, c=1.0, keepdim=False, dim=-1):
         point on the Poincare ball
     u : tensor
         tangent vector to :math:`x` on Poincare ball
-    c : float|tensor
-        ball negative curvature
+    k : float|tensor
+        ball curvature
     keepdim : bool
         retain the last dim? (default: false)
     dim : int
@@ -226,11 +226,11 @@ def norm(x, u, *, c=1.0, keepdim=False, dim=-1):
     tensor
         norm of vector
     """
-    return _norm(x, u, c, keepdim=keepdim, dim=dim)
+    return _norm(x, u, k, keepdim=keepdim, dim=dim)
 
 
-def _norm(x, u, c, keepdim: bool = False, dim: int = -1):
-    return _lambda_x(x, c, keepdim=keepdim, dim=dim) * u.norm(
+def _norm(x, u, k, keepdim: bool = False, dim: int = -1):
+    return _lambda_x(x, k, keepdim=keepdim, dim=dim) * u.norm(
         dim=dim, keepdim=keepdim, p=2
     )
 
