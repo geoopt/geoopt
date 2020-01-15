@@ -638,7 +638,7 @@ def geodesic(t, x, y, *, k=0, dim=-1):
         starting point on manifold
     y : tensor
         target point on manifold
-    K : float|tensor
+    k : float|tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
