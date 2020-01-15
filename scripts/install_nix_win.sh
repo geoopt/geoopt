@@ -23,7 +23,7 @@ fi;
 source $MINICONDA_PATH/etc/profile.d/conda.sh;
 hash -r;
 echo $TRAVIS_OS_NAME
-echo $CONDA_PYTHON
+echo "updating conda"
 python --version
 conda config --set always_yes yes --set changeps1 no;
 conda update -q conda;
@@ -33,7 +33,8 @@ conda info -a
 # See if test-environment already available
 # As necessary, apply python module recipies
 echo "create test-environment";
-conda create -n test-environment python=${CONDA_PYTHON};
+echo "Going to install python $PYTHON_VERSION"
+conda create -n test-environment python=${PYTHON_VERSION};
 
 conda activate test-environment
 
