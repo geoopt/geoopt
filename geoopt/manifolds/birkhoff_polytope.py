@@ -98,8 +98,6 @@ class BirkhoffPolytope(Manifold):
         return proj_doubly_stochastic(
             x=x, max_iter=self.max_iter, eps=self.eps, tol=self.tol
         )
-        # x = x.reshape(x_shape)
-        # return x
 
     def proju(self, x, u):
         # takes batch data
@@ -152,8 +150,8 @@ class BirkhoffPolytope(Manifold):
     def inner(self, x, u, v=None, *, keepdim=False):
         if v is None:
             v = u
-        n = x.shape[0]
-        return torch.sum(u * v / x) / n
+        n = x.shape[-1]
+        return torch.sum(u * v / x, dim=(-1, -2), keepdim=keepdim) / n
 
     def transp(self, x, y, v):
         return self.proju(y, v)
