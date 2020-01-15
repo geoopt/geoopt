@@ -57,6 +57,48 @@ def arsinh(x):
     return Arsinh.apply(x)
 
 
+def tan_k(x: torch.Tensor, k: torch.Tensor):
+    k_sign = k.sign()
+    k_zero = k.isclose(k.new_zeros(()))
+    # shrink sign
+    k_sign[k_zero] = 0
+    k_sqrt = k.abs().sqrt()
+    scaled_x = x * k_sqrt
+    return (
+        k_sqrt.reciprocal()
+        * (scaled_x.tan() * k_sign.gt(0) + scaled_x.tanh() * k_sign.lt(0))
+        + x * k_zero
+    )
+
+
+def artan_k(x: torch.Tensor, k: torch.Tensor):
+    k_sign = k.sign()
+    k_zero = k.isclose(k.new_zeros(()))
+    # shrink sign
+    k_sign[k_zero] = 0
+    k_sqrt = k.abs().sqrt()
+    scaled_x = x * k_sqrt
+    return (
+        k_sqrt.reciprocal()
+        * (scaled_x.atan() * k_sign.gt(0) + artanh(scaled_x) * k_sign.lt(0))
+        + x * k_zero
+    )
+
+
+def arsin_k(x: torch.Tensor, k: torch.Tensor):
+    k_sign = k.sign()
+    k_zero = k.isclose(k.new_zeros(()))
+    # shrink sign
+    k_sign[k_zero] = 0
+    k_sqrt = k.abs().sqrt()
+    scaled_x = x * k_sqrt
+    return (
+        k_sqrt.reciprocal()
+        * (scaled_x.asin() * k_sign.gt(0) + arsinh(scaled_x) * k_sign.lt(0))
+        + x * k_zero
+    )
+
+
 def project(x, *, c=1.0, dim=-1, eps=None):
     r"""
     Safe projection on the manifold for numerical stability.
