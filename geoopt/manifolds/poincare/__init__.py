@@ -220,7 +220,7 @@ class PoincareBall(Manifold):
             return res
 
     def lambda_x(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
-        return math.lambda_x(x, c=self.c, dim=dim, keepdim=keepdim)
+        return math.lambda_x(x, k=self.c, dim=dim, keepdim=keepdim)
 
     @__scaling__(ScalingInfo(1))
     def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:

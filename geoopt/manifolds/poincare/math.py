@@ -99,7 +99,7 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
     )
 
 
-def project(x, *, c=1.0, dim=-1, eps=None):
+def project(x, *, k=-1.0, dim=-1, eps=None):
     r"""
     Safe projection on the manifold for numerical stability.
 
@@ -107,8 +107,8 @@ def project(x, *, c=1.0, dim=-1, eps=None):
     ----------
     x : tensor
         point on the Poincare ball
-    c : float|tensor
-        ball negative curvature
+    k : float|tensor
+        ball curvature
     dim : int
         reduction dimension to compute norm
     eps : float
@@ -119,33 +119,33 @@ def project(x, *, c=1.0, dim=-1, eps=None):
     tensor
         projected vector on the manifold
     """
-    return _project(x, c, dim, eps)
+    return _project(x, k, dim, eps)
 
 
-def _project(x, c, dim: int = -1, eps: float = None):
+def _project(x, k, dim: int = -1, eps: float = None):
     norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     if eps is None:
         eps = BALL_EPS[x.dtype]
-    maxnorm = (1 - eps) / (c ** 0.5)
+    maxnorm = (1 - eps) / (k.abs() ** 0.5)
+    maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), float("inf")))
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
 
 
-def lambda_x(x, *, c=1.0, keepdim=False, dim=-1):
+def lambda_x(x, *, k=1.0, keepdim=False, dim=-1):
     r"""
     Compute the conformal factor :math:`\lambda^c_x` for a point on the ball.
 
     .. math::
-
-        \lambda^c_x = \frac{1}{1 - c \|x\|_2^2}
+        \lambda^\kappa_x = \frac{1}{1 + \kappa \|x\|_2^2}
 
     Parameters
     ----------
     x : tensor
         point on the Poincare ball
-    c : float|tensor
-        ball negative curvature
+    k : float|tensor
+        ball curvature
     keepdim : bool
         retain the last dim? (default: false)
     dim : int
@@ -156,11 +156,11 @@ def lambda_x(x, *, c=1.0, keepdim=False, dim=-1):
     tensor
         conformal factor
     """
-    return _lambda_x(x, c, keepdim=keepdim, dim=dim)
+    return _lambda_x(x, k, keepdim=keepdim, dim=dim)
 
 
-def _lambda_x(x, c, keepdim: bool = False, dim: int = -1):
-    return 2 / (1 - c * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
+def _lambda_x(x, k, keepdim: bool = False, dim: int = -1):
+    return 2 / (1 + k * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
 
 
 def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
