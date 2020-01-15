@@ -163,13 +163,13 @@ def _lambda_x(x, k, keepdim: bool = False, dim: int = -1):
     return 2 / (1 + k * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
 
 
-def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
+def inner(x, u, v, *, k=0, keepdim=False, dim=-1):
     r"""
     Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball.
 
     .. math::
 
-        \langle u, v\rangle_x = (\lambda^c_x)^2 \langle u, v \rangle
+        \langle u, v\rangle_x = (\lambda^\kappa_x)^2 \langle u, v \rangle
 
     Parameters
     ----------
@@ -179,8 +179,8 @@ def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
         tangent vector to :math:`x` on Poincare ball
     v : tensor
         tangent vector to :math:`x` on Poincare ball
-    c : float|tensor
-        ball negative curvature
+    k : float|tensor
+        ball curvature
     keepdim : bool
         retain the last dim? (default: false)
     dim : int
@@ -191,11 +191,11 @@ def inner(x, u, v, *, c=1.0, keepdim=False, dim=-1):
     tensor
         inner product
     """
-    return _inner(x, u, v, c, keepdim=keepdim, dim=dim)
+    return _inner(x, u, v, k, keepdim=keepdim, dim=dim)
 
 
-def _inner(x, u, v, c, keepdim: bool = False, dim: int = -1):
-    return _lambda_x(x, c, keepdim=True, dim=dim) ** 2 * (u * v).sum(
+def _inner(x, u, v, k, keepdim: bool = False, dim: int = -1):
+    return _lambda_x(x, k, keepdim=True, dim=dim) ** 2 * (u * v).sum(
         dim=dim, keepdim=keepdim
     )
 
