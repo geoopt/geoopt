@@ -99,7 +99,7 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
     )
 
 
-def project(x, *, k=-1.0, dim=-1, eps=None):
+def project(x, *, k=0, dim=-1, eps=None):
     r"""
     Safe projection on the manifold for numerical stability.
 
@@ -133,7 +133,7 @@ def _project(x, k, dim: int = -1, eps: float = None):
     return torch.where(cond, projected, x)
 
 
-def lambda_x(x, *, k=-1.0, keepdim=False, dim=-1):
+def lambda_x(x, *, k=0, keepdim=False, dim=-1):
     r"""
     Compute the conformal factor :math:`\lambda^c_x` for a point on the ball.
 
