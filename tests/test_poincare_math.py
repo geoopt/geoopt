@@ -33,7 +33,7 @@ def c(seed, dtype):
         c = torch.rand(100, 1, dtype=dtype)
     else:
         c = torch.tensor(random.random()).to(dtype)
-    return c + 1e-6
+    return c
 
 
 @pytest.fixture
@@ -330,6 +330,8 @@ def test_parallel_transport_a_b(a, b, c):
 
 
 def test_add_infinity_and_beyond(a, b, c):
+    if torch.isclose(c, c.new_zeros(())).any():
+        pytest.skip("zero not checked")
     infty = b * 10000000
     for i in range(100):
         z = poincare.math.expmap(a, infty, k=-c)
