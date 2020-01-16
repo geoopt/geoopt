@@ -27,7 +27,7 @@ def _arcosh(x, eps=1e-6):
 
 def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
     r"""
-    Compute geodesic distance on the Hyperboloid
+    Compute geodesic distance on the Hyperboloid.
 
     .. math::
 
@@ -102,7 +102,7 @@ def _dist0(x, k, keepdim: bool = False, dim: int = -1, eps=1e-6):
 
 def project(x, *, k=1.0, dim=-1):
     r"""
-    Projection on the Hyperboloid
+    Projection on the Hyperboloid.
 
     .. math::
 
@@ -135,7 +135,7 @@ def _project(x, k, dim: int = -1):
 
 def project_polar(x, *, k=1.0, dim=-1):
     r"""
-    Projection on the Hyperboloid from polar coordinates
+    Projection on the Hyperboloid from polar coordinates.
 
     ... math::
         \pi((\mathbf{d}, r))=(\sinh (r) \mathbf{d}, \cosh (r))
@@ -171,7 +171,7 @@ def _project_polar(x, k, dim: int = -1):
 
 def project_u(x, v, *, k=1.0, dim=-1):
     r"""
-    Projection of the vector on the tangent space of the Hyperboloid
+    Projection of the vector on the tangent space of the Hyperboloid.
 
     ... math::
 
@@ -202,7 +202,7 @@ def _project_u(x, v, k, dim=-1):
 
 def inner(u, v, *, keepdim=False, dim=-1):
     r"""
-    Minkowski inner product
+    Minkowski inner product.
 
     .. math::
         \langle\mathbf{u}, \mathbf{v}\rangle_{\mathcal{L}}:=-u_{0} v_{0}+u_{1} v_{1}+\ldots+u_{d} v_{d}
@@ -235,7 +235,7 @@ def _inner(u, v, keepdim: bool = False, dim: int = -1):
 
 def norm(u, *, keepdim=False, dim=-1):
     r"""
-    Compute vector norm on the tangent space w.r.t Riemannian metric on the Hyperboloid
+    Compute vector norm on the tangent space w.r.t Riemannian metric on the Hyperboloid.
 
     .. math::
 
@@ -266,7 +266,7 @@ def _norm(u, keepdim: bool = False, dim: int = -1):
 
 def expmap(x, u, *, k=1.0, dim=-1):
     r"""
-    Compute exponential map on the Hyperboloid
+    Compute exponential map on the Hyperboloid.
 
     .. math::
 
@@ -453,7 +453,7 @@ def _egrad2rgrad(x, grad, k, dim: int = -1):
 
 def parallel_transport(x, y, v, *, k=1.0, dim=-1):
     r"""
-    Perform parallel transport on the Hyperboloid
+    Perform parallel transport on the Hyperboloid.
 
     Parameters
     ----------
@@ -554,7 +554,7 @@ def _geodesic_unit(t, x, u, k):
 
 def lorentz_to_poincare(x, k=1.0, dim=-1):
     r"""
-    Diffeomorphism that maps from Hyperboloid to Poincare disk
+    Diffeomorphism that maps from Hyperboloid to Poincare disk.
 
     .. math::
 
@@ -578,7 +578,7 @@ def lorentz_to_poincare(x, k=1.0, dim=-1):
 
 def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):
     r"""
-    Diffeomorphism that maps from Poincare disk to Hyperboloid
+    Diffeomorphism that maps from Poincare disk to Hyperboloid.
 
     .. math::
 

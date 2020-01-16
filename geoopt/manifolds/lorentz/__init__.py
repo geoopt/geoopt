@@ -148,11 +148,10 @@ class Lorentz(Manifold):
     def random_normal(
         self, *size, mean=0, std=1, dtype=None, device=None
     ) -> "geoopt.ManifoldTensor":
-        """
+        r"""
         Create a point on the manifold, measure is induced by Normal distribution on the tangent space of zero.
 
         Parameters
-
         ----------
         size : shape
             the desired shape
