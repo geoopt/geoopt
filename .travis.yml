@@ -29,7 +29,7 @@ before_install:
 install:
   - source ./scripts/install_nix_win.sh
   - source ./scripts/install_deps.sh
-  - python setup.py develop
+  - python setup.py develop --no-deps
 
 script:
   - conda --version && python --version && pip --version;
