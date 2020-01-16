@@ -5,15 +5,17 @@ import geoopt
 from ...utils import size2shape, broadcast_shapes
 from ..base import Manifold, ScalingInfo
 
-__all__ = ["PoincareBall", "PoincareBallExact"]
+__all__ = ["ConstantCurvature"]
 
 _poincare_ball_doc = r"""
-    Poincare ball model, see more in :doc:`/extended/poincare`.
+    Constant Curvature model, see more in :doc:`/extended/poincare`.
 
     Parameters
     ----------
-    c : float|tensor
-        ball negative curvature
+    k : float|tensor
+        constant sectional curvature
+    learnable : bool
+        makes curvature trainable
 
     Notes
     -----
@@ -22,29 +24,30 @@ _poincare_ball_doc = r"""
 
 
 # noinspection PyMethodOverriding
-class PoincareBall(Manifold):
+class ConstantCurvature(Manifold):
     __doc__ = r"""{}
 
     See Also
     --------
-    :class:`PoincareBallExact`
+    :class:`ConstantCurvatureExact`
     """.format(
         _poincare_ball_doc
     )
 
     ndim = 1
     reversible = False
-    name = "Poincare ball"
+    name = property(lambda self: self.__class__.__name__)
     __scaling__ = Manifold.__scaling__.copy()
 
-    def __init__(self, c=1.0):
+    def __init__(self, k=0.0, learnable=False):
         super().__init__()
-        self.register_buffer("c", torch.as_tensor(c, dtype=torch.get_default_dtype()))
+        k = torch.as_tensor(k, dtype=torch.get_default_dtype())
+        self.k = torch.nn.Parameter(k, requires_grad=learnable)
 
     def _check_point_on_manifold(
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5, dim=-1
     ) -> Tuple[bool, Optional[str]]:
-        px = math.project(x, c=self.c, dim=dim)
+        px = math.project(x, k=self.k, dim=dim)
         ok = torch.allclose(x, px, atol=atol, rtol=rtol)
         if not ok:
             reason = "'x' norm lies out of the bounds [-1/sqrt(c)+eps, 1/sqrt(c)-eps]"
@@ -60,23 +63,23 @@ class PoincareBall(Manifold):
     def dist(
         self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.dist(x, y, c=self.c, keepdim=keepdim, dim=dim)
+        return math.dist(x, y, k=self.k, keepdim=keepdim, dim=dim)
 
     def dist2(
         self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.dist(x, y, c=self.c, keepdim=keepdim, dim=dim) ** 2
+        return math.dist(x, y, k=self.k, keepdim=keepdim, dim=dim) ** 2
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.egrad2rgrad(x, u, c=self.c, dim=dim)
+        return math.egrad2rgrad(x, u, k=self.k, dim=dim)
 
     def retr(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         # always assume u is scaled properly
         approx = x + u
-        return math.project(approx, c=self.c, dim=dim)
+        return math.project(approx, k=self.k, dim=dim)
 
     def projx(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.project(x, c=self.c, dim=dim)
+        return math.project(x, k=self.k, dim=dim)
 
     def proju(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
@@ -93,27 +96,27 @@ class PoincareBall(Manifold):
     ) -> torch.Tensor:
         if v is None:
             v = u
-        return math.inner(x, u, v, c=self.c, keepdim=keepdim, dim=dim)
+        return math.inner(x, u, v, k=self.k, keepdim=keepdim, dim=dim)
 
     def norm(
         self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False, dim=-1
     ) -> torch.Tensor:
-        return math.norm(x, u, c=self.c, keepdim=keepdim, dim=dim)
+        return math.norm(x, u, k=self.k, keepdim=keepdim, dim=dim)
 
     def expmap(
         self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1
     ) -> torch.Tensor:
-        res = math.expmap(x, u, c=self.c, dim=dim)
+        res = math.expmap(x, u, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.logmap(x, y, c=self.c, dim=dim)
+        return math.logmap(x, y, k=self.k, dim=dim)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, *, dim=-1):
-        return math.parallel_transport(x, y, v, c=self.c, dim=dim)
+        return math.parallel_transport(x, y, v, k=self.k, dim=dim)
 
     def transp_follow_retr(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1
@@ -144,110 +147,110 @@ class PoincareBall(Manifold):
     def mobius_add(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_add(x, y, c=self.c, dim=dim)
+        res = math.mobius_add(x, y, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def mobius_sub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_sub(x, y, c=self.c, dim=dim)
+        res = math.mobius_sub(x, y, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def mobius_coadd(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_coadd(x, y, c=self.c, dim=dim)
+        res = math.mobius_coadd(x, y, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def mobius_cosub(
         self, x: torch.Tensor, y: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_cosub(x, y, c=self.c, dim=dim)
+        res = math.mobius_cosub(x, y, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def mobius_scalar_mul(
         self, r: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_scalar_mul(r, x, c=self.c, dim=dim)
+        res = math.mobius_scalar_mul(r, x, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def mobius_pointwise_mul(
         self, w: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_pointwise_mul(w, x, c=self.c, dim=dim)
+        res = math.mobius_pointwise_mul(w, x, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def mobius_matvec(
         self, m: torch.Tensor, x: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.mobius_matvec(m, x, c=self.c, dim=dim)
+        res = math.mobius_matvec(m, x, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def geodesic(
         self, t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.geodesic(t, x, y, c=self.c, dim=dim)
+        return math.geodesic(t, x, y, k=self.k, dim=dim)
 
     @__scaling__(ScalingInfo(t=-1))
     def geodesic_unit(
         self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
-        res = math.geodesic_unit(t, x, u, c=self.c, dim=dim)
+        res = math.geodesic_unit(t, x, u, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     def lambda_x(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
-        return math.lambda_x(x, k=self.c, dim=dim, keepdim=keepdim)
+        return math.lambda_x(x, k=self.k, dim=dim, keepdim=keepdim)
 
     @__scaling__(ScalingInfo(1))
     def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
-        return math.dist0(x, c=self.c, dim=dim, keepdim=keepdim)
+        return math.dist0(x, k=self.k, dim=dim, keepdim=keepdim)
 
     @__scaling__(ScalingInfo(u=-1))
     def expmap0(self, u: torch.Tensor, *, dim=-1, project=True) -> torch.Tensor:
-        res = math.expmap0(u, c=self.c, dim=dim)
+        res = math.expmap0(u, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
     @__scaling__(ScalingInfo(1))
     def logmap0(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.logmap0(x, c=self.c, dim=dim)
+        return math.logmap0(x, k=self.k, dim=dim)
 
     def transp0(self, y: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.parallel_transport0(y, u, c=self.c, dim=dim)
+        return math.parallel_transport0(y, u, k=self.k, dim=dim)
 
     def transp0back(self, y: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.parallel_transport0back(y, u, c=self.c, dim=dim)
+        return math.parallel_transport0back(y, u, k=self.k, dim=dim)
 
     def gyration(
         self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
-        return math.gyration(x, y, z, c=self.c, dim=dim)
+        return math.gyration(x, y, z, k=self.k, dim=dim)
 
     @__scaling__(ScalingInfo(1))
     def dist2plane(
@@ -261,7 +264,7 @@ class PoincareBall(Manifold):
         signed=False
     ) -> torch.Tensor:
         return math.dist2plane(
-            x, p, a, dim=dim, c=self.c, keepdim=keepdim, signed=signed
+            x, p, a, dim=dim, k=self.k, keepdim=keepdim, signed=signed
         )
 
     # this does not yet work with scaling
@@ -269,9 +272,9 @@ class PoincareBall(Manifold):
     def mobius_fn_apply(
         self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True, **kwargs
     ) -> torch.Tensor:
-        res = math.mobius_fn_apply(fn, x, *args, c=self.c, dim=dim, **kwargs)
+        res = math.mobius_fn_apply(fn, x, *args, k=self.k, dim=dim, **kwargs)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
@@ -280,9 +283,9 @@ class PoincareBall(Manifold):
     def mobius_fn_apply_chain(
         self, x: torch.Tensor, *fns: callable, project=True, dim=-1
     ) -> torch.Tensor:
-        res = math.mobius_fn_apply_chain(x, *fns, c=self.c, dim=dim)
+        res = math.mobius_fn_apply_chain(x, *fns, k=self.k, dim=dim)
         if project:
-            return math.project(res, c=self.c, dim=dim)
+            return math.project(res, k=self.k, dim=dim)
         else:
             return res
 
@@ -317,16 +320,16 @@ class PoincareBall(Manifold):
         """
         size = size2shape(*size)
         self._assert_check_shape(size, "x")
-        if device is not None and device != self.c.device:
+        if device is not None and device != self.k.device:
             raise ValueError(
                 "`device` does not match the manifold `device`, set the `device` argument to None"
             )
-        if dtype is not None and dtype != self.c.dtype:
+        if dtype is not None and dtype != self.k.dtype:
             raise ValueError(
                 "`dtype` does not match the manifold `dtype`, set the `dtype` argument to None"
             )
         tens = (
-            torch.randn(size, device=self.c.device, dtype=self.c.dtype)
+            torch.randn(size, device=self.k.device, dtype=self.k.dtype)
             * std
             / size[-1] ** 0.5
             + mean
@@ -362,22 +365,67 @@ class PoincareBall(Manifold):
         )
 
 
-class PoincareBallExact(PoincareBall):
+class ConstantCurvatureExact(ConstantCurvature):
     __doc__ = r"""{}
 
     The implementation of retraction is an exact exponential map, this retraction will be used in optimization.
 
     See Also
     --------
-    :class:`PoincareBall`
+    :class:`ConstantCurvature`
     """.format(
         _poincare_ball_doc
     )
 
     reversible = True
-    retr_transp = PoincareBall.expmap_transp
-    transp_follow_retr = PoincareBall.transp_follow_expmap
-    retr = PoincareBall.expmap
+    retr_transp = ConstantCurvature.expmap_transp
+    transp_follow_retr = ConstantCurvature.transp_follow_expmap
+    retr = ConstantCurvature.expmap
 
     def extra_repr(self):
         return "exact"
+
+
+class PoincareBall(ConstantCurvature):
+    @property
+    def k(self):
+        return -self.c
+
+    @k.setter
+    @torch.no_grad()
+    def k(self, value):
+        self.log_c = value.neg_().log_()
+
+    @property
+    def c(self):
+        return self.log_c.exp()
+
+    @c.setter
+    @torch.no_grad()
+    def c(self, value):
+        self.log_c = value.log_()
+
+    def __init__(self, c=1.0, learnable=False):
+        super().__init__(k=-c, learnable=learnable)
+
+
+class PoincareBallExact(PoincareBall, ConstantCurvatureExact):
+    ...
+
+
+class SphereProjection(ConstantCurvature):
+    @property
+    def k(self):
+        return self.log_c.exp()
+
+    @k.setter
+    @torch.no_grad()
+    def k(self, value):
+        self.log_c = value.log_()
+
+    def __init__(self, c=1.0, learnable=False):
+        super().__init__(k=-c, learnable=learnable)
+
+
+class SphereProjectionExact(SphereProjection, ConstantCurvatureExact):
+    ...
