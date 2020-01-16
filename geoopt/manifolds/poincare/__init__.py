@@ -42,9 +42,9 @@ class PoincareBall(Manifold):
         self.register_buffer("c", torch.as_tensor(c, dtype=torch.get_default_dtype()))
 
     def _check_point_on_manifold(
-        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5, dim=-1
     ) -> Tuple[bool, Optional[str]]:
-        px = math.project(x, c=self.c)
+        px = math.project(x, c=self.c, dim=dim)
         ok = torch.allclose(x, px, atol=atol, rtol=rtol)
         if not ok:
             reason = "'x' norm lies out of the bounds [-1/sqrt(c)+eps, 1/sqrt(c)-eps]"
@@ -53,7 +53,7 @@ class PoincareBall(Manifold):
         return ok, reason
 
     def _check_vector_on_tangent(
-        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5, dim=-1
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
@@ -75,10 +75,10 @@ class PoincareBall(Manifold):
         approx = x + u
         return math.project(approx, c=self.c, dim=dim)
 
-    def projx(self, x: torch.Tensor, dim=-1) -> torch.Tensor:
+    def projx(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.project(x, c=self.c, dim=dim)
 
-    def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+    def proju(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
         return u.expand(target_shape)
 
@@ -112,30 +112,30 @@ class PoincareBall(Manifold):
     def logmap(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.logmap(x, y, c=self.c, dim=dim)
 
-    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, dim=-1):
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, *, dim=-1):
         return math.parallel_transport(x, y, v, c=self.c, dim=dim)
 
     def transp_follow_retr(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
         y = self.retr(x, u, dim=dim)
         return self.transp(x, y, v, dim=dim)
 
     def transp_follow_expmap(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1, project=True
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         y = self.expmap(x, u, dim=dim, project=project)
         return self.transp(x, y, v, dim=dim)
 
     def expmap_transp(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1, project=True
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1, project=True
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         y = self.expmap(x, u, dim=dim, project=project)
         v_transp = self.transp(x, y, v, dim=dim)
         return y, v_transp
 
     def retr_transp(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         y = self.retr(x, u, dim=dim)
         v_transp = self.transp(x, y, v, dim=dim)
