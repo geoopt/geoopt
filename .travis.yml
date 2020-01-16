@@ -30,8 +30,15 @@ install:
   - source ./scripts/install_nix_win.sh
   - source ./scripts/install_deps.sh
   - python setup.py develop --no-deps
-  - if [[ $COVERAGE ]]; then pip install -r requirements-dev.txt; fi
 
 script:
   - conda --version && python --version && pip --version && python -c 'import torch; print("torch", torch.__version__)'
-  - make lint && pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}
+  - black --check --diff geoopt tests
+  - pylint geoopt
+  - pydocstyle geoopt
+  - pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}
+
+after_success:
+  - echo $(pwd)
+  - ls -la
+  - if [[ $COVERAGE ]]; then coveralls; fi
