@@ -1,4 +1,4 @@
-.PHONY: help docker dockstyle-check codestyle-check linter-check black test lint check
+.PHONY: help dockstyle-check codestyle-check linter-check black test lint check
 .DEFAULT_GOAL = help
 
 PYTHON = python
@@ -9,14 +9,6 @@ SHELL = bash
 help:
 	@printf "Usage:\n"
 	@grep -E '^[a-zA-Z_-]+:.*?# .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?# "}; {printf "\033[1;34mmake %-15s\033[0m%s\n", $$1, $$2}'
-
-docker:  # Set up a Docker image for development.
-	@printf "Creating Docker image...\n"
-	${SHELL} ./scripts/container.sh --build
-
-docker-test:  # Run tests in a Docker image.
-	@printf "Testing in Docker image...\n"
-	${SHELL} ./scripts/container.sh --test
 
 docstyle-check:  # Check geoopt with pydocstyle
 	@printf "Checking documentation with pydocstyle...\n"
@@ -43,6 +35,4 @@ lint: linter-check codestyle-check docstyle-check # Lint code using black and py
 
 check: lint test # Both lint and test code. Runs `make lint` followed by `make test`.
 
-clear-pycache:  # clear __pycache__ in the project files (may appear after running tests in docker)
-	find -type d -name __pycache__ -exec rm -rf {} +
 
