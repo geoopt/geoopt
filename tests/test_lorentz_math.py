@@ -62,8 +62,7 @@ def test_expmap_logmap(a, b, k):
     np.testing.assert_allclose(bh, b, **tolerance[k.dtype])
 
 
-"""
-TODO: stability for fp32 for corner cases
+@pytest.mark.xfail
 def test_geodesic_segement_unit_property(a, b, k):
     a = lorentz.math.project(a, k=k)
     b = lorentz.math.project(b, k=k)
@@ -86,7 +85,6 @@ def test_geodesic_segement_unit_property(a, b, k):
     np.testing.assert_allclose(
         dist_ab_t0mt1, true_distance_travelled, **tolerance[k.dtype]
     )
-"""
 
 
 def test_expmap0_logmap0(a, k):
