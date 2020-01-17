@@ -1,4 +1,4 @@
-import geoopt.manifolds.poincare.math as pmath
+from geoopt import Stereographic
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,10 +16,13 @@ v1 = torch.tensor((np.sin(np.pi / 3), np.cos(np.pi / 3))) / 5
 v2 = torch.tensor((np.sin(-np.pi / 3), np.cos(np.pi / 3))) / 5
 y = torch.tensor((0.65, -0.55))
 t = torch.linspace(0, 1)
-xy = pmath.logmap(x, y)
-path = pmath.geodesic(t[:, None], x, y)
-yv1 = pmath.parallel_transport(x, y, v1)
-yv2 = pmath.parallel_transport(x, y, v2)
+
+manifold = Stereographic(-1)
+
+xy = manifold.logmap(x, y)
+path = manifold.geodesic(t[:, None], x, y)
+yv1 = manifold.transp(x, y, v1)
+yv2 = manifold.transp(x, y, v2)
 
 
 circle = plt.Circle((0, 0), 1, fill=False, color="b")

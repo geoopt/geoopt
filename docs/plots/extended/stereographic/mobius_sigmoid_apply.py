@@ -1,4 +1,4 @@
-import geoopt.manifolds.poincare.math as pmath
+from geoopt import Stereographic
 from matplotlib import rcParams
 import torch
 import matplotlib.pyplot as plt
@@ -8,7 +8,8 @@ sns.set_style("white")
 rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
 rcParams["text.usetex"] = True
 x = torch.tensor((-0.25, -0.75)) / 3
-f_x = pmath.mobius_fn_apply(torch.sigmoid, x)
+manifold = Stereographic(-1)
+f_x = manifold.mobius_fn_apply(torch.sigmoid, x)
 
 
 circle = plt.Circle((0, 0), 1, fill=False, color="b")

@@ -15,46 +15,75 @@ __all__ = [
 ]
 
 _stereographic_doc = r"""
-    :math:`\kappa`-Stereographic model, see more in 
-    :doc:`/extended/stereographic`
+    :math:`\kappa`-Stereographic model.
 
     Parameters
     ----------
-    K : float|tensor 
+    k : float|tensor 
         sectional curvature :math:`\kappa` of the manifold
-        - K<0: Poincaré ball (stereographic projection of hyperboloid)
-        - K>0: Stereographic projection of sphere
-        - K-->0: Euclidean geometry
+        - k<0: Poincaré ball (stereographic projection of hyperboloid)
+        - k>0: Stereographic projection of sphere
+        - k=0: Euclidean geometry
 
     Notes
     -----
     It is extremely recommended to work with this manifold in double precision.
-    Do not use this manifold with K=0 to get Euclidean geometry! Use the
-    Euclidean manifold, or a small value of K instead.
 
     Documentation & Illustration
-    -----    
-    http://andbloch.github.io/K-Stereographic-Model/
+    ---------------------------- 
+    http://andbloch.github.io/K-Stereographic-Model/ or :doc:`/extended/stereographic`
+"""
 
-    References
-    -----
+_references = """References
+    ----------
     The functions for the mathematics in gyrovector spaces are taken from the
     following resources:
 
-    .. [1] Ganea, Octavian, Gary Bécigneul, and Thomas Hofmann. "Hyperbolic 
+    [1] Ganea, Octavian, Gary Bécigneul, and Thomas Hofmann. "Hyperbolic 
            neural networks." Advances in neural information processing systems. 
            2018.
-    .. [2] Bachmann, Gregor, Gary Bécigneul, and Octavian-Eugen Ganea. "Constant
+    [2] Bachmann, Gregor, Gary Bécigneul, and Octavian-Eugen Ganea. "Constant
            Curvature Graph Convolutional Networks." arXiv preprint 
            arXiv:1911.05076 (2019).
-    .. [3] Skopek, Ondrej, Octavian-Eugen Ganea, and Gary Bécigneul. 
+    [3] Skopek, Ondrej, Octavian-Eugen Ganea, and Gary Bécigneul. 
            "Mixed-curvature Variational Autoencoders." arXiv preprint 
            arXiv:1911.08411 (2019).
-    .. [4] Ungar, Abraham A. Analytic hyperbolic geometry: Mathematical 
+    [4] Ungar, Abraham A. Analytic hyperbolic geometry: Mathematical 
            foundations and applications. World Scientific, 2005.
-    .. [5] Albert, Ungar Abraham. Barycentric calculus in Euclidean and 
+    [5] Albert, Ungar Abraham. Barycentric calculus in Euclidean and 
            hyperbolic geometry: A comparative introduction. World Scientific, 
            2010.
+"""
+
+_poincare_ball_doc = r"""
+    Poincare ball model.
+
+    See more in :doc:`/extended/stereographic`
+
+    Parameters
+    ----------
+    c : float|tensor
+        ball's negative curvature. The parametrization is constrained to have positive c
+
+    Notes
+    -----
+    It is extremely recommended to work with this manifold in double precision
+"""
+
+
+_sphere_projection_doc = r"""
+    Stereographic Projection Spherical model.
+
+    See more in :doc:`/extended/stereographic`
+
+    Parameters
+    ----------
+    k : float|tensor
+        sphere's positive curvature. The parametrization is constrained to have positive k
+
+    Notes
+    -----
+    It is extremely recommended to work with this manifold in double precision
 """
 
 
@@ -62,11 +91,17 @@ _stereographic_doc = r"""
 class Stereographic(Manifold):
     __doc__ = r"""{}
 
+    {}
+    
     See Also
     --------
-    :class:`ConstantCurvatureExact`
+    :class:`StereographicExact`
+    :class:`PoincareBall`
+    :class:`PoincareBallExact`
+    :class:`SphereProjection`
+    :class:`SphereProjectionExact`
     """.format(
-        _stereographic_doc
+        _stereographic_doc, _references,
     )
 
     ndim = 1
@@ -76,9 +111,7 @@ class Stereographic(Manifold):
 
     @property
     def radius(self):
-        k = self.k
-        r = k.sqrt().reciprocal()
-        return torch.where(k.ge(0), r.new_full((), float("inf")), r)
+        return self.k.abs().sqrt().reciprocal()
 
     def __init__(self, k=0.0, learnable=False):
         super().__init__()
@@ -415,7 +448,11 @@ class StereographicExact(Stereographic):
 
     See Also
     --------
-    :class:`ConstantCurvature`
+    :class:`Stereographic`
+    :class:`PoincareBall`
+    :class:`PoincareBallExact`
+    :class:`SphereProjection`
+    :class:`SphereProjectionExact`
     """.format(
         _stereographic_doc
     )
@@ -430,6 +467,19 @@ class StereographicExact(Stereographic):
 
 
 class PoincareBall(Stereographic):
+    __doc__ = r"""{}
+
+    See Also
+    --------
+    :class:`Stereographic`
+    :class:`StereographicExact`
+    :class:`PoincareBallExact`
+    :class:`SphereProjection`
+    :class:`SphereProjectionExact`
+    """.format(
+        _poincare_ball_doc
+    )
+
     @property
     def k(self):
         return -self.c
@@ -446,10 +496,37 @@ class PoincareBall(Stereographic):
 
 
 class PoincareBallExact(PoincareBall, StereographicExact):
-    ...
+    __doc__ = r"""{}
+
+    The implementation of retraction is an exact exponential map, this retraction will be used in optimization.
+
+    See Also
+    --------
+    :class:`Stereographic`
+    :class:`StereographicExact`
+    :class:`PoincareBall`
+    :class:`SphereProjection`
+    :class:`SphereProjectionExact`
+    """.format(
+        _poincare_ball_doc
+    )
 
 
 class SphereProjection(Stereographic):
+    __doc__ = r"""{}
+
+    See Also
+    --------
+    :class:`Stereographic`
+    :class:`StereographicExact`
+    :class:`PoincareBall`
+    :class:`PoincareBallExact`
+    :class:`SphereProjectionExact`
+    :class:`Sphere`
+    """.format(
+        _sphere_projection_doc
+    )
+
     @property
     def k(self):
         return torch.nn.functional.softplus(self.isp_k)
@@ -462,4 +539,18 @@ class SphereProjection(Stereographic):
 
 
 class SphereProjectionExact(SphereProjection, StereographicExact):
-    ...
+    __doc__ = r"""{}
+
+    The implementation of retraction is an exact exponential map, this retraction will be used in optimization.
+
+    See Also
+    --------
+    :class:`Stereographic`
+    :class:`StereographicExact`
+    :class:`PoincareBall`
+    :class:`PoincareBallExact`
+    :class:`SphereProjectionExact`
+    :class:`Sphere`
+    """.format(
+        _sphere_projection_doc
+    )

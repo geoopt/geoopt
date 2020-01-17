@@ -1,4 +1,4 @@
-import geoopt.manifolds.poincare.math as pmath
+from geoopt import Stereographic
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -9,7 +9,9 @@ rcParams["text.usetex"] = True
 sns.set_style("white")
 x = torch.tensor((-0.25, -0.75)) / 3
 M = torch.tensor([[-1, -1.5], [0.2, 0.5]])
-M_x = pmath.mobius_matvec(M, x)
+
+manifold = Stereographic(-1)
+M_x = manifold.mobius_matvec(M, x)
 
 
 circle = plt.Circle((0, 0), 1, fill=False, color="b")

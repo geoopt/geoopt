@@ -13,7 +13,7 @@ A very simple example of Riemannian manifold with constant, but positive curvatu
 
 An (N+1)-dimensional hyperboloid spans the manifold that can be embedded into N-dimensional space via projections.
 
-.. figure:: ../plots/extended/poincare/hyperboloid_projection.png
+.. figure:: ../plots/extended/stereographic/hyperboloid_projection.png
    :width: 300
 
    img source `Wikipedia, Hyperboloid Model <https://en.wikipedia.org/wiki/Hyperboloid_model/>`_
@@ -30,7 +30,7 @@ exist in literature
 Klein Model
 ~~~~~~~~~~~
 
-.. figure:: ../plots/extended/poincare/klein_tiling.png
+.. figure:: ../plots/extended/stereographic/klein_tiling.png
    :width: 300
 
    img source `Wikipedia, Klein Model <https://en.wikipedia.org/wiki/Beltrami-Klein_model/>`_
@@ -39,7 +39,7 @@ Klein Model
 Poincare Model
 ~~~~~~~~~~~~~~
 
-.. figure:: ../plots/extended/poincare/poincare_lines.gif
+.. figure:: ../plots/extended/stereographic/poincare_lines.gif
    :width: 300
 
    img source `Bulatov, Poincare Model <http://bulatov.org/math/1001/>`_
@@ -54,14 +54,14 @@ To connect Euclidean space with its embedded manifold we need to get :math:`g_x`
 It is done via `conformal factor` :math:`\lambda^c_x`.
 
 
-.. autofunction:: geoopt.manifolds.poincare.math.lambda_x
+.. autofunction:: geoopt.manifolds.stereographic.math.lambda_x
 
 
 :math:`\lambda^c_x` connects Euclidean inner product with Riemannian one
 
-.. autofunction:: geoopt.manifolds.poincare.math.inner
-.. autofunction:: geoopt.manifolds.poincare.math.norm
-.. autofunction:: geoopt.manifolds.poincare.math.egrad2rgrad
+.. autofunction:: geoopt.manifolds.stereographic.math.inner
+.. autofunction:: geoopt.manifolds.stereographic.math.norm
+.. autofunction:: geoopt.manifolds.stereographic.math.egrad2rgrad
 
 Math
 ----
@@ -81,31 +81,31 @@ Left loop
 
 As mentioned above, hyperbolic space forms a Gyrogroup equipped with
 
-.. autofunction:: geoopt.manifolds.poincare.math.mobius_add
-.. autofunction:: geoopt.manifolds.poincare.math.gyration
+.. autofunction:: geoopt.manifolds.stereographic.math.mobius_add
+.. autofunction:: geoopt.manifolds.stereographic.math.gyration
 
 Using this math, it is possible to define another useful operations
 
-.. autofunction:: geoopt.manifolds.poincare.math.mobius_sub
-.. autofunction:: geoopt.manifolds.poincare.math.mobius_scalar_mul
-.. autofunction:: geoopt.manifolds.poincare.math.mobius_pointwise_mul
-.. autofunction:: geoopt.manifolds.poincare.math.mobius_matvec
-.. autofunction:: geoopt.manifolds.poincare.math.mobius_fn_apply
-.. autofunction:: geoopt.manifolds.poincare.math.mobius_fn_apply_chain
+.. autofunction:: geoopt.manifolds.stereographic.math.mobius_sub
+.. autofunction:: geoopt.manifolds.stereographic.math.mobius_scalar_mul
+.. autofunction:: geoopt.manifolds.stereographic.math.mobius_pointwise_mul
+.. autofunction:: geoopt.manifolds.stereographic.math.mobius_matvec
+.. autofunction:: geoopt.manifolds.stereographic.math.mobius_fn_apply
+.. autofunction:: geoopt.manifolds.stereographic.math.mobius_fn_apply_chain
 
 Manifold
 --------
 Now we are ready to proceed with studying distances, geodesics, exponential maps and more
 
-.. autofunction:: geoopt.manifolds.poincare.math.dist
-.. autofunction:: geoopt.manifolds.poincare.math.dist2plane
-.. autofunction:: geoopt.manifolds.poincare.math.parallel_transport
-.. autofunction:: geoopt.manifolds.poincare.math.geodesic
-.. autofunction:: geoopt.manifolds.poincare.math.geodesic_unit
-.. autofunction:: geoopt.manifolds.poincare.math.expmap
-.. autofunction:: geoopt.manifolds.poincare.math.expmap0
-.. autofunction:: geoopt.manifolds.poincare.math.logmap
-.. autofunction:: geoopt.manifolds.poincare.math.logmap0
+.. autofunction:: geoopt.manifolds.stereographic.math.dist
+.. autofunction:: geoopt.manifolds.stereographic.math.dist2plane
+.. autofunction:: geoopt.manifolds.stereographic.math.parallel_transport
+.. autofunction:: geoopt.manifolds.stereographic.math.geodesic
+.. autofunction:: geoopt.manifolds.stereographic.math.geodesic_unit
+.. autofunction:: geoopt.manifolds.stereographic.math.expmap
+.. autofunction:: geoopt.manifolds.stereographic.math.expmap0
+.. autofunction:: geoopt.manifolds.stereographic.math.logmap
+.. autofunction:: geoopt.manifolds.stereographic.math.logmap0
 
 
 Stability
@@ -113,4 +113,4 @@ Stability
 Numerical stability is a pain in this model. It is strongly recommended to work in ``float64``,
 so expect adventures in ``float32`` (but this is not certain).
 
-.. autofunction:: geoopt.manifolds.poincare.math.project
+.. autofunction:: geoopt.manifolds.stereographic.math.project

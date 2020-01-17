@@ -273,7 +273,7 @@ def mobius_add(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
             1 - 2 \kappa \langle x, y\rangle + \kappa^2 \|x\|^2_2 \|y\|^2_2
         }
 
-    .. plot:: plots/extended/universal/mobius_add.py
+    .. plot:: plots/extended/stereographic/mobius_add.py
 
     In general this operation is not commutative:
 
@@ -561,7 +561,7 @@ def dist(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, keepdim=False, di
 
         d_\kappa(x, y) = 2\tan_\kappa^{-1}(\|(-x)\oplus_\kappa y\|_2)
 
-    .. plot:: plots/extended/universal/distance.py
+    .. plot:: plots/extended/stereographic/distance.py
 
     Parameters
     ----------
@@ -928,7 +928,7 @@ def mobius_matvec(m: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
             \frac{\|Mx\|_2}{\|x\|_2}\tan_\kappa^{-1}(\|x\|_2)
         \right)\frac{Mx}{\|Mx\|_2}
 
-    .. plot:: plots/extended/universal/mobius_matvec.py
+    .. plot:: plots/extended/stereographic/mobius_matvec.py
 
     Parameters
     ----------
@@ -1091,7 +1091,7 @@ def mobius_fn_apply(
         =
         \operatorname{exp}^\kappa_0(f(\operatorname{log}^\kappa_0(y)))
 
-    .. plot:: plots/extended/universal/mobius_sigmoid_apply.py
+    .. plot:: plots/extended/stereographic/mobius_sigmoid_apply.py
 
     Parameters
     ----------
@@ -1161,7 +1161,7 @@ def dist2plane(
     The hyperplane is such that its set of points is orthogonal to :math:`a` and
     contains :math:`p`.
 
-    .. plot:: plots/extended/universal/distance2plane.py
+    .. plot:: plots/extended/stereographic/distance2plane.py
 
     To form an intuition what is a hyperplane in gyrovector spaces, let's first
     consider an Euclidean hyperplane
@@ -1398,7 +1398,7 @@ def parallel_transport(
     manifolds. For gyrovector spaces the parallel transport is expressed through
     the gyration.
 
-    .. plot:: plots/extended/universal/gyrovector_parallel_transport.py
+    .. plot:: plots/extended/stereographic/gyrovector_parallel_transport.py
 
     To recover parallel transport we first need to study isomorphisms between
     gyrovectors and vectors. The reason is that originally, parallel transport
@@ -1433,7 +1433,7 @@ def parallel_transport(
         =
         \operatorname{gyr}[y, -x] v \lambda^\kappa_x / \lambda^\kappa_y
 
-    .. plot:: plots/extended/universal/parallel_transport.py
+    .. plot:: plots/extended/stereographic/parallel_transport.py
 
 
     Parameters
@@ -1631,8 +1631,6 @@ def weighted_midpoint(
     :math:`x_1,...,x_n` according to weights :math:`\alpha_1,...,\alpha_n`.
 
     The gyromidpoint looks as follows:
-
-    .. plot:: plots/extended/universal/midpoint.py
 
     The weighted Möbius gyromidpoint is computed as follows
 

@@ -1,4 +1,4 @@
-import geoopt.manifolds.poincare.math as pmath
+from geoopt import Stereographic
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,17 +15,19 @@ xv1 = torch.tensor((np.sin(np.pi / 3), np.cos(np.pi / 3))) / 5
 xv2 = torch.tensor((np.sin(-np.pi / 3), np.cos(np.pi / 3))) / 5
 t = torch.linspace(0, 1, 10)[:, None]
 
+manifold = Stereographic(-1)
+
 y = torch.tensor((0.65, -0.55))
-xy = pmath.logmap(x, y)
-path = pmath.geodesic(t, x, y)
-yv1 = pmath.parallel_transport(x, y, xv1)
-yv2 = pmath.parallel_transport(x, y, xv2)
+xy = manifold.logmap(x, y)
+path = manifold.geodesic(t, x, y)
+yv1 = manifold.transp(x, y, xv1)
+yv2 = manifold.transp(x, y, xv2)
 
-xgv1 = pmath.geodesic_unit(t, x, xv1)
-xgv2 = pmath.geodesic_unit(t, x, xv2)
+xgv1 = manifold.geodesic_unit(t, x, xv1)
+xgv2 = manifold.geodesic_unit(t, x, xv2)
 
-ygv1 = pmath.geodesic_unit(t, y, yv1)
-ygv2 = pmath.geodesic_unit(t, y, yv2)
+ygv1 = manifold.geodesic_unit(t, y, yv1)
+ygv2 = manifold.geodesic_unit(t, y, yv2)
 
 
 def plot_gv(gv, **kwargs):
