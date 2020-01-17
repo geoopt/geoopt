@@ -442,7 +442,7 @@ class PoincareBall(Stereographic):
         super().__init__(k=c, learnable=learnable)
         k = self._parameters.pop("k")
         with torch.no_grad():
-            self.isp_c = k.neg_().exp_().sub_(1).log_()
+            self.isp_c = k.exp_().sub_(1).log_()
 
 
 class PoincareBallExact(PoincareBall, StereographicExact):
