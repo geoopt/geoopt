@@ -6,7 +6,7 @@ import random
 import numpy as np
 import pytest
 import warnings
-from geoopt.manifolds import poincare
+from geoopt.manifolds import stereographic
 
 
 @pytest.fixture("function", autouse=True, params=range(30, 40))
@@ -53,7 +53,12 @@ def k(c):
 
 
 @pytest.fixture
-def a(seed, c):
+def manifold(k):
+    return stereographic.Stereographic(k=k)
+
+
+@pytest.fixture
+def a(seed, c, manifold):
     if seed in {30, 35}:
         a = torch.randn(100, 10, dtype=c.dtype)
     elif seed > 35:
@@ -66,11 +71,11 @@ def a(seed, c):
         a = torch.empty(100, 10, dtype=c.dtype).normal_(-1, 1)
         a /= a.norm(dim=-1, keepdim=True) * 1.3
         a *= random.uniform(0, abs(c)) ** 0.5
-    return poincare.math.project(a, k=-c)
+    return manifold.projx(a)
 
 
 @pytest.fixture
-def b(seed, c):
+def b(seed, c, manifold):
     if seed in {30, 35}:
         b = torch.randn(100, 10, dtype=c.dtype)
     elif seed > 35:
@@ -81,29 +86,29 @@ def b(seed, c):
         b = torch.empty(100, 10, dtype=c.dtype).normal_(-1, 1)
         b /= b.norm(dim=-1, keepdim=True) * 1.3
         b *= random.uniform(0, abs(c)) ** 0.5
-    return poincare.math.project(b, k=-c)
+    return manifold.projx(b)
 
 
-def test_mobius_addition_left_cancelation(a, b, c):
-    res = poincare.math.mobius_add(-a, poincare.math.mobius_add(a, b, k=-c), k=-c)
+def test_mobius_addition_left_cancelation(a, b, c, manifold):
+    res = manifold.mobius_add(-a, manifold.mobius_add(a, b))
     tolerance = {torch.float32: dict(atol=1e-6, rtol=1e-6), torch.float64: dict()}
     np.testing.assert_allclose(res, b, **tolerance[c.dtype])
 
 
-def test_mobius_addition_zero_a(b, c):
+def test_mobius_addition_zero_a(b, c, manifold):
     a = torch.zeros(100, 10, dtype=c.dtype)
-    res = poincare.math.mobius_add(a, b, k=-c)
+    res = manifold.mobius_add(a, b)
     np.testing.assert_allclose(res, b)
 
 
-def test_mobius_addition_zero_b(a, c):
+def test_mobius_addition_zero_b(a, c, manifold):
     b = torch.zeros(100, 10, dtype=c.dtype)
-    res = poincare.math.mobius_add(a, b, k=-c)
+    res = manifold.mobius_add(a, b)
     np.testing.assert_allclose(res, a)
 
 
-def test_mobius_addition_negative_cancellation(a, c):
-    res = poincare.math.mobius_add(a, -a, k=-c)
+def test_mobius_addition_negative_cancellation(a, c, manifold):
+    res = manifold.mobius_add(a, -a)
     tolerance = {
         torch.float32: dict(atol=1e-6, rtol=1e-6),
         torch.float64: dict(atol=1e-6),
@@ -111,9 +116,9 @@ def test_mobius_addition_negative_cancellation(a, c):
     np.testing.assert_allclose(res, torch.zeros_like(res), **tolerance[c.dtype])
 
 
-def test_mobius_negative_addition(a, b, c):
-    res = poincare.math.mobius_add(-b, -a, k=-c)
-    res1 = -poincare.math.mobius_add(b, a, k=-c)
+def test_mobius_negative_addition(a, b, c, manifold):
+    res = manifold.mobius_add(-b, -a)
+    res1 = -manifold.mobius_add(b, a)
     tolerance = {
         torch.float32: dict(atol=1e-7, rtol=1e-6),
         torch.float64: dict(atol=1e-10),
@@ -122,12 +127,12 @@ def test_mobius_negative_addition(a, b, c):
 
 
 @pytest.mark.parametrize("n", list(range(5)))
-def test_n_additions_via_scalar_multiplication(n, a, c, negative):
+def test_n_additions_via_scalar_multiplication(n, a, c, negative, manifold):
 
     y = torch.zeros_like(a)
     for _ in range(n):
-        y = poincare.math.mobius_add(a, y, k=-c)
-    ny = poincare.math.mobius_scalar_mul(n, a, k=-c)
+        y = manifold.mobius_add(a, y)
+    ny = manifold.mobius_scalar_mul(n, a)
     if negative:
         tolerance = {
             torch.float32: dict(atol=1e-7, rtol=1e-6),
@@ -165,17 +170,13 @@ def r2(seed, dtype):
         return torch.rand(100, 1, dtype=dtype) * 2 - 1
 
 
-def test_scalar_multiplication_distributive(a, c, r1, r2):
-    res = poincare.math.mobius_scalar_mul(r1 + r2, a, k=-c)
-    res1 = poincare.math.mobius_add(
-        poincare.math.mobius_scalar_mul(r1, a, k=-c),
-        poincare.math.mobius_scalar_mul(r2, a, k=-c),
-        k=-c,
+def test_scalar_multiplication_distributive(a, c, r1, r2, manifold):
+    res = manifold.mobius_scalar_mul(r1 + r2, a)
+    res1 = manifold.mobius_add(
+        manifold.mobius_scalar_mul(r1, a), manifold.mobius_scalar_mul(r2, a),
     )
-    res2 = poincare.math.mobius_add(
-        poincare.math.mobius_scalar_mul(r1, a, k=-c),
-        poincare.math.mobius_scalar_mul(r2, a, k=-c),
-        k=-c,
+    res2 = manifold.mobius_add(
+        manifold.mobius_scalar_mul(r1, a), manifold.mobius_scalar_mul(r2, a),
     )
     tolerance = {
         torch.float32: dict(atol=1e-6, rtol=1e-7),
@@ -185,14 +186,10 @@ def test_scalar_multiplication_distributive(a, c, r1, r2):
     np.testing.assert_allclose(res2, res, **tolerance[c.dtype])
 
 
-def test_scalar_multiplication_associative(a, c, r1, r2):
-    res = poincare.math.mobius_scalar_mul(r1 * r2, a, k=-c)
-    res1 = poincare.math.mobius_scalar_mul(
-        r1, poincare.math.mobius_scalar_mul(r2, a, k=-c), k=-c
-    )
-    res2 = poincare.math.mobius_scalar_mul(
-        r2, poincare.math.mobius_scalar_mul(r1, a, k=-c), k=-c
-    )
+def test_scalar_multiplication_associative(a, c, r1, r2, manifold):
+    res = manifold.mobius_scalar_mul(r1 * r2, a)
+    res1 = manifold.mobius_scalar_mul(r1, manifold.mobius_scalar_mul(r2, a))
+    res2 = manifold.mobius_scalar_mul(r2, manifold.mobius_scalar_mul(r1, a))
     tolerance = {
         torch.float32: dict(atol=1e-7, rtol=1e-6),  # worked with rtol=1e-7 locally
         torch.float64: dict(atol=1e-7, rtol=1e-10),
@@ -201,12 +198,10 @@ def test_scalar_multiplication_associative(a, c, r1, r2):
     np.testing.assert_allclose(res2, res, **tolerance[c.dtype])
 
 
-def test_scaling_property(a, c, r1):
+def test_scaling_property(a, c, r1, manifold):
     x1 = a / a.norm(dim=-1, keepdim=True)
-    ra = poincare.math.mobius_scalar_mul(r1, a, k=-c)
-    x2 = poincare.math.mobius_scalar_mul(abs(r1), a, k=-c) / ra.norm(
-        dim=-1, keepdim=True
-    )
+    ra = manifold.mobius_scalar_mul(r1, a)
+    x2 = manifold.mobius_scalar_mul(abs(r1), a) / ra.norm(dim=-1, keepdim=True)
     tolerance = {
         torch.float32: dict(rtol=1e-5, atol=1e-6),
         torch.float64: dict(atol=1e-10),
@@ -214,9 +209,9 @@ def test_scaling_property(a, c, r1):
     np.testing.assert_allclose(x1, x2, **tolerance[c.dtype])
 
 
-def test_geodesic_borders(a, b, c):
-    geo0 = poincare.math.geodesic(0.0, a, b, k=-c)
-    geo1 = poincare.math.geodesic(1.0, a, b, k=-c)
+def test_geodesic_borders(a, b, c, manifold):
+    geo0 = manifold.geodesic(torch.tensor(0.0, dtype=a.dtype), a, b)
+    geo1 = manifold.geodesic(torch.tensor(1.0, dtype=a.dtype), a, b)
     tolerance = {
         torch.float32: dict(rtol=1e-5, atol=1e-6),
         torch.float64: dict(atol=1e-10),
@@ -225,36 +220,32 @@ def test_geodesic_borders(a, b, c):
     np.testing.assert_allclose(geo1, b, **tolerance[c.dtype])
 
 
-def test_geodesic_segment_length_property(a, b, c):
+def test_geodesic_segment_length_property(a, b, c, manifold):
     extra_dims = len(a.shape)
     segments = 12
     t = torch.linspace(0, 1, segments + 1, dtype=c.dtype).view(
         (segments + 1,) + (1,) * extra_dims
     )
-    gamma_ab_t = poincare.math.geodesic(t, a, b, k=-c)
+    gamma_ab_t = manifold.geodesic(t, a, b)
     gamma_ab_t0 = gamma_ab_t[:-1]
     gamma_ab_t1 = gamma_ab_t[1:]
-    dist_ab_t0mt1 = poincare.math.dist(gamma_ab_t0, gamma_ab_t1, k=-c, keepdim=True)
-    speed = (
-        poincare.math.dist(a, b, k=-c, keepdim=True)
-        .unsqueeze(0)
-        .expand_as(dist_ab_t0mt1)
-    )
+    dist_ab_t0mt1 = manifold.dist(gamma_ab_t0, gamma_ab_t1, keepdim=True)
+    speed = manifold.dist(a, b, keepdim=True).unsqueeze(0).expand_as(dist_ab_t0mt1)
     # we have exactly 12 line segments
     tolerance = {torch.float32: dict(rtol=1e-5), torch.float64: dict(atol=1e-10)}
     np.testing.assert_allclose(dist_ab_t0mt1, speed / segments, **tolerance[c.dtype])
 
 
-def test_geodesic_segement_unit_property(a, b, c):
+def test_geodesic_segement_unit_property(a, b, c, manifold):
     extra_dims = len(a.shape)
     segments = 12
     t = torch.linspace(0, 1, segments + 1, dtype=c.dtype).view(
         (segments + 1,) + (1,) * extra_dims
     )
-    gamma_ab_t = poincare.math.geodesic_unit(t, a, b, k=-c)
+    gamma_ab_t = manifold.geodesic_unit(t, a, b)
     gamma_ab_t0 = gamma_ab_t[:1]
     gamma_ab_t1 = gamma_ab_t
-    dist_ab_t0mt1 = poincare.math.dist(gamma_ab_t0, gamma_ab_t1, k=-c, keepdim=True)
+    dist_ab_t0mt1 = manifold.dist(gamma_ab_t0, gamma_ab_t1, keepdim=True)
     true_distance_travelled = t.expand_as(dist_ab_t0mt1)
     # we have exactly 12 line segments
     tolerance = {
@@ -266,34 +257,34 @@ def test_geodesic_segement_unit_property(a, b, c):
     )
 
 
-def test_expmap_logmap(a, b, c):
+def test_expmap_logmap(a, b, c, manifold):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
-    bh = poincare.math.expmap(x=a, u=poincare.math.logmap(a, b, k=-c), k=-c)
+    bh = manifold.expmap(x=a, u=manifold.logmap(a, b))
     tolerance = {torch.float32: dict(rtol=1e-5, atol=1e-6), torch.float64: dict()}
     np.testing.assert_allclose(bh, b, **tolerance[c.dtype])
 
 
-def test_expmap0_logmap0(a, c):
+def test_expmap0_logmap0(a, c, manifold):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
-    v = poincare.math.logmap0(a, k=-c)
-    norm = poincare.math.norm(torch.zeros_like(v), v, k=-c, keepdim=True)
-    dist = poincare.math.dist0(a, k=-c, keepdim=True)
-    bh = poincare.math.expmap0(v, k=-c)
+    v = manifold.logmap0(a)
+    norm = manifold.norm(torch.zeros_like(v), v, keepdim=True)
+    dist = manifold.dist0(a, keepdim=True)
+    bh = manifold.expmap0(v)
     tolerance = {torch.float32: dict(rtol=1e-6), torch.float64: dict()}
     np.testing.assert_allclose(bh, a, **tolerance[c.dtype])
     np.testing.assert_allclose(norm, dist, **tolerance[c.dtype])
 
 
-def test_matvec_zeros(a, c):
-    mat = a.new_zeros(3, a.shape[-1])
-    z = poincare.math.mobius_matvec(mat, a, k=-c)
+def test_matvec_zeros(a, c, manifold):
+    mat = a.new_zeros((3, a.shape[-1]))
+    z = manifold.mobius_matvec(mat, a)
     np.testing.assert_allclose(z, 0.0)
 
 
-def test_matvec_via_equiv_fn_apply(a, c, negative):
+def test_matvec_via_equiv_fn_apply(a, c, negative, manifold):
     mat = a.new(3, a.shape[-1]).normal_()
-    y = poincare.math.mobius_fn_apply(lambda x: x @ mat.transpose(-1, -2), a, k=-c)
-    y1 = poincare.math.mobius_matvec(mat, a, k=-c)
+    y = manifold.mobius_fn_apply(lambda x: x @ mat.transpose(-1, -2), a)
+    y1 = manifold.mobius_matvec(mat, a)
     tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
 
     if negative:
@@ -310,12 +301,12 @@ def test_matvec_via_equiv_fn_apply(a, c, negative):
 def test_mobiusify(a, c, negative):
     mat = a.new(3, a.shape[-1]).normal_()
 
-    @poincare.math.mobiusify
+    @stereographic.math.mobiusify
     def matvec(x):
         return x @ mat.transpose(-1, -2)
 
     y = matvec(a, k=-c)
-    y1 = poincare.math.mobius_matvec(mat, a, k=-c)
+    y1 = stereographic.math.mobius_matvec(mat, a, k=-c)
     tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
     if negative:
         np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
@@ -328,17 +319,14 @@ def test_mobiusify(a, c, negative):
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
 
 
-def test_matvec_chain_via_equiv_fn_apply(a, c, negative):
+def test_matvec_chain_via_equiv_fn_apply(a, c, negative, manifold):
     mat1 = a.new(a.shape[-1], a.shape[-1]).normal_()
     mat2 = a.new(a.shape[-1], a.shape[-1]).normal_()
-    y = poincare.math.mobius_fn_apply_chain(
-        a,
-        lambda x: x @ mat1.transpose(-1, -2),
-        lambda x: x @ mat2.transpose(-1, -2),
-        k=-c,
+    y = manifold.mobius_fn_apply_chain(
+        a, lambda x: x @ mat1.transpose(-1, -2), lambda x: x @ mat2.transpose(-1, -2),
     )
-    y1 = poincare.math.mobius_matvec(mat1, a, k=-c)
-    y1 = poincare.math.mobius_matvec(mat2, y1, k=-c)
+    y1 = manifold.mobius_matvec(mat1, a)
+    y1 = manifold.mobius_matvec(mat2, y1)
     tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
     if negative:
         np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
@@ -351,55 +339,55 @@ def test_matvec_chain_via_equiv_fn_apply(a, c, negative):
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
 
 
-def test_parallel_transport0_preserves_inner_products(a, c):
+def test_transp0_preserves_inner_products(a, c, manifold):
     # pointing to the center
     v_0 = torch.rand_like(a) + 1e-5
     u_0 = torch.rand_like(a) + 1e-5
     zero = torch.zeros_like(a)
-    v_a = poincare.math.parallel_transport0(a, v_0, k=-c)
-    u_a = poincare.math.parallel_transport0(a, u_0, k=-c)
+    v_a = manifold.transp0(a, v_0)
+    u_a = manifold.transp0(a, u_0)
     # compute norms
-    vu_0 = poincare.math.inner(zero, v_0, u_0, k=-c, keepdim=True)
-    vu_a = poincare.math.inner(a, v_a, u_a, k=-c, keepdim=True)
+    vu_0 = manifold.inner(zero, v_0, u_0, keepdim=True)
+    vu_a = manifold.inner(a, v_a, u_a, keepdim=True)
     np.testing.assert_allclose(vu_a, vu_0, atol=1e-6, rtol=1e-6)
 
 
-def test_parallel_transport0_is_same_as_usual(a, c):
+def test_transp0_is_same_as_usual(a, c, manifold):
     # pointing to the center
     v_0 = torch.rand_like(a) + 1e-5
     zero = torch.zeros_like(a)
-    v_a = poincare.math.parallel_transport0(a, v_0, k=-c)
-    v_a1 = poincare.math.parallel_transport(zero, a, v_0, k=-c)
+    v_a = manifold.transp0(a, v_0)
+    v_a1 = manifold.transp(zero, a, v_0)
     # compute norms
     np.testing.assert_allclose(v_a, v_a1, atol=1e-6, rtol=1e-6)
 
 
-def test_parallel_transport_a_b(a, b, c):
+def test_transp_a_b(a, b, c, manifold):
     # pointing to the center
     v_0 = torch.rand_like(a)
     u_0 = torch.rand_like(a)
-    v_1 = poincare.math.parallel_transport(a, b, v_0, k=-c)
-    u_1 = poincare.math.parallel_transport(a, b, u_0, k=-c)
+    v_1 = manifold.transp(a, b, v_0)
+    u_1 = manifold.transp(a, b, u_0)
     # compute norms
-    vu_1 = poincare.math.inner(b, v_1, u_1, k=-c, keepdim=True)
-    vu_0 = poincare.math.inner(a, v_0, u_0, k=-c, keepdim=True)
+    vu_1 = manifold.inner(b, v_1, u_1, keepdim=True)
+    vu_0 = manifold.inner(a, v_0, u_0, keepdim=True)
     np.testing.assert_allclose(vu_0, vu_1, atol=1e-6, rtol=1e-6)
 
 
-def test_add_infinity_and_beyond(a, b, c, negative):
+def test_add_infinity_and_beyond(a, b, c, negative, manifold):
     if torch.isclose(c, c.new_zeros(())).any():
         pytest.skip("zero not checked")
     infty = b * 10000000
     for i in range(100):
-        z = poincare.math.expmap(a, infty, k=-c)
-        z = poincare.math.project(z, k=-c)
-        z = poincare.math.mobius_scalar_mul(1000.0, z, k=-c)
-        z = poincare.math.project(z, k=-c)
-        infty = poincare.math.parallel_transport(a, z, infty, k=-c)
+        z = manifold.expmap(a, infty)
+        z = manifold.projx(z)
+        z = manifold.mobius_scalar_mul(torch.tensor(1000.0, dtype=z.dtype), z)
+        z = manifold.projx(z)
+        infty = manifold.transp(a, z, infty)
         assert np.isfinite(z).all(), (i, z)
         assert np.isfinite(infty).all(), (i, infty)
         a = z
-    z = poincare.math.expmap(a, -infty, k=-c)
+    z = manifold.expmap(a, -infty)
     # they just need to be very far, exact answer is not supposed
     tolerance = {
         torch.float32: dict(rtol=3e-1, atol=2e-1),
@@ -412,9 +400,9 @@ def test_add_infinity_and_beyond(a, b, c, negative):
         assert not torch.isnan(a).any(), "Found nans"
 
 
-def test_mobius_coadd(a, b, c, negative):
+def test_mobius_coadd(a, b, c, negative, manifold):
     # (a \boxplus_c b) \ominus_c b = a
-    ah = poincare.math.mobius_sub(poincare.math.mobius_coadd(a, b, k=-c), b, k=-c)
+    ah = manifold.mobius_sub(manifold.mobius_coadd(a, b), b)
     if negative:
         np.testing.assert_allclose(ah, a, atol=1e-5)
     else:
@@ -425,9 +413,9 @@ def test_mobius_coadd(a, b, c, negative):
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
 
 
-def test_mobius_cosub(a, b, c, negative):
+def test_mobius_cosub(a, b, c, negative, manifold):
     # (a \oplus_c b) \boxminus b = a
-    ah = poincare.math.mobius_cosub(poincare.math.mobius_add(a, b, k=-c), b, k=-c)
+    ah = manifold.mobius_cosub(manifold.mobius_add(a, b), b)
     if negative:
         np.testing.assert_allclose(ah, a, atol=1e-5)
     else:
@@ -438,11 +426,11 @@ def test_mobius_cosub(a, b, c, negative):
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
 
 
-def test_distance2plane(a, c):
+def test_distance2plane(a, c, manifold):
     v = torch.rand_like(a)
-    vr = v / poincare.math.norm(a, v, k=-c, keepdim=True)
-    z = poincare.math.expmap(a, vr, k=-c)
-    dist1 = poincare.math.dist(a, z, k=-c)
-    dist = poincare.math.dist2plane(z, a, vr, k=-c)
+    vr = v / manifold.norm(a, v, keepdim=True)
+    z = manifold.expmap(a, vr)
+    dist1 = manifold.dist(a, z)
+    dist = manifold.dist2plane(z, a, vr)
 
     np.testing.assert_allclose(dist, dist1, atol=1e-5, rtol=1e-5)

@@ -5,7 +5,14 @@ import geoopt
 from ...utils import size2shape, broadcast_shapes
 from ..base import Manifold, ScalingInfo
 
-__all__ = ["Stereographic"]
+__all__ = [
+    "Stereographic",
+    "StereographicExact",
+    "PoincareBall",
+    "PoincareBallExact",
+    "SphereProjection",
+    "SphereProjectionExact",
+]
 
 _stereographic_doc = r"""
     :math:`\kappa`-Stereographic model, see more in 
@@ -75,7 +82,9 @@ class Stereographic(Manifold):
 
     def __init__(self, k=0.0, learnable=False):
         super().__init__()
-        k = torch.as_tensor(k, dtype=torch.get_default_dtype())
+        k = torch.as_tensor(k)
+        if not torch.is_floating_point(k):
+            k = k.to(torch.get_default_dtype())
         self.k = torch.nn.Parameter(k, requires_grad=learnable)
 
     def _check_point_on_manifold(
@@ -425,24 +434,15 @@ class PoincareBall(Stereographic):
     def k(self):
         return -self.c
 
-    @k.setter
-    @torch.no_grad()
-    def k(self, value):
-        # sp: y = log(1 + exp(x))
-        # isp: x = log(exp(y) - 1)
-        self.isp_c = value.neg_().exp_().sub_(1).log_()
-
     @property
     def c(self):
         return torch.nn.functional.softplus(self.isp_c)
 
-    @c.setter
-    @torch.no_grad()
-    def c(self, value):
-        self.isp_c = value.exp_().sub_(1).log_()
-
     def __init__(self, c=1.0, learnable=False):
-        super().__init__(k=-c, learnable=learnable)
+        super().__init__(k=c, learnable=learnable)
+        k = self._parameters.pop("k")
+        with torch.no_grad():
+            self.isp_c = k.neg_().exp_().sub_(1).log_()
 
 
 class PoincareBallExact(PoincareBall, StereographicExact):
@@ -454,13 +454,11 @@ class SphereProjection(Stereographic):
     def k(self):
         return torch.nn.functional.softplus(self.isp_k)
 
-    @k.setter
-    @torch.no_grad()
-    def k(self, value):
-        self.isp_k = value.exp_().sub_(1).log_()
-
     def __init__(self, k=1.0, learnable=False):
         super().__init__(k=k, learnable=learnable)
+        k = self._parameters.pop("k")
+        with torch.no_grad():
+            self.isp_k = k.exp_().sub_(1).log_()
 
 
 class SphereProjectionExact(SphereProjection, StereographicExact):

@@ -22,6 +22,8 @@ def use_floatX(request):
 
 manifold_shapes = {
     geoopt.manifolds.PoincareBall: (3,),
+    geoopt.manifolds.Stereographic: (3,),
+    geoopt.manifolds.SphereProjection: (3,),
     geoopt.manifolds.EuclideanStiefel: (10, 5),
     geoopt.manifolds.CanonicalStiefel: (10, 5),
     geoopt.manifolds.Euclidean: (10,),
@@ -94,6 +96,42 @@ def poincare_case():
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
     manifold = geoopt.PoincareBallExact().to(dtype=torch.float64)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def stereographic_case():
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.Stereographic]
+    ex = torch.randn(*shape, dtype=torch.float64) / 3
+    ev = torch.randn(*shape, dtype=torch.float64) / 3
+    x = ex  # default curvature = 0
+    ex = x.clone()
+    v = ev.clone()
+    manifold = geoopt.Stereographic().to(dtype=torch.float64)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+    manifold = geoopt.StereographicExact().to(dtype=torch.float64)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def sphere_projection_case():
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.SphereProjection]
+    ex = torch.randn(*shape, dtype=torch.float64) / 3
+    ev = torch.randn(*shape, dtype=torch.float64) / 3
+    x = ex  # default curvature = 0
+    ex = x.clone()
+    v = ev.clone()
+    manifold = geoopt.manifolds.SphereProjection().to(dtype=torch.float64)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+    manifold = geoopt.manifolds.SphereProjectionExact().to(dtype=torch.float64)
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
@@ -229,7 +267,9 @@ def scaled(request):
         sphere_subspace_case(),
         euclidean_stiefel_case(),
         canonical_stiefel_case(),
+        stereographic_case(),
         poincare_case(),
+        sphere_projection_case(),
         product_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,

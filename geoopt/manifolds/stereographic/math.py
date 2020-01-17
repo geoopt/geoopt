@@ -10,7 +10,7 @@ a well written paper by Octavian-Eugen Ganea (2018) [1]_.
 
 import functools
 import torch.jit
-
+from typing import Union
 
 MIN_NORM = 1e-15
 BALL_EPS = {torch.float32: 4e-3, torch.float64: 1e-5}
@@ -49,11 +49,11 @@ class Arsinh(torch.autograd.Function):
         return grad_output / (1 + input ** 2) ** 0.5
 
 
-def artanh(x):
+def artanh(x: torch.Tensor):
     return Artanh.apply(x)
 
 
-def arsinh(x):
+def arsinh(x: torch.Tensor):
     return Arsinh.apply(x)
 
 
@@ -108,7 +108,7 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
     )
 
 
-def project(x, *, k=0, dim=-1, eps=None):
+def project(x: torch.Tensor, *, k: torch.Tensor, dim=-1, eps=None):
     r"""
     Safe projection on the manifold for numerical stability.
 
@@ -116,7 +116,7 @@ def project(x, *, k=0, dim=-1, eps=None):
     ----------
     x : tensor
         point on the Poincare ball
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension to compute norm
@@ -142,7 +142,7 @@ def _project(x, k, dim: int = -1, eps: float = None):
     return torch.where(cond, projected, x)
 
 
-def lambda_x(x, *, k=0, keepdim=False, dim=-1):
+def lambda_x(x: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     r"""
     Compute the conformal factor :math:`\lambda^c_x` for a point on the ball.
 
@@ -153,7 +153,7 @@ def lambda_x(x, *, k=0, keepdim=False, dim=-1):
     ----------
     x : tensor
         point on the Poincare ball
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     keepdim : bool
         retain the last dim? (default: false)
@@ -168,11 +168,13 @@ def lambda_x(x, *, k=0, keepdim=False, dim=-1):
     return _lambda_x(x, k, keepdim=keepdim, dim=dim)
 
 
-def _lambda_x(x, k, keepdim: bool = False, dim: int = -1):
+def _lambda_x(x: torch.Tensor, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return 2 / (1 + k * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(MIN_NORM)
 
 
-def inner(x, u, v, *, k=0, keepdim=False, dim=-1):
+def inner(
+    x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, k, keepdim=False, dim=-1
+):
     r"""
     Compute inner product for two vectors on the tangent space w.r.t Riemannian metric on the Poincare ball.
 
@@ -188,7 +190,7 @@ def inner(x, u, v, *, k=0, keepdim=False, dim=-1):
         tangent vector to :math:`x` on Poincare ball
     v : tensor
         tangent vector to :math:`x` on Poincare ball
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     keepdim : bool
         retain the last dim? (default: false)
@@ -203,13 +205,20 @@ def inner(x, u, v, *, k=0, keepdim=False, dim=-1):
     return _inner(x, u, v, k, keepdim=keepdim, dim=dim)
 
 
-def _inner(x, u, v, k, keepdim: bool = False, dim: int = -1):
+def _inner(
+    x: torch.Tensor,
+    u: torch.Tensor,
+    v: torch.Tensor,
+    k: torch.Tensor,
+    keepdim: bool = False,
+    dim: int = -1,
+):
     return _lambda_x(x, k, keepdim=True, dim=dim) ** 2 * (u * v).sum(
         dim=dim, keepdim=keepdim
     )
 
 
-def norm(x, u, *, k=0, keepdim=False, dim=-1):
+def norm(x: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     r"""
     Compute vector norm on the tangent space w.r.t Riemannian metric on the Poincare ball.
 
@@ -223,7 +232,7 @@ def norm(x, u, *, k=0, keepdim=False, dim=-1):
         point on the Poincare ball
     u : tensor
         tangent vector to :math:`x` on Poincare ball
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     keepdim : bool
         retain the last dim? (default: false)
@@ -238,13 +247,19 @@ def norm(x, u, *, k=0, keepdim=False, dim=-1):
     return _norm(x, u, k, keepdim=keepdim, dim=dim)
 
 
-def _norm(x, u, k, keepdim: bool = False, dim: int = -1):
+def _norm(
+    x: torch.Tensor,
+    u: torch.Tensor,
+    k: torch.Tensor,
+    keepdim: bool = False,
+    dim: int = -1,
+):
     return _lambda_x(x, k, keepdim=keepdim, dim=dim) * u.norm(
         dim=dim, keepdim=keepdim, p=2
     )
 
 
-def mobius_add(x, y, *, k=0, dim=-1):
+def mobius_add(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the Möbius gyrovector addition.
 
@@ -292,7 +307,7 @@ def mobius_add(x, y, *, k=0, dim=-1):
         point on the manifold
     y : tensor
         point on the manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -305,7 +320,7 @@ def mobius_add(x, y, *, k=0, dim=-1):
     return _mobius_add(x, y, k, dim=dim)
 
 
-def _mobius_add(x, y, k, dim=-1):
+def _mobius_add(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim=-1):
     x2 = x.pow(2).sum(dim=dim, keepdim=True)
     y2 = y.pow(2).sum(dim=dim, keepdim=True)
     xy = (x * y).sum(dim=dim, keepdim=True)
@@ -326,7 +341,7 @@ def _mobius_add(x, y, k, dim=-1):
     return num / denom.clamp_min(MIN_NORM)
 
 
-def mobius_sub(x, y, *, k=0, dim=-1):
+def mobius_sub(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the Möbius gyrovector subtraction.
 
@@ -343,7 +358,7 @@ def mobius_sub(x, y, *, k=0, dim=-1):
         point on manifold
     y : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -356,11 +371,11 @@ def mobius_sub(x, y, *, k=0, dim=-1):
     return _mobius_sub(x, y, k, dim=dim)
 
 
-def _mobius_sub(x, y, k, dim: int = -1):
+def _mobius_sub(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
     return _mobius_add(x, -y, k, dim=dim)
 
 
-def mobius_coadd(x, y, *, k=0, dim=-1):
+def mobius_coadd(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the Möbius gyrovector coaddition.
 
@@ -397,7 +412,7 @@ def mobius_coadd(x, y, *, k=0, dim=-1):
         point on manifold
     y : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -412,7 +427,7 @@ def mobius_coadd(x, y, *, k=0, dim=-1):
 
 
 # TODO: check numerical stability with Gregor's paper!!!
-def _mobius_coadd(x, y, k, dim: int = -1):
+def _mobius_coadd(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
     # x2 = x.pow(2).sum(dim=dim, keepdim=True)
     # y2 = y.pow(2).sum(dim=dim, keepdim=True)
     # num = (1 + K * y2) * x + (1 + K * x2) * y
@@ -423,7 +438,7 @@ def _mobius_coadd(x, y, k, dim: int = -1):
     return _mobius_add(x, _gyration(x, -y, y, k=k, dim=dim), k, dim=dim)
 
 
-def mobius_cosub(x, y, *, k=0, dim=-1):
+def mobius_cosub(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the Möbius gyrovector cosubtraction.
 
@@ -439,7 +454,7 @@ def mobius_cosub(x, y, *, k=0, dim=-1):
         point on manifold
     y : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -453,8 +468,8 @@ def mobius_cosub(x, y, *, k=0, dim=-1):
     return _mobius_cosub(x, y, k, dim=dim)
 
 
-def _mobius_cosub(x, y, K, dim: int = -1):
-    return _mobius_coadd(x, -y, K, dim=dim)
+def _mobius_cosub(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
+    return _mobius_coadd(x, -y, k, dim=dim)
 
 
 # TODO: can we make this operation somehow safer by breaking up the
@@ -463,7 +478,9 @@ def _mobius_cosub(x, y, K, dim: int = -1):
 # TODO: one could use the scalar associative law
 # TODO: s_1 (X) s_2 (X) x = (s_1*s_2) (X) x
 # TODO: to implement a more stable Möbius scalar mult
-def mobius_scalar_mul(r, x, *, k=0, dim=-1):
+def mobius_scalar_mul(
+    r: Union[torch.Tensor, float], x: torch.Tensor, *, k: torch.Tensor, dim=-1
+):
     r"""
     Computes the Möbius scalar multiplication.
 
@@ -514,7 +531,7 @@ def mobius_scalar_mul(r, x, *, k=0, dim=-1):
         scalar for multiplication
     x : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -527,13 +544,15 @@ def mobius_scalar_mul(r, x, *, k=0, dim=-1):
     return _mobius_scalar_mul(r, x, k, dim=dim)
 
 
-def _mobius_scalar_mul(r, x, k, dim: int = -1):
+def _mobius_scalar_mul(
+    r: Union[torch.Tensor, float], x: torch.Tensor, k: torch.Tensor, dim: int = -1
+):
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     res_c = tan_k(r * artan_k(x_norm, k), k) * (x / x_norm)
     return res_c
 
 
-def dist(x, y, *, k=0, keepdim=False, dim=-1):
+def dist(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     r"""
     Computes the geodesic distance between :math:`x` and :math:`y` on the
     manifold.
@@ -550,7 +569,7 @@ def dist(x, y, *, k=0, keepdim=False, dim=-1):
         point on manifold
     y : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     keepdim : bool
         retain the last dim? (default: false)
@@ -565,13 +584,19 @@ def dist(x, y, *, k=0, keepdim=False, dim=-1):
     return _dist(x, y, k, keepdim=keepdim, dim=dim)
 
 
-def _dist(x, y, k, keepdim: bool = False, dim: int = -1):
+def _dist(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    k: torch.Tensor,
+    keepdim: bool = False,
+    dim: int = -1,
+):
     return 2.0 * artan_k(
         _mobius_add(-x, y, k, dim=dim).norm(dim=dim, p=2, keepdim=keepdim), k
     )
 
 
-def dist0(x, *, k=0, keepdim=False, dim=-1):
+def dist0(x: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     r"""
     Computes geodesic distance to the manifold's origin.
 
@@ -579,7 +604,7 @@ def dist0(x, *, k=0, keepdim=False, dim=-1):
     ----------
     x : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     keepdim : bool
         retain the last dim? (default: false)
@@ -594,11 +619,13 @@ def dist0(x, *, k=0, keepdim=False, dim=-1):
     return _dist0(x, k, keepdim=keepdim, dim=dim)
 
 
-def _dist0(x, k, keepdim: bool = False, dim: int = -1):
+def _dist0(x: torch.Tensor, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return 2.0 * artan_k(x.norm(dim=dim, p=2, keepdim=keepdim), k)
 
 
-def geodesic(t, x, y, *, k=0, dim=-1):
+def geodesic(
+    t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1
+):
     r"""
     Computes the point on the geodesic (shortest) path connecting :math:`x` and
     :math:`y` at time :math:`x`.
@@ -647,7 +674,7 @@ def geodesic(t, x, y, *, k=0, dim=-1):
         starting point on manifold
     y : tensor
         target point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -660,7 +687,9 @@ def geodesic(t, x, y, *, k=0, dim=-1):
     return _geodesic(t, x, y, k, dim=dim)
 
 
-def _geodesic(t, x, y, k, dim: int = -1):
+def _geodesic(
+    t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1
+):
     # this is not very numerically stable
     v = _mobius_add(-x, y, k, dim=dim)
     tv = _mobius_scalar_mul(t, v, k, dim=dim)
@@ -668,7 +697,7 @@ def _geodesic(t, x, y, k, dim: int = -1):
     return gamma_t
 
 
-def expmap(x, u, *, k=0, dim=-1):
+def expmap(x: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the exponential map of :math:`u` at :math:`x`.
 
@@ -699,7 +728,7 @@ def expmap(x, u, *, k=0, dim=-1):
         starting point on manifold
     u : tensor
         speed vector in tangent space at x
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -712,7 +741,7 @@ def expmap(x, u, *, k=0, dim=-1):
     return _expmap(x, u, k, dim=dim)
 
 
-def _expmap(x, u, k, dim: int = -1):
+def _expmap(x: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     lam = _lambda_x(x, k, dim=dim, keepdim=True)
     second_term = tan_k((lam / 2.0) * u_norm, k) * (u / u_norm)
@@ -720,7 +749,7 @@ def _expmap(x, u, k, dim: int = -1):
     return y
 
 
-def expmap0(u, *, k=0, dim=-1):
+def expmap0(u: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the exponential map of :math:`u` at the origin :math:`0`.
 
@@ -734,7 +763,7 @@ def expmap0(u, *, k=0, dim=-1):
     ----------
     u : tensor
         speed vector on manifold
-    K : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -747,13 +776,20 @@ def expmap0(u, *, k=0, dim=-1):
     return _expmap0(u, k, dim=dim)
 
 
-def _expmap0(u, k, dim: int = -1):
+def _expmap0(u: torch.Tensor, k: torch.Tensor, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     gamma_1 = tan_k(u_norm, k) * (u / u_norm)
     return gamma_1
 
 
-def geodesic_unit(t, x, u, *, k=0, dim=-1):
+def geodesic_unit(
+    t: Union[torch.Tensor, float],
+    x: torch.Tensor,
+    u: torch.Tensor,
+    *,
+    k: torch.Tensor,
+    dim=-1
+):
     r"""
     Computes the point on the unit speed geodesic at time :math:`t`, starting
     from :math:`x` with initial direction :math:`u/\|u\|_x`.
@@ -770,7 +806,7 @@ def geodesic_unit(t, x, u, *, k=0, dim=-1):
         initial point on manifold
     u : tensor
         initial direction in tangent space at x
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -783,14 +819,20 @@ def geodesic_unit(t, x, u, *, k=0, dim=-1):
     return _geodesic_unit(t, x, u, k, dim=dim)
 
 
-def _geodesic_unit(t, x, u, k, dim: int = -1):
+def _geodesic_unit(
+    t: Union[torch.Tensor, float],
+    x: torch.Tensor,
+    u: torch.Tensor,
+    k: torch.Tensor,
+    dim: int = -1,
+):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     second_term = tan_k(t / 2.0, k) * (u / u_norm)
     gamma_1 = _mobius_add(x, second_term, k, dim=dim)
     return gamma_1
 
 
-def logmap(x, y, *, k=0, dim=-1):
+def logmap(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the logarithmic map of :math:`y` at :math:`x`.
 
@@ -814,7 +856,7 @@ def logmap(x, y, *, k=0, dim=-1):
         starting point on manifold
     y : tensor
         target point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -827,14 +869,14 @@ def logmap(x, y, *, k=0, dim=-1):
     return _logmap(x, y, k, dim=dim)
 
 
-def _logmap(x, y, k, dim: int = -1):
+def _logmap(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
     sub = _mobius_add(-x, y, k, dim=dim)
     sub_norm = sub.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
     lam = _lambda_x(x, k, keepdim=True, dim=dim)
     return 2.0 * artan_k(sub_norm, k) * (sub / (lam * sub_norm))
 
 
-def logmap0(y, *, k=0, dim=-1):
+def logmap0(y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the logarithmic map of :math:`y` at the origin :math:`0`.
 
@@ -855,7 +897,7 @@ def logmap0(y, *, k=0, dim=-1):
     ----------
     y : tensor
         target point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -868,12 +910,12 @@ def logmap0(y, *, k=0, dim=-1):
     return _logmap0(y, k, dim=dim)
 
 
-def _logmap0(y, K, dim: int = -1):
+def _logmap0(y: torch.Tensor, k, dim: int = -1):
     y_norm = y.norm(dim=dim, p=2, keepdim=True).clamp_min(MIN_NORM)
-    return (y / y_norm) * artan_k(y_norm, K)
+    return (y / y_norm) * artan_k(y_norm, k)
 
 
-def mobius_matvec(m, x, *, k=0, dim=-1):
+def mobius_matvec(m: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the generalization of matrix-vector multiplication in gyrovector
     spaces.
@@ -895,7 +937,7 @@ def mobius_matvec(m, x, *, k=0, dim=-1):
         ``m.dim() > 2``, but only last dim reduction is supported
     x : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -908,7 +950,7 @@ def mobius_matvec(m, x, *, k=0, dim=-1):
     return _mobius_matvec(m, x, k, dim=dim)
 
 
-def _mobius_matvec(m, x, k, dim: int = -1):
+def _mobius_matvec(m: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     if m.dim() > 2 and dim != -1:
         raise RuntimeError(
             "broadcasted Möbius matvec is supported for the last dim only"
@@ -928,7 +970,7 @@ def _mobius_matvec(m, x, k, dim: int = -1):
 
 # TODO: check if this extends to gyrovector spaces for positive curvature
 # TODO: add plot
-def mobius_pointwise_mul(w, x, *, k=0, dim=-1):
+def mobius_pointwise_mul(w: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the generalization for point-wise multiplication in gyrovector
     spaces.
@@ -948,7 +990,7 @@ def mobius_pointwise_mul(w, x, *, k=0, dim=-1):
         weights for multiplication (should be broadcastable to x)
     x : tensor
         point on manifold
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -961,7 +1003,9 @@ def mobius_pointwise_mul(w, x, *, k=0, dim=-1):
     return _mobius_pointwise_mul(w, x, k, dim=dim)
 
 
-def _mobius_pointwise_mul(w, x, k, dim: int = -1):
+def _mobius_pointwise_mul(
+    w: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int = -1
+):
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
     wx = w * x
     wx_norm = wx.norm(dim=dim, keepdim=True, p=2).clamp_min(MIN_NORM)
@@ -972,7 +1016,7 @@ def _mobius_pointwise_mul(w, x, k, dim: int = -1):
     return res
 
 
-def mobius_fn_apply_chain(x, *fns, k=0, dim=-1):
+def mobius_fn_apply_chain(x: torch.Tensor, *fns: callable, k: torch.Tensor, dim=-1):
     r"""
     Computes the generalization of sequential function application in gyrovector
     spaces.
@@ -1010,7 +1054,7 @@ def mobius_fn_apply_chain(x, *fns, k=0, dim=-1):
         point on manifold
     fns : callable[]
         functions to apply
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -1030,7 +1074,9 @@ def mobius_fn_apply_chain(x, *fns, k=0, dim=-1):
         return y
 
 
-def mobius_fn_apply(fn, x, *args, k=0, dim=-1, **kwargs):
+def mobius_fn_apply(
+    fn: callable, x: torch.Tensor, *args, k: torch.Tensor, dim=-1, **kwargs
+):
     r"""
     Computes the generalization of function application in gyrovector spaces.
 
@@ -1053,7 +1099,7 @@ def mobius_fn_apply(fn, x, *args, k=0, dim=-1, **kwargs):
         point on manifold
     fn : callable
         function to apply
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -1069,7 +1115,7 @@ def mobius_fn_apply(fn, x, *args, k=0, dim=-1, **kwargs):
     return y
 
 
-def mobiusify(fn):
+def mobiusify(fn: callable):
     r"""
     Wraps a function such that is works in gyrovector spaces.
 
@@ -1089,7 +1135,7 @@ def mobiusify(fn):
     """
 
     @functools.wraps(fn)
-    def mobius_fn(x, *args, k=0, dim=-1, **kwargs):
+    def mobius_fn(x, *args, k, dim=-1, **kwargs):
         ex = _logmap0(x, k, dim=dim)
         ex = fn(ex, *args, **kwargs)
         y = _expmap0(ex, k, dim=dim)
@@ -1098,7 +1144,16 @@ def mobiusify(fn):
     return mobius_fn
 
 
-def dist2plane(x, p, a, *, k=0, keepdim=False, signed=False, dim=-1):
+def dist2plane(
+    x: torch.Tensor,
+    p: torch.Tensor,
+    a: torch.Tensor,
+    *,
+    k: torch.Tensor,
+    keepdim=False,
+    signed=False,
+    dim=-1
+):
     r"""
     Computes the geodesic distance from :math:`x` to a hyperplane going through
     :math:`x` with the normal vector :math:`a`.
@@ -1211,7 +1266,7 @@ def dist2plane(x, p, a, *, k=0, keepdim=False, signed=False, dim=-1):
         hyperplane normal vector in tangent space of :math:`p`
     p : tensor
         point on manifold lying on the hyperplane
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     keepdim : bool
         retain the last dim? (default: false)
@@ -1228,7 +1283,15 @@ def dist2plane(x, p, a, *, k=0, keepdim=False, signed=False, dim=-1):
     return _dist2plane(x, a, p, k, keepdim=keepdim, signed=signed, dim=dim)
 
 
-def _dist2plane(x, a, p, k, keepdim: bool = False, signed: bool = False, dim: int = -1):
+def _dist2plane(
+    x: torch.Tensor,
+    a: torch.Tensor,
+    p: torch.Tensor,
+    k: torch.Tensor,
+    keepdim: bool = False,
+    signed: bool = False,
+    dim: int = -1,
+):
     diff = _mobius_add(-p, x, k, dim=dim)
     diff_norm2 = diff.pow(2).sum(dim=dim, keepdim=keepdim).clamp_min(MIN_NORM)
     sc_diff_a = (diff * a).sum(dim=dim, keepdim=keepdim)
@@ -1240,48 +1303,9 @@ def _dist2plane(x, a, p, k, keepdim: bool = False, signed: bool = False, dim: in
     return arsin_k(num / denom, k)
 
 
-def antipode(x, k=0, dim: int = -1):
-    r"""
-    Computes the antipode of a point :math:`x_1,...,x_n` for :math:`\kappa > 0`.
-
-    Let :math:`x` be a point on some sphere. Then :math:`-x` is its antipode.
-    Since we're dealing with stereographic projections, for :math:`sproj(x)` we
-    get the antipode :math:`sproj(-x)`. Which is given as follows:
-
-    .. math::
-
-        \text{antipode}(x)
-        =
-        \frac{1+\kappa\|x\|^2_2}{2\kappa\|x\|^2_2}{}(-x)
-
-    Parameters
-    ----------
-    x : tensor
-        points :math:`x_1,...,x_n` on manifold to compute antipode for
-    k : float|tensor
-        sectional curvature of manifold
-    dim : int
-        reduction dimension for operations
-
-    Returns
-    -------
-    tensor
-        antipode
-    """
-    return _antipode(x, k, dim=dim)
-
-
-def _antipode(x, k, dim=-1):
-    # TODO: add implementation that uses stereographic projections!!!
-    # TODO: this one is correct, but it could be more efficient!!!
-    v = x / x.norm(p=2, dim=dim, keepdim=True)
-    R = 1.0 / k.abs().sqrt()
-    pi = 3.141592653589793
-
-    return _geodesic_unit(pi * R, x, v, k, dim=dim)
-
-
-def gyration(a, b, u, *, k=0, dim=-1):
+def gyration(
+    a: torch.Tensor, b: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, dim=-1
+):
     r"""
     Computes the gyration of :math:`u` by :math:`[a,b]`.
 
@@ -1343,7 +1367,9 @@ def gyration(a, b, u, *, k=0, dim=-1):
     return _gyration(a, b, u, k, dim=dim)
 
 
-def _gyration(u, v, w, k, dim: int = -1):
+def _gyration(
+    u: torch.Tensor, v: torch.Tensor, w: torch.Tensor, k: torch.Tensor, dim: int = -1
+):
     # non-simplified
     # mupv = -_mobius_add(u, v, K)
     # vpw = _mobius_add(u, w, K)
@@ -1362,7 +1388,9 @@ def _gyration(u, v, w, k, dim: int = -1):
     return w + 2 * (a * u + b * v) / d.clamp_min(MIN_NORM)
 
 
-def parallel_transport(x, y, v, *, k=0, dim=-1):
+def parallel_transport(
+    x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, *, k: torch.Tensor, dim=-1
+):
     r"""
     Computes the parallel transport of :math:`v` from :math:`x` to :math:`y`.
 
@@ -1416,7 +1444,7 @@ def parallel_transport(x, y, v, *, k=0, dim=-1):
         end point
     v : tensor
         tangent vector at x to be transported to y
-    K : float|tensor
+    k : float|tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -1429,7 +1457,9 @@ def parallel_transport(x, y, v, *, k=0, dim=-1):
     return _parallel_transport(x, y, v, k, dim=dim)
 
 
-def _parallel_transport(x, y, u, k, dim: int = -1):
+def _parallel_transport(
+    x: torch.Tensor, y: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1
+):
     return (
         _gyration(y, -x, u, k, dim=dim)
         * _lambda_x(x, k, keepdim=True, dim=dim)
@@ -1437,7 +1467,7 @@ def _parallel_transport(x, y, u, k, dim: int = -1):
     )
 
 
-def parallel_transport0(y, v, *, k=0, dim=-1):
+def parallel_transport0(y: torch.Tensor, v: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Computes the parallel transport of :math:`v` from the origin :math:`0` to
     :math:`y`.
@@ -1452,7 +1482,7 @@ def parallel_transport0(y, v, *, k=0, dim=-1):
         target point
     v : tensor
         vector to be transported from the origin to y
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -1464,11 +1494,15 @@ def parallel_transport0(y, v, *, k=0, dim=-1):
     return _parallel_transport0(y, v, k, dim=dim)
 
 
-def _parallel_transport0(y, v, k, dim: int = -1):
+def _parallel_transport0(
+    y: torch.Tensor, v: torch.Tensor, k: torch.Tensor, dim: int = -1
+):
     return v * (1 + k * y.pow(2).sum(dim=dim, keepdim=True)).clamp_min(MIN_NORM)
 
 
-def parallel_transport0back(x, v, *, k=0, dim: int = -1):
+def parallel_transport0back(
+    x: torch.Tensor, v: torch.Tensor, *, k: torch.Tensor, dim: int = -1
+):
     r"""
     Perform parallel transport to the zero point.
 
@@ -1481,7 +1515,7 @@ def parallel_transport0back(x, v, *, k=0, dim: int = -1):
         target point
     v : tensor
         vector to be transported
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -1493,11 +1527,13 @@ def parallel_transport0back(x, v, *, k=0, dim: int = -1):
     return _parallel_transport0back(x, v, k=k, dim=dim)
 
 
-def _parallel_transport0back(x, v, k, dim: int = -1):
+def _parallel_transport0back(
+    x: torch.Tensor, v: torch.Tensor, k: torch.Tensor, dim: int = -1
+):
     return v / (1 + k * x.pow(2).sum(dim=dim, keepdim=True)).clamp_min(MIN_NORM)
 
 
-def egrad2rgrad(x, grad, *, k=0, dim=-1):
+def egrad2rgrad(x: torch.Tensor, grad: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Converts the Euclidean gradient to the Riemannian gradient in the tangent
     space of :math:`x`.
@@ -1512,7 +1548,7 @@ def egrad2rgrad(x, grad, *, k=0, dim=-1):
         point on the manifold
     grad : tensor
         Euclidean gradient for :math:`x`
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -1525,20 +1561,61 @@ def egrad2rgrad(x, grad, *, k=0, dim=-1):
     return _egrad2rgrad(x, grad, k, dim=dim)
 
 
-def _egrad2rgrad(x, grad, k, dim: int = -1):
+def _egrad2rgrad(x: torch.Tensor, grad: torch.Tensor, k: torch.Tensor, dim: int = -1):
     return grad / _lambda_x(x, k, keepdim=True, dim=dim) ** 2
 
 
 # Max: progress for the commit stops here
 
 
-def sproj(x, k):
+def antipode(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
+    r"""
+    Computes the antipode of a point :math:`x_1,...,x_n` for :math:`\kappa > 0`.
+
+    Let :math:`x` be a point on some sphere. Then :math:`-x` is its antipode.
+    Since we're dealing with stereographic projections, for :math:`sproj(x)` we
+    get the antipode :math:`sproj(-x)`. Which is given as follows:
+
+    .. math::
+
+        \text{antipode}(x)
+        =
+        \frac{1+\kappa\|x\|^2_2}{2\kappa\|x\|^2_2}{}(-x)
+
+    Parameters
+    ----------
+    x : tensor
+        points :math:`x_1,...,x_n` on manifold to compute antipode for
+    k : tensor
+        sectional curvature of manifold
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        antipode
+    """
+    return _antipode(x, k, dim=dim)
+
+
+def _antipode(x: torch.Tensor, k: torch.Tensor, dim=-1):
+    # TODO: add implementation that uses stereographic projections!!!
+    # TODO: this one is correct, but it could be more efficient!!!
+    v = x / x.norm(p=2, dim=dim, keepdim=True)
+    R = k.abs().sqrt().reciprocal()
+    pi = 3.141592653589793
+
+    return _geodesic_unit(pi * R, x, v, k, dim=dim)
+
+
+def sproj(x: torch.Tensor, k: torch.Tensor):
     factor = 1.0 / (1.0 + torch.sqrt(k.abs()) * x[:, -1])
     proj = factor[:, None] * x[:, :-1]
     return proj
 
 
-def inv_sproj(x, k):
+def inv_sproj(x: torch.Tensor, k: torch.Tensor):
     lam_x = _lambda_x(x, k, keepdim=True, dim=-1)
     A = lam_x[:, None] * x
     B = 1.0 / k.abs().sqrt() * (lam_x - 1.0).unsqueeze(dim=-1)
@@ -1546,7 +1623,9 @@ def inv_sproj(x, k):
     return proj
 
 
-def weighted_midpoint(x, a, *, K=1.0, keepdim=False, dim=-1):
+def weighted_midpoint(
+    x: torch.Tensor, a: torch.Tensor, *, k=1.0, keepdim=False, dim=-1
+):
     r"""
     Computes the weighted Möbius gyromidpoint of a set of points
     :math:`x_1,...,x_n` according to weights :math:`\alpha_1,...,\alpha_n`.
@@ -1585,7 +1664,7 @@ def weighted_midpoint(x, a, *, K=1.0, keepdim=False, dim=-1):
         gyromidpoint for
     a : tensor
         scalar midpoint weights :math:`\alpha_1,...,\alpha_n`
-    K : float|tensor
+    k : float|tensor
         sectional curvature of manifold
     keepdim : bool
         retain the last dim? (default: false)
@@ -1597,11 +1676,11 @@ def weighted_midpoint(x, a, *, K=1.0, keepdim=False, dim=-1):
     tensor
         weighted Möbius gyromidpoint
     """
-    return _weighted_midpoint(x, a, K, keepdim=keepdim, dim=dim)
+    return _weighted_midpoint(x, a, k, keepdim=keepdim, dim=dim)
 
 
-def _weighted_midpoint(x, w, K, keepdim: bool = False, dim: int = -1):
-    lam_x = _lambda_x(x, K, keepdim=False, dim=dim)
+def _weighted_midpoint(x, w, k, keepdim: bool = False, dim: int = -1):
+    lam_x = _lambda_x(x, k, keepdim=False, dim=dim)
     w_times_lam_x = w * lam_x
     denominator = (w_times_lam_x - w).sum()
 
@@ -1622,13 +1701,13 @@ def _weighted_midpoint(x, w, K, keepdim: bool = False, dim: int = -1):
 
     # determine midpoint
     midpoint = None
-    m = _mobius_scalar_mul(0.5, rhs, K, dim=dim)
+    m = _mobius_scalar_mul(0.5, rhs, k, dim=dim)
     # also compute and compare to antipode of m for positive curvature
-    if K > 0:
-        m_a = _antipode(m, K, dim=dim)
+    if k > 0:
+        m_a = _antipode(m, k, dim=dim)
         # determine whether m or m_a minimizes the sum of distances
-        d = _dist(x, m, K, keepdim=keepdim, dim=dim).sum(dim=dim, keepdim=False)
-        d_a = _dist(x, m_a, K, keepdim=keepdim, dim=dim).sum(dim=dim, keepdim=False)
+        d = _dist(x, m, k, keepdim=keepdim, dim=dim).sum(dim=dim, keepdim=False)
+        d_a = _dist(x, m_a, k, keepdim=keepdim, dim=dim).sum(dim=dim, keepdim=False)
         # use midpoint that has smaller sum of squared distances
         midpoint = m if d < d_a else m_a
     else:
