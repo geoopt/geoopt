@@ -67,6 +67,12 @@ class Stereographic(Manifold):
     name = property(lambda self: self.__class__.__name__)
     __scaling__ = Manifold.__scaling__.copy()
 
+    @property
+    def radius(self):
+        k = self.k
+        r = k.sqrt().reciprocal()
+        return torch.where(k.ge(0), r.new_full((), float("inf")), r)
+
     def __init__(self, k=0.0, learnable=False):
         super().__init__()
         k = torch.as_tensor(k, dtype=torch.get_default_dtype())
@@ -422,16 +428,18 @@ class PoincareBall(Stereographic):
     @k.setter
     @torch.no_grad()
     def k(self, value):
-        self.log_c = value.neg_().log_()
+        # sp: y = log(1 + exp(x))
+        # isp: x = log(exp(y) - 1)
+        self.isp_c = value.neg_().exp_().sub_(1).log_()
 
     @property
     def c(self):
-        return self.log_c.exp()
+        return torch.nn.functional.softplus(self.isp_c)
 
     @c.setter
     @torch.no_grad()
     def c(self, value):
-        self.log_c = value.log_()
+        self.isp_c = value.exp_().sub_(1).log_()
 
     def __init__(self, c=1.0, learnable=False):
         super().__init__(k=-c, learnable=learnable)
@@ -444,15 +452,15 @@ class PoincareBallExact(PoincareBall, StereographicExact):
 class SphereProjection(Stereographic):
     @property
     def k(self):
-        return self.log_c.exp()
+        return torch.nn.functional.softplus(self.isp_k)
 
     @k.setter
     @torch.no_grad()
     def k(self, value):
-        self.log_c = value.log_()
+        self.isp_k = value.exp_().sub_(1).log_()
 
-    def __init__(self, c=1.0, learnable=False):
-        super().__init__(k=-c, learnable=learnable)
+    def __init__(self, k=1.0, learnable=False):
+        super().__init__(k=k, learnable=learnable)
 
 
 class SphereProjectionExact(SphereProjection, StereographicExact):
