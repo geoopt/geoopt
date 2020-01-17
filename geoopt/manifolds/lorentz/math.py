@@ -8,7 +8,7 @@ class Arcosh(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, eps):
         z = th.sqrt(th.clamp_min(x.pow(2) - 1.0, MIN_NORM))
-        ctx.save_for_backward(z)
+        ctx.save_for_backward(z, eps)
         ctx.eps = eps
         asd = th.log(x + z)
         return asd

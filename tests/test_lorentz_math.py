@@ -21,15 +21,12 @@ def dtype(request):
 
 @pytest.fixture
 def k(seed, dtype):
-    # test broadcasted and non broadcasted versions
     return torch.Tensor([seed - 29.0])
 
 
 @pytest.fixture
 def a(seed, k):
     if seed > 35:
-        # do not check numerically unstable regions
-        # I've manually observed small differences there
         a = torch.empty(100, 10, dtype=k.dtype).normal_(-1, 1)
         a /= a.norm(dim=-1, keepdim=True) * 1.3
         a *= (torch.rand_like(k) * k) ** 0.5
@@ -77,7 +74,7 @@ def test_geodesic_segement_unit_property(a, b, k):
     gamma_ab_t1 = gamma_ab_t
     dist_ab_t0mt1 = lorentz.math.dist(gamma_ab_t0, gamma_ab_t1, k=k, keepdim=True)
     true_distance_travelled = t.expand_as(dist_ab_t0mt1)
-    # we have exactly 12 line segments
+
     tolerance = {
         torch.float32: dict(atol=1e-6, rtol=1e-5),
         torch.float64: dict(atol=1e-10),
@@ -99,7 +96,6 @@ def test_expmap0_logmap0(a, k):
 
 
 def test_parallel_transport0_preserves_inner_products(a, k):
-    # pointing to the center
     a = lorentz.math.project(a, k=k)
 
     v_0 = torch.rand_like(a) + 1e-5
@@ -116,7 +112,7 @@ def test_parallel_transport0_preserves_inner_products(a, k):
 
     v_a = lorentz.math.parallel_transport0(a, v_0, k=k)
     u_a = lorentz.math.parallel_transport0(a, u_0, k=k)
-    # compute norms
+
     vu_0 = lorentz.math.inner(v_0, u_0, keepdim=True)
     vu_a = lorentz.math.inner(v_a, u_a, keepdim=True)
     np.testing.assert_allclose(vu_a, vu_0, atol=1e-5, rtol=1e-5)
@@ -134,12 +130,10 @@ def test_parallel_transport0_is_same_as_usual(a, k):
 
     v_a = lorentz.math.parallel_transport0(a, v_0, k=k)
     v_a1 = lorentz.math.parallel_transport(zero, a, v_0, k=k)
-    # compute norms
     np.testing.assert_allclose(v_a, v_a1, atol=1e-5, rtol=1e-5)
 
 
 def test_parallel_transport_a_b(a, b, k):
-    # pointing to the center
     v_0 = torch.rand_like(a)
     u_0 = torch.rand_like(a)
 
@@ -149,7 +143,6 @@ def test_parallel_transport_a_b(a, b, k):
     v_1 = lorentz.math.parallel_transport(a, b, v_0, k=k)
     u_1 = lorentz.math.parallel_transport(a, b, u_0, k=k)
 
-    # compute norms
     vu_1 = lorentz.math.inner(v_1, u_1, keepdim=True)
     vu_0 = lorentz.math.inner(v_0, u_0, keepdim=True)
 
