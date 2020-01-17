@@ -5,33 +5,61 @@ import geoopt
 from ...utils import size2shape, broadcast_shapes
 from ..base import Manifold, ScalingInfo
 
-__all__ = ["ConstantCurvature"]
+__all__ = ["Stereographic"]
 
-_poincare_ball_doc = r"""
-    Constant Curvature model, see more in :doc:`/extended/poincare`.
+_stereographic_doc = r"""
+    :math:`\kappa`-Stereographic model, see more in 
+    :doc:`/extended/stereographic`
 
     Parameters
     ----------
-    k : float|tensor
-        constant sectional curvature
-    learnable : bool
-        makes curvature trainable
+    K : float|tensor 
+        sectional curvature :math:`\kappa` of the manifold
+        - K<0: Poincaré ball (stereographic projection of hyperboloid)
+        - K>0: Stereographic projection of sphere
+        - K-->0: Euclidean geometry
 
     Notes
     -----
-    It is extremely recommended to work with this manifold in double precision
+    It is extremely recommended to work with this manifold in double precision.
+    Do not use this manifold with K=0 to get Euclidean geometry! Use the
+    Euclidean manifold, or a small value of K instead.
+
+    Documentation & Illustration
+    -----    
+    http://andbloch.github.io/K-Stereographic-Model/
+
+    References
+    -----
+    The functions for the mathematics in gyrovector spaces are taken from the
+    following resources:
+
+    .. [1] Ganea, Octavian, Gary Bécigneul, and Thomas Hofmann. "Hyperbolic 
+           neural networks." Advances in neural information processing systems. 
+           2018.
+    .. [2] Bachmann, Gregor, Gary Bécigneul, and Octavian-Eugen Ganea. "Constant
+           Curvature Graph Convolutional Networks." arXiv preprint 
+           arXiv:1911.05076 (2019).
+    .. [3] Skopek, Ondrej, Octavian-Eugen Ganea, and Gary Bécigneul. 
+           "Mixed-curvature Variational Autoencoders." arXiv preprint 
+           arXiv:1911.08411 (2019).
+    .. [4] Ungar, Abraham A. Analytic hyperbolic geometry: Mathematical 
+           foundations and applications. World Scientific, 2005.
+    .. [5] Albert, Ungar Abraham. Barycentric calculus in Euclidean and 
+           hyperbolic geometry: A comparative introduction. World Scientific, 
+           2010.
 """
 
 
 # noinspection PyMethodOverriding
-class ConstantCurvature(Manifold):
+class Stereographic(Manifold):
     __doc__ = r"""{}
 
     See Also
     --------
     :class:`ConstantCurvatureExact`
     """.format(
-        _poincare_ball_doc
+        _stereographic_doc
     )
 
     ndim = 1
@@ -365,7 +393,7 @@ class ConstantCurvature(Manifold):
         )
 
 
-class ConstantCurvatureExact(ConstantCurvature):
+class StereographicExact(Stereographic):
     __doc__ = r"""{}
 
     The implementation of retraction is an exact exponential map, this retraction will be used in optimization.
@@ -374,19 +402,19 @@ class ConstantCurvatureExact(ConstantCurvature):
     --------
     :class:`ConstantCurvature`
     """.format(
-        _poincare_ball_doc
+        _stereographic_doc
     )
 
     reversible = True
-    retr_transp = ConstantCurvature.expmap_transp
-    transp_follow_retr = ConstantCurvature.transp_follow_expmap
-    retr = ConstantCurvature.expmap
+    retr_transp = Stereographic.expmap_transp
+    transp_follow_retr = Stereographic.transp_follow_expmap
+    retr = Stereographic.expmap
 
     def extra_repr(self):
         return "exact"
 
 
-class PoincareBall(ConstantCurvature):
+class PoincareBall(Stereographic):
     @property
     def k(self):
         return -self.c
@@ -409,11 +437,11 @@ class PoincareBall(ConstantCurvature):
         super().__init__(k=-c, learnable=learnable)
 
 
-class PoincareBallExact(PoincareBall, ConstantCurvatureExact):
+class PoincareBallExact(PoincareBall, StereographicExact):
     ...
 
 
-class SphereProjection(ConstantCurvature):
+class SphereProjection(Stereographic):
     @property
     def k(self):
         return self.log_c.exp()
@@ -427,5 +455,5 @@ class SphereProjection(ConstantCurvature):
         super().__init__(k=-c, learnable=learnable)
 
 
-class SphereProjectionExact(SphereProjection, ConstantCurvatureExact):
+class SphereProjectionExact(SphereProjection, StereographicExact):
     ...
