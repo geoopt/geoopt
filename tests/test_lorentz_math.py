@@ -21,7 +21,7 @@ def dtype(request):
 
 @pytest.fixture
 def k(seed, dtype):
-    return torch.Tensor([1.])
+    return torch.Tensor([1.0])
 
 
 @pytest.fixture
@@ -56,7 +56,6 @@ def test_geodesic_segement_unit_property(a, b, k):
     b = man.proju(a, b)
     b = b / man.norm(b, keepdim=True)
 
-
     extra_dims = len(a.shape)
     segments = 12
     t = torch.linspace(0, 1, segments + 1, dtype=k.dtype).view(
@@ -74,8 +73,11 @@ def test_geodesic_segement_unit_property(a, b, k):
     }
     np.testing.assert_allclose(
         # TODO: analyze corner cases for geodesic
-        dist_ab_t0mt1[1:], true_distance_travelled[1:], **tolerance[k.dtype]
+        dist_ab_t0mt1[1:],
+        true_distance_travelled[1:],
+        **tolerance[k.dtype]
     )
+
 
 def test_expmap0_logmap0(a, k):
     man = lorentz.Lorentz(k=k)
