@@ -108,14 +108,13 @@ class Lorentz(Manifold):
 
     def inner(
         self,
-        x: torch.Tensor,
         u: torch.Tensor,
         v: torch.Tensor = None,
         *,
         keepdim=False,
         dim=-1,
     ) -> torch.Tensor:
-        return math.inner(x, u, v)
+        return math.inner(u, v)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, k=self.k, dim=dim)
