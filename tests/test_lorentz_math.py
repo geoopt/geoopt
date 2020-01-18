@@ -40,6 +40,19 @@ def b(seed, k):
     return lorentz.math.project(b, k=k)
 
 
+def test_point_on_manifold(a, k):
+    man = lorentz.Lorentz(k=k)
+    a = man.projx(a)
+    man._check_point_on_manifold(a)
+
+
+def test_vector_on_tangent(a, b, k):
+    man = lorentz.Lorentz(k=k)
+    a = man.projx(a)
+    b = man.proju(a, b)
+    man._check_vector_on_tangent(a, b)
+
+
 def test_expmap_logmap(a, b, k):
     man = lorentz.Lorentz(k=k)
     a = man.projx(a)
