@@ -177,6 +177,7 @@ class Lorentz(Manifold):
                 "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
             )
         tens = torch.randn(*size, device=self.k.device, dtype=self.k.dtype) * std + mean
+        tens /= tens.norm(dim=-1, keepdim=True)
         return geoopt.ManifoldTensor(self.expmap0(tens), manifold=self)
 
     def origin(
@@ -201,6 +202,11 @@ class Lorentz(Manifold):
         ManifoldTensor
             zero point on the manifold
         """
+        if not dtype:
+            dtype = self.k.dtype
+        if not device:
+            device = self.k.device
+
         zero_point = torch.ones(*size, dtype=dtype, device=device)
         d = zero_point.size(-1) - 1
         zero_point = torch.cat(

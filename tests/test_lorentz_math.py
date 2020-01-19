@@ -53,6 +53,27 @@ def test_vector_on_tangent(a, b, k):
     man._check_vector_on_tangent(a, b)
 
 
+def test_lorentz_poincare(a, k):
+    a = lorentz.math.project(a, k=k)
+    b = lorentz.math.lorentz_to_poincare(a, k=k)
+    b = lorentz.math.poincare_to_lorentz(b, k=k)
+    np.testing.assert_allclose(a, b, atol=1e-5, rtol=1e-5)
+
+
+def test_randn_mean(k):
+    man = lorentz.Lorentz(k=k)
+    a = man.random_normal((10, 500), mean=0).data
+    a = man.logmap0(a).mean(dim=-1)
+    np.testing.assert_allclose(a, torch.zeros_like(a), atol=1e-1, rtol=1e-1)
+
+
+def test_origin(k):
+    man = lorentz.Lorentz(k=k)
+    a = man.origin(10, 10).data
+    b = man.projx(torch.zeros(10, 10))
+    np.testing.assert_allclose(a, b, atol=1e-5, rtol=1e-5)
+
+
 def test_expmap_logmap(a, b, k):
     man = lorentz.Lorentz(k=k)
     a = man.projx(a)
