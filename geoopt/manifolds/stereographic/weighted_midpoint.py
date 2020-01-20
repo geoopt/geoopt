@@ -1,5 +1,4 @@
 import torch
-from .math import _lambda_x
 from ...utils import prod, drop_dims, reduce_dim
 
 
@@ -42,11 +41,11 @@ def weighted_midpoint(
     weights : tensor
         weights for averaging (make sure they broadcast correctly and manifold dimension is skipped)
     reducedim : int|list|tuple
-        average dimension
+        reduce dimension
     dim : int
         dimension to calculate conformal and Lorenz factors
-    ball : geoopt.Manifold
-        Poincare Ball
+    ball : geoopt.Stereographic
+        Stereographic Manifold
     keepdim : bool
         retain the last dim? (default: false)
     lincomb : bool
