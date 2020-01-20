@@ -30,19 +30,174 @@ def arsinh(x: torch.Tensor):
 
 
 @torch.jit.script
+def abs_zero_grad(x):
+    # this order of inputs produces gradients equal to 1 at zero
+    zero = torch.zeros((), device=x.device, dtype=x.dtype)
+    k_zero = x.isclose(zero)
+    return torch.where(k_zero, x, x.abs())
+
+
+@torch.jit.script
+def tan_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+    if order == 0:
+        return x
+    k = abs_zero_grad(k)
+    if order == -1 or order == 5:
+        return (
+            x
+            + 1 / 3 * k * x ** 3
+            + 2 / 15 * k ** 2 * x ** 5
+            + 17 / 315 * k ** 3 * x ** 7
+            + 62 / 2835 * k ** 4 * x ** 9
+            + 1382 / 155925 * k ** 5 * x ** 11
+            # + o(k**6)
+        )
+    elif order == 1:
+        return x + 1 / 3 * k * x ** 3
+    elif order == 2:
+        return x + 1 / 3 * k * x ** 3 + 2 / 15 * k ** 2 * x ** 5
+    elif order == 3:
+        return (
+            x
+            + 1 / 3 * k * x ** 3
+            + 2 / 15 * k ** 2 * x ** 5
+            + 17 / 315 * k ** 3 * x ** 7
+        )
+    elif order == 4:
+        return (
+            x
+            + 1 / 3 * k * x ** 3
+            + 2 / 15 * k ** 2 * x ** 5
+            + 17 / 315 * k ** 3 * x ** 7
+            + 62 / 2835 * k ** 4 * x ** 9
+        )
+    else:
+        raise RuntimeError("order not in [-1, 5]")
+
+
+@torch.jit.script
+def artan_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+    if order == 0:
+        return x
+    k = abs_zero_grad(k)
+    if order == -1 or order == 5:
+        return (
+            x
+            - 1 / 3 * k * x ** 3
+            + 1 / 5 * k ** 2 * x ** 5
+            - 1 / 7 * k ** 3 * x ** 7
+            + 1 / 9 * k ** 4 * x ** 9
+            - 1 / 11 * k ** 5 * x ** 11
+            # + o(k**6)
+        )
+    elif order == 1:
+        return x - 1 / 3 * k * x ** 3
+    elif order == 2:
+        return x - 1 / 3 * k * x ** 3 + 1 / 5 * k ** 2 * x ** 5
+    elif order == 3:
+        return (
+            x - 1 / 3 * k * x ** 3 + 1 / 5 * k ** 2 * x ** 5 - 1 / 7 * k ** 3 * x ** 7
+        )
+    elif order == 4:
+        return (
+            x
+            - 1 / 3 * k * x ** 3
+            + 1 / 5 * k ** 2 * x ** 5
+            - 1 / 7 * k ** 3 * x ** 7
+            + 1 / 9 * k ** 4 * x ** 9
+        )
+    else:
+        raise RuntimeError("order not in [-1, 5]")
+
+
+@torch.jit.script
+def arsin_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+    if order == 0:
+        return x
+    k = abs_zero_grad(k)
+    if order == -1 or order == 5:
+        return (
+            x
+            + k * x ** 3 / 6
+            + 3 / 40 * k ** 2 * x ** 5
+            + 5 / 112 * k ** 3 * x ** 7
+            + 35 / 1152 * k ** 4 * x ** 9
+            + 63 / 2816 * k ** 5 * x ** 11
+            # + o(k**6)
+        )
+    elif order == 1:
+        return x + k * x ** 3 / 6
+    elif order == 2:
+        return x + k * x ** 3 / 6 + 3 / 40 * k ** 2 * x ** 5
+    elif order == 3:
+        return x + k * x ** 3 / 6 + 3 / 40 * k ** 2 * x ** 5 + 5 / 112 * k ** 3 * x ** 7
+    elif order == 4:
+        return (
+            x
+            + k * x ** 3 / 6
+            + 3 / 40 * k ** 2 * x ** 5
+            + 5 / 112 * k ** 3 * x ** 7
+            + 35 / 1152 * k ** 4 * x ** 9
+        )
+    else:
+        raise RuntimeError("order not in [-1, 5]")
+
+
+@torch.jit.script
+def sin_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+    if order == 0:
+        return x
+    k = abs_zero_grad(k)
+    if order == -1 or order == 5:
+        return (
+            x
+            - k * x ** 3 / 6
+            + k ** 2 * x ** 5 / 120
+            - k ** 3 * x ** 7 / 5040
+            + k ** 4 * x ** 9 / 362880
+            - k ** 5 * x ** 11 / 39916800
+            # + o(k**6)
+        )
+    elif order == 1:
+        return x - k * x ** 3 / 6
+    elif order == 2:
+        return x - k * x ** 3 / 6 + k ** 2 * x ** 5 / 120
+    elif order == 3:
+        return x - k * x ** 3 / 6 + k ** 2 * x ** 5 / 120 - k ** 3 * x ** 7 / 5040
+    elif order == 4:
+        return (
+            x
+            - k * x ** 3 / 6
+            + k ** 2 * x ** 5 / 120
+            - k ** 3 * x ** 7 / 5040
+            + k ** 4 * x ** 9 / 362880
+        )
+    else:
+        raise RuntimeError("order not in [-1, 5]")
+
+
+@torch.jit.script
 def tan_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = k.sign()
     zero = torch.zeros((), device=k.device, dtype=k.dtype)
     k_zero = k.isclose(zero)
     # shrink sign
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
-    k_sqrt = k.abs().sqrt()
+    if torch.all(k_zero):
+        return tan_k_zero_tailor(x, k, order=1)
+    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
     scaled_x = x * k_sqrt
-    return (
-        torch.where(k_zero, zero, k_sqrt.reciprocal())
-        * (torch.where(k_sign.gt(0), scaled_x.tan(), tanh(scaled_x)))
-        + x * k_zero
-    )
+
+    if torch.all(k_sign.lt(0)):
+        return k_sqrt.reciprocal() * tanh(scaled_x)
+    elif torch.all(k_sign.gt(0)):
+        return k_sqrt.reciprocal() * scaled_x.tan()
+    else:
+        tan_k_nonzero = (
+            torch.where(k_sign.gt(0), scaled_x.tan(), tanh(scaled_x))
+            * k_sqrt.reciprocal()
+        )
+        return torch.where(k_zero, tan_k_zero_tailor(x, k, order=1), tan_k_nonzero)
 
 
 @torch.jit.script
@@ -52,13 +207,21 @@ def artan_k(x: torch.Tensor, k: torch.Tensor):
     k_zero = k.isclose(zero)
     # shrink sign
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
-    k_sqrt = k.abs().sqrt()
+    if torch.all(k_zero):
+        return artan_k_zero_tailor(x, k, order=1)
+    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
     scaled_x = x * k_sqrt
-    return (
-        torch.where(k_zero, zero, k_sqrt.reciprocal())
-        * (torch.where(k_sign.gt(0), scaled_x.atan(), artanh(scaled_x)))
-        + x * k_zero
-    )
+
+    if torch.all(k_sign.lt(0)):
+        return k_sqrt.reciprocal() * artanh(scaled_x)
+    elif torch.all(k_sign.gt(0)):
+        return k_sqrt.reciprocal() * scaled_x.atan()
+    else:
+        artan_k_nonzero = (
+            torch.where(k_sign.gt(0), scaled_x.atan(), artanh(scaled_x))
+            * k_sqrt.reciprocal()
+        )
+        return torch.where(k_zero, artan_k_zero_tailor(x, k, order=1), artan_k_nonzero)
 
 
 @torch.jit.script
@@ -68,13 +231,45 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
     k_zero = k.isclose(zero)
     # shrink sign
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
-    k_sqrt = k.abs().sqrt()
+    if torch.all(k_zero):
+        return arsin_k_zero_tailor(x, k)
+    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
     scaled_x = x * k_sqrt
-    return (
-        torch.where(k_zero, zero, k_sqrt.reciprocal())
-        * (torch.where(k_sign.gt(0), scaled_x.asin(), arsinh(scaled_x)))
-        + x * k_zero
-    )
+
+    if torch.all(k_sign.lt(0)):
+        return k_sqrt.reciprocal() * arsinh(scaled_x)
+    elif torch.all(k_sign.gt(0)):
+        return k_sqrt.reciprocal() * scaled_x.asin()
+    else:
+        arsin_k_nonzero = (
+            torch.where(k_sign.gt(0), scaled_x.asin(), arsinh(scaled_x))
+            * k_sqrt.reciprocal()
+        )
+        return torch.where(k_zero, arsin_k_zero_tailor(x, k, order=1), arsin_k_nonzero)
+
+
+@torch.jit.script
+def sin_k(x: torch.Tensor, k: torch.Tensor):
+    k_sign = k.sign()
+    zero = torch.zeros((), device=k.device, dtype=k.dtype)
+    k_zero = k.isclose(zero)
+    # shrink sign
+    k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
+    if torch.all(k_zero):
+        return sin_k_zero_tailor(x, k)
+    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
+    scaled_x = x * k_sqrt
+
+    if torch.all(k_sign.lt(0)):
+        return k_sqrt.reciprocal() * torch.sinh(scaled_x)
+    elif torch.all(k_sign.gt(0)):
+        return k_sqrt.reciprocal() * scaled_x.sin()
+    else:
+        sin_k_nonzero = (
+            torch.where(k_sign.gt(0), scaled_x.sin(), torch.sinh(scaled_x))
+            * k_sqrt.reciprocal()
+        )
+        return torch.where(k_zero, sin_k_zero_tailor(x, k, order=1), sin_k_nonzero)
 
 
 def project(x: torch.Tensor, *, k: torch.Tensor, dim=-1, eps=-1):
@@ -892,11 +1087,7 @@ def geodesic_unit(
 
 @torch.jit.script
 def _geodesic_unit(
-    t: torch.Tensor,
-    x: torch.Tensor,
-    u: torch.Tensor,
-    k: torch.Tensor,
-    dim: int = -1,
+    t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1,
 ):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
     second_term = tan_k(t / 2.0, k) * (u / u_norm)
