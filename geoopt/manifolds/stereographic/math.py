@@ -593,7 +593,7 @@ def gyration(
         second point on manifold
     u : tensor
         vector field for operation
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
@@ -784,7 +784,7 @@ def mobius_scalar_mul(r: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=
 
     Parameters
     ----------
-    r : float|tensor
+    r : tensor
         scalar for multiplication
     x : tensor
         point on manifold
@@ -926,7 +926,7 @@ def geodesic(
 
     Parameters
     ----------
-    t : float|tensor
+    t : tensor
         travelling time
     x : tensor
         starting point on manifold
@@ -1616,7 +1616,7 @@ def parallel_transport(
         end point
     v : tensor
         tangent vector at x to be transported to y
-    k : float|tensor
+    k : tensor
         sectional curvature of manifold
     dim : int
         reduction dimension for operations
