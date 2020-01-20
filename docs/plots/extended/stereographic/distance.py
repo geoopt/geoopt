@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import math
 import seaborn as sns
 from matplotlib import rcParams
-rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
-rcParams["text.usetex"] = True
+import shutil
+if shutil.which("latex") is not None:
+    rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    rcParams["text.usetex"] = True
 sns.set_style("white")
 
 
@@ -76,7 +78,7 @@ def add_geodesic_grid(ax: plt.Axes, manifold: Stereographic, line_width=0.1):
 
     # add geodesics per quadrant
     for i in range(1, n_geodesics_per_quadrant):
-
+        i = torch.as_tensor(float(i))
         # determine start of geodesic on x/y-crosshair
         x = manifold.geodesic_unit(i*grid_interval_size, o, u_y)
         y = manifold.geodesic_unit(i*grid_interval_size, o, u_x)

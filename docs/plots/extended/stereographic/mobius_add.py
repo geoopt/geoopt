@@ -3,9 +3,11 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import rcParams
+import shutil
+if shutil.which("latex") is not None:
+    rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    rcParams["text.usetex"] = True
 
-rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
-rcParams["text.usetex"] = True
 
 sns.set_style("white")
 

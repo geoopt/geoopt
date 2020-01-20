@@ -4,6 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import rcParams
+import shutil
+if shutil.which("latex") is not None:
+    rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    rcParams["text.usetex"] = True
+
+sns.set_style("white")
 
 
 def add_geodesic_grid(ax: plt.Axes, manifold: Stereographic, line_width=0.1):
@@ -72,7 +78,7 @@ def add_geodesic_grid(ax: plt.Axes, manifold: Stereographic, line_width=0.1):
 
     # add geodesics per quadrant
     for i in range(1, n_geodesics_per_quadrant):
-
+        i = torch.as_tensor(float(i))
         # determine start of geodesic on x/y-crosshair
         x = manifold.geodesic_unit(i*grid_interval_size, o, u_y)
         y = manifold.geodesic_unit(i*grid_interval_size, o, u_x)
@@ -89,11 +95,6 @@ def add_geodesic_grid(ax: plt.Axes, manifold: Stereographic, line_width=0.1):
             plot_geodesic(-y_geodesic)
 
 lim = 1.1
-
-rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
-rcParams["text.usetex"] = True
-
-sns.set_style("white")
 
 x = torch.tensor((-0.25, -0.75))
 xv1 = torch.tensor((np.sin(np.pi / 3), np.cos(np.pi / 3))) / 5
