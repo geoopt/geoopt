@@ -21,7 +21,7 @@ def dtype(request):
 
 @pytest.fixture
 def k(seed, dtype):
-    return torch.Tensor([1.0])
+    return torch.Tensor([seed - 29])
 
 
 @pytest.fixture
