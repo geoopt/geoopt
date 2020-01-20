@@ -1,6 +1,8 @@
 import itertools
 from typing import Tuple, Any, Union
 import torch
+import functools
+import operator
 import geoopt
 
 __all__ = [
@@ -11,6 +13,11 @@ __all__ = [
     "broadcast_shapes",
     "ismanifold",
     "canonical_manifold",
+    "reduce_dim",
+    "idx2sign",
+    "drop_dims",
+    "canonical_dims",
+    "prod"
 ]
 
 
@@ -54,6 +61,56 @@ def make_tuple(obj: Union[Tuple, Any]) -> Tuple:
         return (obj,)
     else:
         return obj
+
+
+def prod(items):
+    return functools.reduce(operator.mul, items, 1)
+
+
+def idx2sign(idx, dim, neg=True):
+    """
+    Unify idx to be negative or positive, that helps in cases of broadcasting.
+
+    Parameters
+    ----------
+    idx : int
+        current index
+    dim : int
+        maximum dimension
+    neg : bool
+        indicate we need negative index
+
+    Returns
+    -------
+    int
+    """
+    if neg:
+        if idx < 0:
+            return idx
+        else:
+            return (idx + 1) % -(dim + 1)
+    else:
+        return idx % dim
+
+
+def drop_dims(tensor, dims):
+    # Workaround to drop several dims in :func:`torch.squeeze`.
+    dims = canonical_dims(dims, tensor.dim())
+    slc = tuple(slice(None) if d not in dims else 0 for d in range(tensor.dim()))
+    return tensor[slc]
+
+
+def canonical_dims(dims, maxdim):
+    return tuple(idx2sign(idx, maxdim, neg=False) for idx in dims)
+
+
+def reduce_dim(maxdim, reducedim, dim):
+    if reducedim is None:
+        reducedim = list(range(maxdim))
+        del reducedim[dim]
+    else:
+        reducedim = size2shape(reducedim)
+    return reducedim
 
 
 def size2shape(*size: Union[Tuple[int], int]) -> Tuple[int]:
