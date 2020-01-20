@@ -6,7 +6,7 @@ from ...utils import prod, drop_dims, reduce_dim
 def weighted_midpoint(
     xs, weights=None, *, ball, reducedim=None, dim=-1, keepdim=False, lincomb=False
 ):
-    """
+    r"""
     Computes the weighted Möbius gyromidpoint of a set of points
     :math:`x_1,...,x_n` according to weights :math:`\alpha_1,...,\alpha_n`.
 
