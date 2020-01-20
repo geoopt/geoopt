@@ -573,7 +573,7 @@ def lorentz_to_poincare(x, k=1.0, dim=-1):
         points on the Poincare disk
     """
     dn = x.size(dim) - 1
-    return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + k)
+    return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + th.sqrt(k))
 
 
 def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):

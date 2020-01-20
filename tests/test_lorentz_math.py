@@ -102,8 +102,8 @@ def test_geodesic_segement_unit_property(a, b, k):
     true_distance_travelled = t.expand_as(dist_ab_t0mt1)
 
     tolerance = {
-        torch.float32: dict(atol=1e-5, rtol=1e-5),
-        torch.float64: dict(atol=1e-50),
+        torch.float32: dict(atol=1e-4, rtol=1e-5),
+        torch.float64: dict(atol=1e-10),
     }
     np.testing.assert_allclose(
         # TODO: analyze corner cases for geodesic
