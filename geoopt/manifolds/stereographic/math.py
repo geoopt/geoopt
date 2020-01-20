@@ -38,7 +38,7 @@ def abs_zero_grad(x):
 
 
 @torch.jit.script
-def tan_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+def tan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
     k = abs_zero_grad(k)
@@ -76,7 +76,7 @@ def tan_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
 
 
 @torch.jit.script
-def artan_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+def artan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
     k = abs_zero_grad(k)
@@ -111,7 +111,7 @@ def artan_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
 
 
 @torch.jit.script
-def arsin_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+def arsin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
     k = abs_zero_grad(k)
@@ -144,7 +144,7 @@ def arsin_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
 
 
 @torch.jit.script
-def sin_k_zero_tailor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
+def sin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
     k = abs_zero_grad(k)
@@ -184,7 +184,7 @@ def tan_k(x: torch.Tensor, k: torch.Tensor):
     # shrink sign
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
-        return tan_k_zero_tailor(x, k, order=1)
+        return tan_k_zero_taylor(x, k, order=1)
     k_sqrt = k.abs().clamp_min(1e-15).sqrt()
     scaled_x = x * k_sqrt
 
@@ -197,7 +197,7 @@ def tan_k(x: torch.Tensor, k: torch.Tensor):
             torch.where(k_sign.gt(0), scaled_x.tan(), tanh(scaled_x))
             * k_sqrt.reciprocal()
         )
-        return torch.where(k_zero, tan_k_zero_tailor(x, k, order=1), tan_k_nonzero)
+        return torch.where(k_zero, tan_k_zero_taylor(x, k, order=1), tan_k_nonzero)
 
 
 @torch.jit.script
@@ -208,7 +208,7 @@ def artan_k(x: torch.Tensor, k: torch.Tensor):
     # shrink sign
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
-        return artan_k_zero_tailor(x, k, order=1)
+        return artan_k_zero_taylor(x, k, order=1)
     k_sqrt = k.abs().clamp_min(1e-15).sqrt()
     scaled_x = x * k_sqrt
 
@@ -221,7 +221,7 @@ def artan_k(x: torch.Tensor, k: torch.Tensor):
             torch.where(k_sign.gt(0), scaled_x.atan(), artanh(scaled_x))
             * k_sqrt.reciprocal()
         )
-        return torch.where(k_zero, artan_k_zero_tailor(x, k, order=1), artan_k_nonzero)
+        return torch.where(k_zero, artan_k_zero_taylor(x, k, order=1), artan_k_nonzero)
 
 
 @torch.jit.script
@@ -232,7 +232,7 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
     # shrink sign
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
-        return arsin_k_zero_tailor(x, k)
+        return arsin_k_zero_taylor(x, k)
     k_sqrt = k.abs().clamp_min(1e-15).sqrt()
     scaled_x = x * k_sqrt
 
@@ -245,7 +245,7 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
             torch.where(k_sign.gt(0), scaled_x.asin(), arsinh(scaled_x))
             * k_sqrt.reciprocal()
         )
-        return torch.where(k_zero, arsin_k_zero_tailor(x, k, order=1), arsin_k_nonzero)
+        return torch.where(k_zero, arsin_k_zero_taylor(x, k, order=1), arsin_k_nonzero)
 
 
 @torch.jit.script
@@ -256,7 +256,7 @@ def sin_k(x: torch.Tensor, k: torch.Tensor):
     # shrink sign
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
-        return sin_k_zero_tailor(x, k)
+        return sin_k_zero_taylor(x, k)
     k_sqrt = k.abs().clamp_min(1e-15).sqrt()
     scaled_x = x * k_sqrt
 
@@ -269,7 +269,7 @@ def sin_k(x: torch.Tensor, k: torch.Tensor):
             torch.where(k_sign.gt(0), scaled_x.sin(), torch.sinh(scaled_x))
             * k_sqrt.reciprocal()
         )
-        return torch.where(k_zero, sin_k_zero_tailor(x, k, order=1), sin_k_nonzero)
+        return torch.where(k_zero, sin_k_zero_taylor(x, k, order=1), sin_k_nonzero)
 
 
 def project(x: torch.Tensor, *, k: torch.Tensor, dim=-1, eps=-1):
