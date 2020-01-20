@@ -1,6 +1,6 @@
 import itertools
-from typing import Tuple, Any, Union
-import torch
+from typing import Tuple, Any, Union, List
+import torch.jit
 import functools
 import operator
 import geoopt
@@ -13,7 +13,7 @@ __all__ = [
     "broadcast_shapes",
     "ismanifold",
     "canonical_manifold",
-    "reduce_dim",
+    "list_range",
     "idx2sign",
     "drop_dims",
     "canonical_dims",
@@ -67,7 +67,8 @@ def prod(items):
     return functools.reduce(operator.mul, items, 1)
 
 
-def idx2sign(idx, dim, neg=True):
+@torch.jit.script
+def idx2sign(idx: int, dim: int, neg: bool = True):
     """
     Unify idx to be negative or positive, that helps in cases of broadcasting.
 
@@ -93,24 +94,30 @@ def idx2sign(idx, dim, neg=True):
         return idx % dim
 
 
-def drop_dims(tensor, dims):
+@torch.jit.script
+def drop_dims(tensor: torch.Tensor, dims: List[int]):
     # Workaround to drop several dims in :func:`torch.squeeze`.
-    dims = canonical_dims(dims, tensor.dim())
-    slc = tuple(slice(None) if d not in dims else 0 for d in range(tensor.dim()))
-    return tensor[slc]
+    seen: int = 0
+    for d in dims:
+        tensor = tensor.squeeze(d - seen)
+        seen += 1
+    return tensor
 
 
-def canonical_dims(dims, maxdim):
-    return tuple(idx2sign(idx, maxdim, neg=False) for idx in dims)
+@torch.jit.script
+def list_range(end: int):
+    res: List[int] = []
+    for d in range(end):
+        res.append(d)
+    return res
 
 
-def reduce_dim(maxdim, reducedim, dim):
-    if reducedim is None:
-        reducedim = list(range(maxdim))
-        del reducedim[dim]
-    else:
-        reducedim = size2shape(reducedim)
-    return reducedim
+@torch.jit.script
+def canonical_dims(dims: List[int], maxdim: int):
+    result: List[int] = []
+    for idx in dims:
+        result.append(idx2sign(idx, maxdim, neg=False))
+    return result
 
 
 def size2shape(*size: Union[Tuple[int], int]) -> Tuple[int]:

@@ -1,9 +1,19 @@
-import torch
-from ...utils import prod, drop_dims, reduce_dim
+import torch.jit
+import torch.tensor
+from typing import List, Optional
+from .math import _lambda_x, _mobius_scalar_mul, _antipode, _dist
+from ...utils import list_range, drop_dims
 
 
+@torch.jit.script
 def weighted_midpoint(
-    xs, weights=None, *, ball, reducedim=None, dim=-1, keepdim=False, lincomb=False
+    xs: torch.Tensor,
+    k: torch.Tensor,
+    weights: Optional[torch.Tensor] = None,
+    reducedim: Optional[List[int]] = None,
+    dim: int = -1,
+    keepdim: bool = False,
+    lincomb: bool = False,
 ):
     r"""
     Compute weighted Möbius gyromidpoint.
@@ -45,8 +55,8 @@ def weighted_midpoint(
         reduce dimension
     dim : int
         dimension to calculate conformal and Lorenz factors
-    ball : geoopt.Stereographic
-        Stereographic Manifold
+    k : tensor
+        constant sectional curvature
     keepdim : bool
         retain the last dim? (default: false)
     lincomb : bool
@@ -57,25 +67,34 @@ def weighted_midpoint(
     tensor
         Einstein midpoint in poincare coordinates
     """
-    if torch.any(ball.k.ge(0)):
-        raise RuntimeError("not yet supported k>0")
-    reducedim = reduce_dim(xs.dim(), reducedim, dim)
-    gamma = ball.lambda_x(xs, dim=dim, keepdim=True)
+    if reducedim is None:
+        reducedim = list_range(xs.dim())
+        reducedim.pop(dim)
+    gamma = _lambda_x(xs, k=k, dim=dim, keepdim=True)
     if weights is None:
-        weights = 1.0
+        weights = torch.tensor(1.0, dtype=xs.dtype, device=xs.device)
     else:
         weights = weights.unsqueeze(dim)
     nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
     denominator = ((gamma - 1) * weights).sum(reducedim, keepdim=True)
     two_mean = nominator / denominator
     two_mean = torch.where(torch.isfinite(two_mean), two_mean, two_mean.new_zeros(()))
-    if lincomb and isinstance(weights, float):
-        alpha = 0.5 * prod((xs.shape[i] for i in reducedim))
+    if lincomb and weights.numel() == 1:
+        alpha = torch.tensor(0.5, dtype=xs.dtype, device=xs.device) * weights
+        for d in reducedim:
+            alpha *= xs.size(d)
     elif lincomb:
         alpha = 0.5 * weights.sum(reducedim, keepdim=True)
     else:
-        alpha = 0.5
-    mean = ball.mobius_scalar_mul(alpha, two_mean, dim=dim)
+        alpha = torch.tensor(0.5, dtype=xs.dtype, device=xs.device)
+    mean = _mobius_scalar_mul(alpha, two_mean, k=k, dim=dim)
+    if torch.any(k.gt(0)):
+        # check antipode
+        a_mean = _antipode(mean, k, dim=dim)
+        dist = _dist(mean, xs, k=k, keepdim=True, dim=dim).sum(reducedim)
+        a_dist = _dist(a_mean, xs, k=k, keepdim=True, dim=dim).sum(reducedim)
+        better = k.gt(0) & (a_dist < dist)
+        mean = torch.masked_fill(mean, better, a_mean)
     if not keepdim:
         mean = drop_dims(mean, reducedim)
     return mean
