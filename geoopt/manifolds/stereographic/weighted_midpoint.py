@@ -91,10 +91,10 @@ def weighted_midpoint(
     if torch.any(k.gt(0)):
         # check antipode
         a_mean = _antipode(mean, k, dim=dim)
-        dist = _dist(mean, xs, k=k, keepdim=True, dim=dim).sum(reducedim)
-        a_dist = _dist(a_mean, xs, k=k, keepdim=True, dim=dim).sum(reducedim)
+        dist = _dist(mean, xs, k=k, keepdim=True, dim=dim).sum(reducedim, keepdim=True)
+        a_dist = _dist(a_mean, xs, k=k, keepdim=True, dim=dim).sum(reducedim, keepdim=True)
         better = k.gt(0) & (a_dist < dist)
-        mean = torch.masked_fill(mean, better, a_mean)
+        mean = torch.where(better, a_mean, mean)
     if not keepdim:
         mean = drop_dims(mean, reducedim)
     return mean
