@@ -6,10 +6,11 @@ def weighted_midpoint(
     xs, weights=None, *, ball, reducedim=None, dim=-1, keepdim=False, lincomb=False
 ):
     r"""
-    Computes the weighted Möbius gyromidpoint of a set of points
-    :math:`x_1,...,x_n` according to weights :math:`\alpha_1,...,\alpha_n`.
+    Compute weighted Möbius gyromidpoint.
 
-    The gyromidpoint looks as follows:
+    The weighted Möbius gyromidpoint of a set of points
+    :math:`x_1,...,x_n` according to weights
+    :math:`\alpha_1,...,\alpha_n` is computed as follows:
 
     The weighted Möbius gyromidpoint is computed as follows
 
@@ -78,4 +79,3 @@ def weighted_midpoint(
     if not keepdim:
         mean = drop_dims(mean, reducedim)
     return mean
-

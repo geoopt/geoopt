@@ -432,7 +432,7 @@ def _norm(
 
 def mobius_add(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the Möbius gyrovector addition.
+    Compute the Möbius gyrovector addition.
 
     .. math::
 
@@ -515,7 +515,7 @@ def _mobius_add(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1
 
 def mobius_sub(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the Möbius gyrovector subtraction.
+    Compute the Möbius gyrovector subtraction.
 
     The Möbius subtraction can be represented via the Möbius addition as
     follows:
@@ -551,7 +551,7 @@ def gyration(
     a: torch.Tensor, b: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, dim=-1
 ):
     r"""
-    Computes the gyration of :math:`u` by :math:`[a,b]`.
+    Compute the gyration of :math:`u` by :math:`[a,b]`.
 
     The gyration is a special operation of gyrovector spaces. The gyrovector
     space addition operation :math:`\oplus_\kappa` is not associative (as
@@ -635,7 +635,7 @@ def _gyration(
 
 def mobius_coadd(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the Möbius gyrovector coaddition.
+    Compute the Möbius gyrovector coaddition.
 
     The addition operation :math:`\oplus_\kappa` is neither associative, nor
     commutative. In contrast, the coaddition :math:`\boxplus_\kappa` (or
@@ -699,7 +699,7 @@ def _mobius_coadd(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = 
 
 def mobius_cosub(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the Möbius gyrovector cosubtraction.
+    Compute the Möbius gyrovector cosubtraction.
 
     The Möbius cosubtraction is defined as follows:
 
@@ -742,7 +742,7 @@ def mobius_scalar_mul(
     r: Union[torch.Tensor, float], x: torch.Tensor, *, k: torch.Tensor, dim=-1
 ):
     r"""
-    Computes the Möbius scalar multiplication.
+    Compute the Möbius scalar multiplication.
 
     .. math::
 
@@ -815,8 +815,7 @@ def _mobius_scalar_mul(
 
 def dist(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     r"""
-    Computes the geodesic distance between :math:`x` and :math:`y` on the
-    manifold.
+    Compute the geodesic distance between :math:`x` and :math:`y` on the manifold.
 
     .. math::
 
@@ -860,7 +859,7 @@ def _dist(
 
 def dist0(x: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     r"""
-    Computes geodesic distance to the manifold's origin.
+    Compute geodesic distance to the manifold's origin.
 
     Parameters
     ----------
@@ -890,8 +889,7 @@ def geodesic(
     t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1
 ):
     r"""
-    Computes the point on the geodesic (shortest) path connecting :math:`x` and
-    :math:`y` at time :math:`x`.
+    Compute the point on the path connecting :math:`x` and :math:`y` at time :math:`x`.
 
     The path can also be treated as an extension of the line segment to an
     unbounded geodesic that goes through :math:`x` and :math:`y`. The equation
@@ -963,7 +961,7 @@ def _geodesic(
 
 def expmap(x: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the exponential map of :math:`u` at :math:`x`.
+    Compute the exponential map of :math:`u` at :math:`x`.
 
     The expmap is tightly related with :func:`geodesic`. Intuitively, the
     expmap represents a smooth travel along a geodesic from the starting point
@@ -1016,7 +1014,7 @@ def _expmap(x: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1):
 
 def expmap0(u: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the exponential map of :math:`u` at the origin :math:`0`.
+    Compute the exponential map of :math:`u` at the origin :math:`0`.
 
     .. math::
 
@@ -1057,8 +1055,11 @@ def geodesic_unit(
     dim=-1
 ):
     r"""
-    Computes the point on the unit speed geodesic at time :math:`t`, starting
-    from :math:`x` with initial direction :math:`u/\|u\|_x`.
+    Compute the point on the unit speed geodesic.
+
+    The point on the unit speed geodesic at time :math:`t`, starting
+    from :math:`x` with initial direction :math:`u/\|u\|_x` is computed
+    as follows:
 
     .. math::
 
@@ -1097,7 +1098,7 @@ def _geodesic_unit(
 
 def logmap(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the logarithmic map of :math:`y` at :math:`x`.
+    Compute the logarithmic map of :math:`y` at :math:`x`.
 
     .. math::
 
@@ -1142,7 +1143,7 @@ def _logmap(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
 
 def logmap0(y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the logarithmic map of :math:`y` at the origin :math:`0`.
+    Compute the logarithmic map of :math:`y` at the origin :math:`0`.
 
     .. math::
 
@@ -1182,8 +1183,7 @@ def _logmap0(y: torch.Tensor, k, dim: int = -1):
 
 def mobius_matvec(m: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the generalization of matrix-vector multiplication in gyrovector
-    spaces.
+    Compute the generalization of matrix-vector multiplication in gyrovector spaces.
 
     The Möbius matrix vector operation is defined as follows:
 
@@ -1238,8 +1238,7 @@ def _mobius_matvec(m: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int =
 # TODO: add plot
 def mobius_pointwise_mul(w: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the generalization for point-wise multiplication in gyrovector
-    spaces.
+    Compute the generalization for point-wise multiplication in gyrovector spaces.
 
     The Möbius pointwise multiplication is defined as follows
 
@@ -1285,8 +1284,7 @@ def _mobius_pointwise_mul(
 
 def mobius_fn_apply_chain(x: torch.Tensor, *fns: callable, k: torch.Tensor, dim=-1):
     r"""
-    Computes the generalization of sequential function application in gyrovector
-    spaces.
+    Compute the generalization of sequential function application in gyrovector spaces.
 
     First, a gyrovector is mapped to the tangent space (first-order approx.) via
     :math:`\operatorname{log}^\kappa_0` and then the sequence of functions is
@@ -1345,7 +1343,7 @@ def mobius_fn_apply(
     fn: callable, x: torch.Tensor, *args, k: torch.Tensor, dim=-1, **kwargs
 ):
     r"""
-    Computes the generalization of function application in gyrovector spaces.
+    Compute the generalization of function application in gyrovector spaces.
 
     First, a gyrovector is mapped to the tangent space (first-order approx.) via
     :math:`\operatorname{log}^\kappa_0` and then the function is applied
@@ -1384,7 +1382,7 @@ def mobius_fn_apply(
 
 def mobiusify(fn: callable):
     r"""
-    Wraps a function such that is works in gyrovector spaces.
+    Wrap a function such that is works in gyrovector spaces.
 
     Parameters
     ----------
@@ -1422,8 +1420,7 @@ def dist2plane(
     dim=-1
 ):
     r"""
-    Computes the geodesic distance from :math:`x` to a hyperplane going through
-    :math:`x` with the normal vector :math:`a`.
+    Geodesic distance from :math:`x` to a hyperplane :math:`H_{a, b}`.
 
     The hyperplane is such that its set of points is orthogonal to :math:`a` and
     contains :math:`p`.
@@ -1575,7 +1572,7 @@ def parallel_transport(
     x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, *, k: torch.Tensor, dim=-1
 ):
     r"""
-    Computes the parallel transport of :math:`v` from :math:`x` to :math:`y`.
+    Compute the parallel transport of :math:`v` from :math:`x` to :math:`y`.
 
     The parallel transport is essential for adaptive algorithms on Riemannian
     manifolds. For gyrovector spaces the parallel transport is expressed through
@@ -1653,8 +1650,7 @@ def _parallel_transport(
 
 def parallel_transport0(y: torch.Tensor, v: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Computes the parallel transport of :math:`v` from the origin :math:`0` to
-    :math:`y`.
+    Compute the parallel transport of :math:`v` from the origin :math:`0` to :math:`y`.
 
     This is just a special case of the parallel transport with the starting
     point at the origin that can be computed more efficiently and more
@@ -1721,8 +1717,7 @@ def _parallel_transport0back(
 
 def egrad2rgrad(x: torch.Tensor, grad: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
-    Converts the Euclidean gradient to the Riemannian gradient in the tangent
-    space of :math:`x`.
+    Convert the Euclidean gradient to the Riemannian gradient.
 
     .. math::
 
@@ -1757,7 +1752,7 @@ def _egrad2rgrad(x: torch.Tensor, grad: torch.Tensor, k: torch.Tensor, dim: int 
 
 def antipode(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
     r"""
-    Computes the antipode of a point :math:`x_1,...,x_n` for :math:`\kappa > 0`.
+    Compute the antipode of a point :math:`x_1,...,x_n` for :math:`\kappa > 0`.
 
     Let :math:`x` be a point on some sphere. Then :math:`-x` is its antipode.
     Since we're dealing with stereographic projections, for :math:`sproj(x)` we
@@ -1802,7 +1797,7 @@ def _antipode(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
 
 def sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
     """
-    Stereographic Projection.
+    Stereographic Projection from hyperboloid or sphere.
 
     Parameters
     ----------
@@ -1831,7 +1826,7 @@ def _sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
 
 def inv_sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
     """
-    Inverse of Stereographic Projection.
+    Inverse of Stereographic Projection to hyperboloid or sphere.
 
     Parameters
     ----------
