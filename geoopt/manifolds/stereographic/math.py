@@ -144,7 +144,7 @@ def _project(x, k, dim: int = -1, eps: float = None):
 
 def lambda_x(x: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     r"""
-    Compute the conformal factor :math:`\lambda^c_x` for a point on the ball.
+    Compute the conformal factor :math:`\lambda^\kappa_x` for a point on the ball.
 
     .. math::
         \lambda^\kappa_x = \frac{1}{1 + \kappa \|x\|_2^2}

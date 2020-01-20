@@ -1,22 +1,20 @@
-Poincare Ball model
-===================
+:math:`\kappa`-Stereographic Projection model
+=============================================
 
-Poincare ball model is a compact representation of hyperbolic space.
-To have a nice introduction into this model we should start from
-simple concepts, putting them all together to build a more complete picture.
+Stereographic projection models comes to bind constant curvature spaces. Such as spheres,
+hyperboloids and regular Euclidean manifold. Let' look at what does this mean. As we mention
+constant curvature, let's name this constant :math:`\kappa`.
 
 Hyperbolic spaces
 -----------------
 
-Hyperbolic space is a constant negative curvature Riemannian manifold.
-A very simple example of Riemannian manifold with constant, but positive curvature is sphere.
+Hyperbolic space is a constant negative curvature (:math:`\kappa < 0`) Riemannian manifold.
+(A very simple example of Riemannian manifold with constant, but positive curvature is sphere, we'll be back to it later)
 
 An (N+1)-dimensional hyperboloid spans the manifold that can be embedded into N-dimensional space via projections.
 
-.. figure:: ../plots/extended/stereographic/hyperboloid_projection.png
+.. figure:: ../plots/extended/stereographic/hyperboloid-sproj.png
    :width: 300
-
-   img source `Wikipedia, Hyperboloid Model <https://en.wikipedia.org/wiki/Hyperboloid_model/>`_
 
 Originally, the distance between points on the hyperboloid is defined as
 
@@ -24,40 +22,52 @@ Originally, the distance between points on the hyperboloid is defined as
 
     d(x, y) = \operatorname{arccosh}(x, y)
 
-It is difficult to work in (N+1)-dimensional space and there is a range of useful embeddings
-exist in literature
-
-Klein Model
-~~~~~~~~~~~
-
-.. figure:: ../plots/extended/stereographic/klein_tiling.png
-   :width: 300
-
-   img source `Wikipedia, Klein Model <https://en.wikipedia.org/wiki/Beltrami-Klein_model/>`_
-
+Not to work with this manifold, it is convenient to project the hyperboloid onto a plane. We can do it in many ways
+recovering embedded manifolds with different properties (usually numerical). To connect constant curvature
+manifolds we better use Poincare ball model (aka stereographic projection model).
 
 Poincare Model
 ~~~~~~~~~~~~~~
 
-.. figure:: ../plots/extended/stereographic/poincare_lines.gif
+.. figure:: ../plots/extended/stereographic/grid-of-geodesics-K--1.0.png
    :width: 300
 
-   img source `Bulatov, Poincare Model <http://bulatov.org/math/1001/>`_
+   Grid of Geodesics for :math:`\kappa=-1`, credits to `Andreas Bloch`_
 
-Here we go.
-
-First of all we note, that Poincare ball is embedded in a Sphere of radius :math:`r=1/\sqrt{c}`,
-where c is negative curvature. We also note, as :math:`c` goes to :math:`0`, we recover infinite radius ball.
+First of all we note, that Poincare ball is embedded in a Sphere of radius :math:`r=1/\sqrt{\kappa}`,
+where c is negative curvature. We also note, as :math:`\kappa` goes to :math:`0`, we recover infinite radius ball.
 We should expect this limiting behaviour recovers Euclidean geometry.
 
-To connect Euclidean space with its embedded manifold we need to get :math:`g_x`.
-It is done via `conformal factor` :math:`\lambda^c_x`.
+Spherical Spaces
+----------------
+Another case of constant curvature manifolds is sphere. Unlike Hyperboloid this manifold is compact and has
+:math:`\kappa`. But still we can embed a sphere onto a plane ignoring one of the poles.
+
+.. figure:: ../plots/extended/stereographic/sphere-sproj.png
+   :width: 300
+
+Once we project sphere on the plane we have the following geodesics
+
+.. figure:: ../plots/extended/stereographic/grid-of-geodesics-K-1.0.png
+   :width: 300
+
+   Grid of Geodesics for :math:`\kappa=1`, credits to `Andreas Bloch`_
+
+
+Again, similarly to Poincare ball case, we have Euclidean geometry limiting :math:`\kappa` to :math:`0`.
+
+Universal Curvature Manifold
+----------------------------
+To connect Euclidean space with its embedded manifold we need to get :math:`g^\kappa_x`.
+It is done via `conformal factor` :math:`\lambda^\kappa_x`. Note, that the metric tensor is conformal,
+which means all angles between tangent vectors are remained the same compared to what we
+calculate ignoring manifold structure.
 
 
 .. autofunction:: geoopt.manifolds.stereographic.math.lambda_x
 
 
-:math:`\lambda^c_x` connects Euclidean inner product with Riemannian one
+:math:`\lambda^\kappa_x` connects Euclidean inner product with Riemannian one
 
 .. autofunction:: geoopt.manifolds.stereographic.math.inner
 .. autofunction:: geoopt.manifolds.stereographic.math.norm
@@ -114,3 +124,6 @@ Numerical stability is a pain in this model. It is strongly recommended to work 
 so expect adventures in ``float32`` (but this is not certain).
 
 .. autofunction:: geoopt.manifolds.stereographic.math.project
+
+
+.. _Andreas Bloch: https://andbloch.github.io/K-Stereographic-Model
