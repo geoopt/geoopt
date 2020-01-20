@@ -128,14 +128,14 @@ def test_mobius_negative_addition(a, b, c, manifold):
 
 @pytest.mark.parametrize("n", list(range(5)))
 def test_n_additions_via_scalar_multiplication(n, a, c, negative, manifold):
-
+    n = torch.as_tensor(n, dtype=a.dtype)
     y = torch.zeros_like(a)
-    for _ in range(n):
+    for _ in range(int(n.item())):
         y = manifold.mobius_add(a, y)
     ny = manifold.mobius_scalar_mul(n, a)
     if negative:
         tolerance = {
-            torch.float32: dict(atol=1e-7, rtol=1e-6),
+            torch.float32: dict(atol=1e-6, rtol=1e-6),
             torch.float64: dict(atol=1e-10),
         }
     else:
@@ -157,7 +157,7 @@ def test_n_additions_via_scalar_multiplication(n, a, c, negative, manifold):
 @pytest.fixture
 def r1(seed, dtype):
     if seed % 3 == 0:
-        return random.uniform(-1, 1)
+        return torch.tensor(random.uniform(-1, 1), dtype=dtype)
     else:
         return torch.rand(100, 1, dtype=dtype) * 2 - 1
 
@@ -165,7 +165,7 @@ def r1(seed, dtype):
 @pytest.fixture
 def r2(seed, dtype):
     if seed % 3 == 1:
-        return random.uniform(-1, 1)
+        return torch.tensor(random.uniform(-1, 1), dtype=dtype)
     else:
         return torch.rand(100, 1, dtype=dtype) * 2 - 1
 
@@ -191,7 +191,7 @@ def test_scalar_multiplication_associative(a, c, r1, r2, manifold):
     res1 = manifold.mobius_scalar_mul(r1, manifold.mobius_scalar_mul(r2, a))
     res2 = manifold.mobius_scalar_mul(r2, manifold.mobius_scalar_mul(r1, a))
     tolerance = {
-        torch.float32: dict(atol=1e-7, rtol=1e-6),  # worked with rtol=1e-7 locally
+        torch.float32: dict(atol=1e-6, rtol=1e-6),  # worked with rtol=1e-7 locally
         torch.float64: dict(atol=1e-7, rtol=1e-10),
     }
     np.testing.assert_allclose(res1, res, **tolerance[c.dtype])
@@ -232,7 +232,10 @@ def test_geodesic_segment_length_property(a, b, c, manifold):
     dist_ab_t0mt1 = manifold.dist(gamma_ab_t0, gamma_ab_t1, keepdim=True)
     speed = manifold.dist(a, b, keepdim=True).unsqueeze(0).expand_as(dist_ab_t0mt1)
     # we have exactly 12 line segments
-    tolerance = {torch.float32: dict(rtol=1e-5), torch.float64: dict(atol=1e-10)}
+    tolerance = {
+        torch.float32: dict(rtol=1e-5, atol=1e-6),
+        torch.float64: dict(atol=1e-10),
+    }
     np.testing.assert_allclose(dist_ab_t0mt1, speed / segments, **tolerance[c.dtype])
 
 
@@ -270,7 +273,7 @@ def test_expmap0_logmap0(a, c, manifold):
     norm = manifold.norm(torch.zeros_like(v), v, keepdim=True)
     dist = manifold.dist0(a, keepdim=True)
     bh = manifold.expmap0(v)
-    tolerance = {torch.float32: dict(rtol=1e-6), torch.float64: dict()}
+    tolerance = {torch.float32: dict(atol=1e-6), torch.float64: dict()}
     np.testing.assert_allclose(bh, a, **tolerance[c.dtype])
     np.testing.assert_allclose(norm, dist, **tolerance[c.dtype])
 

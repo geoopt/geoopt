@@ -328,6 +328,9 @@ class Stereographic(Manifold):
     ) -> torch.Tensor:
         return math.gyration(x, y, z, k=self.k, dim=dim)
 
+    def antipode(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.antipode(x, k=self.k, dim=dim)
+
     @__scaling__(ScalingInfo(1))
     def dist2plane(
         self,

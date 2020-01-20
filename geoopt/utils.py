@@ -17,7 +17,7 @@ __all__ = [
     "idx2sign",
     "drop_dims",
     "canonical_dims",
-    "prod"
+    "prod",
 ]
 
 
