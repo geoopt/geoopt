@@ -11,7 +11,7 @@ a well written paper by Octavian-Eugen Ganea (2018) [1]_.
 import functools
 import torch.jit
 from typing import List, Optional
-from ...utils import list_range, drop_dims
+from ...utils import list_range, drop_dims, sign
 
 
 @torch.jit.script
@@ -32,10 +32,8 @@ def arsinh(x: torch.Tensor):
 
 @torch.jit.script
 def abs_zero_grad(x):
-    # this order of inputs produces gradients equal to 1 at zero
-    zero = torch.zeros((), device=x.device, dtype=x.dtype)
-    k_zero = x.isclose(zero)
-    return torch.where(k_zero, x, x.abs())
+    # this op has derivative equal to 1 at zero
+    return x * sign(x)
 
 
 @torch.jit.script

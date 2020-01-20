@@ -17,6 +17,7 @@ __all__ = [
     "idx2sign",
     "drop_dims",
     "canonical_dims",
+    "sign",
     "prod",
 ]
 
@@ -65,6 +66,11 @@ def make_tuple(obj: Union[Tuple, Any]) -> Tuple:
 
 def prod(items):
     return functools.reduce(operator.mul, items, 1)
+
+
+@torch.jit.script
+def sign(x):
+    return torch.sign(x.sign() + 0.5)
 
 
 @torch.jit.script
