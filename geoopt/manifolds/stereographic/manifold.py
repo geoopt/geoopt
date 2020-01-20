@@ -1,5 +1,5 @@
 import torch.nn
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from . import math
 import geoopt
 from ...utils import size2shape, broadcast_shapes
@@ -167,7 +167,7 @@ class Stereographic(Manifold):
         v: torch.Tensor = None,
         *,
         keepdim=False,
-        dim=-1
+        dim=-1,
     ) -> torch.Tensor:
         if v is None:
             v = u
@@ -339,7 +339,7 @@ class Stereographic(Manifold):
         *,
         dim=-1,
         keepdim=False,
-        signed=False
+        signed=False,
     ) -> torch.Tensor:
         return math.dist2plane(
             x, p, a, dim=dim, k=self.k, keepdim=keepdim, signed=signed
@@ -440,6 +440,27 @@ class Stereographic(Manifold):
         """
         return geoopt.ManifoldTensor(
             torch.zeros(*size, dtype=dtype, device=device), manifold=self
+        )
+
+    def weighted_midpoint(
+        self,
+        xs: torch.Tensor,
+        weights: Optional[torch.Tensor] = None,
+        *,
+        k: torch.Tensor,
+        reducedim: Optional[List[int]] = None,
+        dim: int = -1,
+        keepdim: bool = False,
+        lincomb: bool = False,
+    ):
+        return math.weighted_midpoint(
+            xs=xs,
+            weights=weights,
+            k=k,
+            reducedim=reducedim,
+            dim=dim,
+            keepdim=keepdim,
+            lincomb=lincomb,
         )
 
 

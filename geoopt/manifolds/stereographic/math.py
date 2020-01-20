@@ -10,7 +10,8 @@ a well written paper by Octavian-Eugen Ganea (2018) [1]_.
 
 import functools
 import torch.jit
-from typing import Union
+from typing import List, Optional
+from ...utils import list_range, drop_dims
 
 
 @torch.jit.script
@@ -738,9 +739,7 @@ def _mobius_cosub(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = 
 # TODO: one could use the scalar associative law
 # TODO: s_1 (X) s_2 (X) x = (s_1*s_2) (X) x
 # TODO: to implement a more stable Möbius scalar mult
-def mobius_scalar_mul(
-    r: Union[torch.Tensor, float], x: torch.Tensor, *, k: torch.Tensor, dim=-1
-):
+def mobius_scalar_mul(r: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
     r"""
     Compute the Möbius scalar multiplication.
 
@@ -1047,12 +1046,7 @@ def _expmap0(u: torch.Tensor, k: torch.Tensor, dim: int = -1):
 
 
 def geodesic_unit(
-    t: Union[torch.Tensor, float],
-    x: torch.Tensor,
-    u: torch.Tensor,
-    *,
-    k: torch.Tensor,
-    dim=-1
+    t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, dim=-1
 ):
     r"""
     Compute the point on the unit speed geodesic.
@@ -1417,7 +1411,7 @@ def dist2plane(
     k: torch.Tensor,
     keepdim=False,
     signed=False,
-    dim=-1
+    dim=-1,
 ):
     r"""
     Geodesic distance from :math:`x` to a hyperplane :math:`H_{a, b}`.
@@ -1853,3 +1847,126 @@ def _inv_sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     B = 1.0 / k.abs().sqrt() * (lam_x - 1.0)
     proj = torch.cat((A, B), dim=dim)
     return proj
+
+
+def weighted_midpoint(
+    xs: torch.Tensor,
+    weights: Optional[torch.Tensor] = None,
+    *,
+    k: torch.Tensor,
+    reducedim: Optional[List[int]] = None,
+    dim: int = -1,
+    keepdim: bool = False,
+    lincomb: bool = False,
+):
+    r"""
+    Compute weighted Möbius gyromidpoint.
+
+    The weighted Möbius gyromidpoint of a set of points
+    :math:`x_1,...,x_n` according to weights
+    :math:`\alpha_1,...,\alpha_n` is computed as follows:
+
+    The weighted Möbius gyromidpoint is computed as follows
+
+    .. math::
+
+        m_{\kappa}(x_1,\ldots,x_n,\alpha_1,\ldots,\alpha_n)
+        =
+        \frac{1}{2}
+        \otimes_\kappa
+        \left(
+        \sum_{i=1}^n
+        \frac{
+        \alpha_i\lambda_{x_i}^\kappa
+        }{
+        \sum_{j=1}^n\alpha_j(\lambda_{x_j}^\kappa-1)
+        }
+        x_i
+        \right)
+
+    where the weights :math:`\alpha_1,...,\alpha_n` do not necessarily need
+    to sum to 1 (only their relative weight matters). Note that this formula
+    also requires to choose between the midpoint and its antipode for
+    :math:`\kappa > 0`.
+
+    Parameters
+    ----------
+    xs : tensor
+        points on poincare ball
+    weights : tensor
+        weights for averaging (make sure they broadcast correctly and manifold dimension is skipped)
+    reducedim : int|list|tuple
+        reduce dimension
+    dim : int
+        dimension to calculate conformal and Lorenz factors
+    k : tensor
+        constant sectional curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+    lincomb : bool
+        linear combination implementation
+
+    Returns
+    -------
+    tensor
+        Einstein midpoint in poincare coordinates
+    """
+    return _weighted_midpoint(
+        xs=xs,
+        k=k,
+        weights=weights,
+        reducedim=reducedim,
+        dim=dim,
+        keepdim=keepdim,
+        lincomb=lincomb,
+    )
+
+
+@torch.jit.script
+def _weighted_midpoint(
+    xs: torch.Tensor,
+    k: torch.Tensor,
+    weights: Optional[torch.Tensor] = None,
+    reducedim: Optional[List[int]] = None,
+    dim: int = -1,
+    keepdim: bool = False,
+    lincomb: bool = False,
+):
+    if reducedim is None:
+        reducedim = list_range(xs.dim())
+        reducedim.pop(dim)
+    gamma = _lambda_x(xs, k=k, dim=dim, keepdim=True)
+    if weights is None:
+        weights = torch.tensor(1.0, dtype=xs.dtype, device=xs.device)
+    else:
+        weights = weights.unsqueeze(dim)
+    nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
+    denominator = ((gamma - 1) * weights).sum(reducedim, keepdim=True)
+    two_mean = nominator / denominator
+    two_mean = torch.where(torch.isfinite(two_mean), two_mean, two_mean.new_zeros(()))
+    a_mean = _mobius_scalar_mul(
+        torch.tensor(0.5, dtype=xs.dtype, device=xs.device), two_mean, k=k, dim=dim
+    )
+    if torch.any(k.gt(0)):
+        # check antipode
+        b_mean = _antipode(a_mean, k, dim=dim)
+        a_dist = _dist(a_mean, xs, k=k, keepdim=True, dim=dim).sum(
+            reducedim, keepdim=True
+        )
+        b_dist = _dist(b_mean, xs, k=k, keepdim=True, dim=dim).sum(
+            reducedim, keepdim=True
+        )
+        better = k.gt(0) & (b_dist < a_dist)
+        a_mean = torch.where(better, b_mean, a_mean)
+    if lincomb:
+        if weights.numel() == 1:
+            alpha = weights
+            for d in reducedim:
+                alpha *= xs.size(d)
+        else:
+            weights = weights.expand_as(gamma)
+            alpha = weights.sum(reducedim, keepdim=True)
+        a_mean = _mobius_scalar_mul(alpha, a_mean, k=k, dim=dim)
+    if not keepdim:
+        a_mean = drop_dims(a_mean, reducedim)
+    return a_mean

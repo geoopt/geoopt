@@ -7,5 +7,4 @@ from .manifold import (
     SphereProjectionExact,
 )
 
-from .weighted_midpoint import weighted_midpoint
 from . import math
