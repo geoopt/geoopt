@@ -6,6 +6,7 @@ import random
 import numpy as np
 import pytest
 import warnings
+import itertools
 from geoopt.manifolds import stereographic
 
 
@@ -455,17 +456,21 @@ def test_antipode(manifold, negative, a, dtype):
         np.testing.assert_allclose(ms, -s, **tolerance[dtype])
 
 
-@pytest.mark.parametrize("_k", [-1, 0, 1])
-def test_weighted_midpoint(_k):
+@pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
+def test_weighted_midpoint(_k, lincomb):
     manifold = stereographic.Stereographic(_k, learnable=True)
     a = manifold.random(2, 3, 10).requires_grad_(True)
-    mid = manifold.weighted_midpoint(a)
+    mid = manifold.weighted_midpoint(a, lincomb=lincomb)
     assert torch.isfinite(mid).all()
     assert mid.shape == (a.shape[-1],)
     mid.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert not torch.isclose(manifold.k.grad, manifold.k.new_zeros(()))
-    mid = manifold.weighted_midpoint(a, reducedim=[0])
+
+
+@pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
+def test_weighted_midpoint_reduce_dim(_k, lincomb):
+    mid = manifold.weighted_midpoint(a, reducedim=[0], lincomb=lincomb)
     assert mid.shape == a.shape[-2:]
     assert torch.isfinite(mid).all()
     a.grad.zero_()
@@ -473,3 +478,43 @@ def test_weighted_midpoint(_k):
     mid.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert not torch.isclose(manifold.k.grad, manifold.k.new_zeros(()))
+
+
+@pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
+def test_weighted_midpoint_weighted(_k, lincomb):
+    mid = manifold.weighted_midpoint(
+        a, reducedim=[0], lincomb=lincomb, weights=torch.rand_like(a[..., 0])
+    )
+    assert mid.shape == a.shape[-2:]
+    assert torch.isfinite(mid).all()
+    a.grad.zero_()
+    manifold.k.grad.zero_()
+    mid.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert not torch.isclose(manifold.k.grad, manifold.k.new_zeros(()))
+
+
+@pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
+def test_weighted_midpoint_zero(_k, lincomb):
+    mid = manifold.weighted_midpoint(
+        a, reducedim=[0], lincomb=lincomb, weights=torch.zeros_like(a[..., 0])
+    )
+    assert mid.shape == a.shape[-2:]
+    assert torch.allclose(mid, torch.zeros_like(mid))
+    a.grad.zero_()
+    manifold.k.grad.zero_()
+    mid.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
+
+
+@pytest.mark.parametrize("lincomb", [True, False])
+def test_weighted_midpoint_euclidean(lincomb):
+    manifold = stereographic.Stereographic(0)
+    a = manifold.random(2, 3, 10).requires_grad_(True)
+    mid = manifold.weighted_midpoint(a, reducedim=[0], lincomb=lincomb)
+    assert mid.shape == a.shape[-2:]
+    if lincomb:
+        assert torch.allclose(mid, a.sum(0))
+    else:
+        assert torch.allclose(mid, a.mean(0))

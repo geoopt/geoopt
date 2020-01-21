@@ -2004,7 +2004,7 @@ def _weighted_midpoint(
         a_mean = torch.where(better, b_mean, a_mean)
     if lincomb:
         if weights.numel() == 1:
-            alpha = weights
+            alpha = weights.clone()
             for d in reducedim:
                 alpha *= xs.size(d)
         else:
