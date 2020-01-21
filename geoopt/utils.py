@@ -19,6 +19,7 @@ __all__ = [
     "canonical_dims",
     "sign",
     "prod",
+    "clamp_abs",
 ]
 
 
@@ -71,6 +72,12 @@ def prod(items):
 @torch.jit.script
 def sign(x):
     return torch.sign(x.sign() + 0.5)
+
+
+@torch.jit.script
+def clamp_abs(x, eps: float):
+    s = sign(x)
+    return s * x.abs().clamp_min(eps)
 
 
 @torch.jit.script

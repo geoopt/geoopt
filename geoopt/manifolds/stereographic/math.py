@@ -1,17 +1,27 @@
 """
-Poincare manifold utility functions.
+The functions for the mathematics in gyrovector spaces are taken from the
+following resources:
 
-Functions for math on Poincare ball model. Most of this is taken from
-a well written paper by Octavian-Eugen Ganea (2018) [1]_.
-
-
-.. [1] Octavian-Eugen Ganea et al., Hyperbolic Neural Networks, NIPS 2018
+    [1] Ganea, Octavian, Gary Bécigneul, and Thomas Hofmann. "Hyperbolic
+           neural networks." Advances in neural information processing systems.
+           2018.
+    [2] Bachmann, Gregor, Gary Bécigneul, and Octavian-Eugen Ganea. "Constant
+           Curvature Graph Convolutional Networks." arXiv preprint
+           arXiv:1911.05076 (2019).
+    [3] Skopek, Ondrej, Octavian-Eugen Ganea, and Gary Bécigneul.
+           "Mixed-curvature Variational Autoencoders." arXiv preprint
+           arXiv:1911.08411 (2019).
+    [4] Ungar, Abraham A. Analytic hyperbolic geometry: Mathematical
+           foundations and applications. World Scientific, 2005.
+    [5] Albert, Ungar Abraham. Barycentric calculus in Euclidean and
+           hyperbolic geometry: A comparative introduction. World Scientific,
+           2010.
 """
 
 import functools
 import torch.jit
 from typing import List, Optional
-from ...utils import list_range, drop_dims, sign
+from ...utils import list_range, drop_dims, sign, clamp_abs
 
 
 @torch.jit.script
@@ -1940,9 +1950,7 @@ def _weighted_midpoint(
         weights = weights.unsqueeze(dim)
     nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
     denominator = ((gamma - 1) * weights).sum(reducedim, keepdim=True)
-    two_mean = nominator / denominator
-    zero = torch.zeros((), dtype=gamma.dtype, device=gamma.device)
-    two_mean = torch.where(torch.isfinite(two_mean), two_mean, zero)
+    two_mean = nominator / clamp_abs(denominator, 1e-15)
     a_mean = _mobius_scalar_mul(
         torch.tensor(0.5, dtype=xs.dtype, device=xs.device), two_mean, k=k, dim=dim
     )

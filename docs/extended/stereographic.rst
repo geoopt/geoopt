@@ -63,6 +63,23 @@ It is done via `conformal factor` :math:`\lambda^\kappa_x`. Note, that the metri
 which means all angles between tangent vectors are remained the same compared to what we
 calculate ignoring manifold structure.
 
+The functions for the mathematics in gyrovector spaces are taken from the
+following resources:
+
+    [1] Ganea, Octavian, Gary Bécigneul, and Thomas Hofmann. "Hyperbolic
+           neural networks." Advances in neural information processing systems.
+           2018.
+    [2] Bachmann, Gregor, Gary Bécigneul, and Octavian-Eugen Ganea. "Constant
+           Curvature Graph Convolutional Networks." arXiv preprint
+           arXiv:1911.05076 (2019).
+    [3] Skopek, Ondrej, Octavian-Eugen Ganea, and Gary Bécigneul.
+           "Mixed-curvature Variational Autoencoders." arXiv preprint
+           arXiv:1911.08411 (2019).
+    [4] Ungar, Abraham A. Analytic hyperbolic geometry: Mathematical
+           foundations and applications. World Scientific, 2005.
+    [5] Albert, Ungar Abraham. Barycentric calculus in Euclidean and
+           hyperbolic geometry: A comparative introduction. World Scientific,
+           2010.
 
 .. autofunction:: geoopt.manifolds.stereographic.math.lambda_x
 
