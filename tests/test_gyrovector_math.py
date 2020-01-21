@@ -437,3 +437,39 @@ def test_distance2plane(a, c, manifold):
     dist = manifold.dist2plane(z, a, vr)
 
     np.testing.assert_allclose(dist, dist1, atol=1e-5, rtol=1e-5)
+
+
+def test_sproj(manifold, a):
+    ma = manifold.sproj(manifold.inv_sproj(a))
+    np.testing.assert_allclose(ma, a, atol=1e-6)
+
+
+def test_antipode(manifold, negative, a, dtype):
+    ma = manifold.antipode(a)
+    if manifold.k.le(0).all():
+        np.testing.assert_allclose(ma, -a)
+    else:
+        s = manifold.inv_sproj(a)
+        ms = manifold.inv_sproj(ma)
+        tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict(atol=1e-6)}
+        np.testing.assert_allclose(ms, -s, **tolerance[dtype])
+
+
+@pytest.mark.parametrize("_k", [-1, 0, 1])
+def test_weighted_midpoint(_k):
+    manifold = stereographic.Stereographic(_k, learnable=True)
+    a = manifold.random(2, 3, 10).requires_grad_(True)
+    mid = manifold.weighted_midpoint(a)
+    assert torch.isfinite(mid).all()
+    assert mid.shape == (a.shape[-1],)
+    mid.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert not torch.isclose(manifold.k.grad, manifold.k.new_zeros(()))
+    mid = manifold.weighted_midpoint(a, reducedim=[0])
+    assert mid.shape == a.shape[-2:]
+    assert torch.isfinite(mid).all()
+    a.grad.zero_()
+    manifold.k.grad.zero_()
+    mid.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert not torch.isclose(manifold.k.grad, manifold.k.new_zeros(()))

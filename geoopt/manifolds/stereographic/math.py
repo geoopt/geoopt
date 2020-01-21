@@ -1749,6 +1749,103 @@ def _egrad2rgrad(x: torch.Tensor, grad: torch.Tensor, k: torch.Tensor, dim: int 
     return grad / _lambda_x(x, k, keepdim=True, dim=dim) ** 2
 
 
+def sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
+    """
+    Stereographic Projection from hyperboloid or sphere.
+
+    Parameters
+    ----------
+    x : tensor
+        point to be projected
+    k : tensor
+        constant sectional curvature
+    dim : int
+        dimension to operate on
+
+    Returns
+    -------
+    tensor
+        the result of the projection
+    """
+    return _sproj(x, k, dim=dim)
+
+
+@torch.jit.script
+def _sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
+    # TODO: test
+    inv_r = torch.sqrt(k.abs()).clamp_min(1e-15)
+    factor = 1.0 / (1.0 + inv_r * x.narrow(dim, -1, 1))
+    proj = factor * x.narrow(dim, 0, x.size(dim) - 1)
+    return proj
+
+
+def inv_sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
+    """
+    Inverse of Stereographic Projection to hyperboloid or sphere.
+
+    Parameters
+    ----------
+    x : tensor
+        point to be projected
+    k : tensor
+        constant sectional curvature
+    dim : int
+        dimension to operate on
+
+    Returns
+    -------
+    tensor
+        the result of the projection
+    """
+    return _inv_sproj(x, k, dim=dim)
+
+
+@torch.jit.script
+def _inv_sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
+    # TODO: test
+    inv_r = torch.sqrt(k.abs()).clamp_min(1e-15)
+    lam_x = _lambda_x(x, k, keepdim=True, dim=dim)
+    A = lam_x * x
+    B = 1.0 / inv_r * (lam_x - 1.0)
+    proj = torch.cat((A, B), dim=dim)
+    return proj
+
+
+def antipode(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
+    r"""
+    Compute the antipode of a point :math:`x_1,...,x_n` for :math:`\kappa > 0`.
+
+    Let :math:`x` be a point on some sphere. Then :math:`-x` is its antipode.
+    Since we're dealing with stereographic projections, for :math:`sproj(x)` we
+    get the antipode :math:`sproj(-x)`. Which is given as follows:
+
+    .. math::
+
+        \text{antipode}(x)
+        =
+        \frac{1+\kappa\|x\|^2_2}{2\kappa\|x\|^2_2}{}(-x)
+
+    Parameters
+    ----------
+    x : tensor
+        points :math:`x_1,...,x_n` on manifold to compute antipode for
+    k : tensor
+        sectional curvature of manifold
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        antipode
+
+    Notes
+    -----
+    This implementation uses stereographic projection
+    """
+    return _antipode(x, k, dim=dim)
+
+
 # Max: progress for the commit stops here
 
 
@@ -1785,76 +1882,16 @@ def antipode(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
 
 @torch.jit.script
 def _antipode(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
-    # TODO: add implementation that uses stereographic projections!!!
-    # TODO: this one is correct, but it could be more efficient!!!
+    # NOTE: implementation that uses stereographic projections seems to be less accurate
+    # sproj(-inv_sproj(x))
     if torch.all(k.le(0)):
-        return x
+        return -x
     v = x / x.norm(p=2, dim=dim, keepdim=True).clamp_min(1e-15)
     R = k.abs().sqrt().reciprocal()
     pi = 3.141592653589793
 
     a = _geodesic_unit(pi * R, x, v, k, dim=dim)
-    return torch.where(k.gt(0), a, x)
-
-
-def sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
-    """
-    Stereographic Projection from hyperboloid or sphere.
-
-    Parameters
-    ----------
-    x : tensor
-        point to be projected
-    k : tensor
-        constant sectional curvature
-    dim : int
-        dimension to operate on
-
-    Returns
-    -------
-    tensor
-        the result of the projection
-    """
-    return _sproj(x, k, dim=dim)
-
-
-@torch.jit.script
-def _sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
-    # TODO: test
-    factor = 1.0 / (1.0 + torch.sqrt(k.abs()) * x.narrow(dim, -2, 1))
-    proj = factor * x.narrow(dim, 0, x.size(dim) - 1)
-    return proj
-
-
-def inv_sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
-    """
-    Inverse of Stereographic Projection to hyperboloid or sphere.
-
-    Parameters
-    ----------
-    x : tensor
-        point to be projected
-    k : tensor
-        constant sectional curvature
-    dim : int
-        dimension to operate on
-
-    Returns
-    -------
-    tensor
-        the result of the projection
-    """
-    return _sproj(x, k, dim=dim)
-
-
-@torch.jit.script
-def _inv_sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
-    # TODO: test
-    lam_x = _lambda_x(x, k, keepdim=True, dim=dim)
-    A = lam_x * x
-    B = 1.0 / k.abs().sqrt() * (lam_x - 1.0)
-    proj = torch.cat((A, B), dim=dim)
-    return proj
+    return torch.where(k.gt(0), a, -x)
 
 
 def weighted_midpoint(
@@ -1930,7 +1967,7 @@ def weighted_midpoint(
     )
 
 
-@torch.jit.script
+# @torch.jit.script
 def _weighted_midpoint(
     xs: torch.Tensor,
     k: torch.Tensor,

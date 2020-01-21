@@ -447,7 +447,6 @@ class Stereographic(Manifold):
         xs: torch.Tensor,
         weights: Optional[torch.Tensor] = None,
         *,
-        k: torch.Tensor,
         reducedim: Optional[List[int]] = None,
         dim: int = -1,
         keepdim: bool = False,
@@ -456,12 +455,18 @@ class Stereographic(Manifold):
         return math.weighted_midpoint(
             xs=xs,
             weights=weights,
-            k=k,
+            k=self.k,
             reducedim=reducedim,
             dim=dim,
             keepdim=keepdim,
             lincomb=lincomb,
         )
+
+    def sproj(self, x: torch.Tensor, *, dim: int = -1):
+        return math.sproj(x, k=self.k, dim=dim)
+
+    def inv_sproj(self, x: torch.Tensor, *, dim: int = -1):
+        return math.inv_sproj(x, k=self.k, dim=dim)
 
 
 class StereographicExact(Stereographic):
