@@ -1941,7 +1941,8 @@ def _weighted_midpoint(
     nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
     denominator = ((gamma - 1) * weights).sum(reducedim, keepdim=True)
     two_mean = nominator / denominator
-    two_mean = torch.where(torch.isfinite(two_mean), two_mean, two_mean.new_zeros(()))
+    zero = torch.zeros((), dtype=gamma.dtype, device=gamma.device)
+    two_mean = torch.where(torch.isfinite(two_mean), two_mean, zero)
     a_mean = _mobius_scalar_mul(
         torch.tensor(0.5, dtype=xs.dtype, device=xs.device), two_mean, k=k, dim=dim
     )
