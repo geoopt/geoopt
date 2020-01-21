@@ -10,7 +10,7 @@ from ...utils import size2shape, broadcast_shapes
 __all__ = ["Lorentz"]
 
 _lorentz_ball_doc = r"""
-    Hyperboloid model
+    Lorentz model
 
     Parameters
     ----------
@@ -29,12 +29,15 @@ class Lorentz(Manifold):
 
     ndim = 1
     reversible = False
-    name = "Hyperboloid"
+    name = "Lorentz"
     __scaling__ = Manifold.__scaling__.copy()
 
-    def __init__(self, k=1.0):
+    def __init__(self, k=1.0, learnable=False):
         super().__init__()
-        self.register_buffer("k", torch.as_tensor(k, dtype=torch.get_default_dtype()))
+        k = torch.as_tensor(k)
+        if not torch.is_floating_point(k):
+            k = k.to(torch.get_default_dtype())
+        self.k = torch.nn.Parameter(k, requires_grad=learnable)
 
     def _check_point_on_manifold(
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
@@ -55,7 +58,7 @@ class Lorentz(Manifold):
         inner_ = math.inner(u, x)
         ok = torch.allclose(inner_, torch.zeros(1), atol=atol, rtol=rtol)
         if not ok:
-            reason = f"Minkowski inner produt is not equal to zero"
+            reason = "Minkowski inner produt is not equal to zero"
         else:
             reason = None
         return ok, reason
@@ -71,10 +74,10 @@ class Lorentz(Manifold):
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, dim=dim)
 
-    def projx(self, x: torch.Tensor, dim=-1) -> torch.Tensor:
+    def projx(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.project(x, k=self.k, dim=dim)
 
-    def proju(self, x: torch.Tensor, v: torch.Tensor, dim=-1) -> torch.Tensor:
+    def proju(self, x: torch.Tensor, v: torch.Tensor, *, dim=-1) -> torch.Tensor:
         v = math.project_u(x, v, k=self.k, dim=dim)
         return v
 
@@ -115,7 +118,7 @@ class Lorentz(Manifold):
         return math.egrad2rgrad(x, u, k=self.k, dim=dim)
 
     def transp(
-        self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, dim=-1
+        self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
         return math.parallel_transport(x, y, v, k=self.k, dim=dim)
 
@@ -123,7 +126,7 @@ class Lorentz(Manifold):
         return math.parallel_transport0(y, u, k=self.k, dim=dim)
 
     def transp_follow_expmap(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, dim=-1, project=True
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
         y = self.expmap(x, u, dim=dim, project=project)
         return self.transp(x, y, v, dim=dim)
@@ -207,15 +210,8 @@ class Lorentz(Manifold):
         if not device:
             device = self.k.device
 
-        zero_point = torch.ones(*size, dtype=dtype, device=device)
-        d = zero_point.size(-1) - 1
-        zero_point = torch.cat(
-            (
-                zero_point.narrow(-1, 0, 1) * torch.sqrt(self.k),
-                zero_point.narrow(-1, 1, d) * 0.0,
-            ),
-            dim=-1,
-        )
+        zero_point = torch.zeros(*size, dtype=dtype, device=device)
+        zero_point[...,0] = torch.sqrt(self.k)
         return geoopt.ManifoldTensor(zero_point, manifold=self)
 
     retr = expmap

@@ -1,31 +1,14 @@
 import torch.jit
 import torch as th
 
-MIN_NORM = 1e-15
+
+@torch.jit.script
+def arcosh(x: torch.Tensor):
+    z = th.sqrt(th.clamp_min(x.pow(2) - 1.0, 1e-15))
+    return th.log(x + z)
 
 
-class Arcosh(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, x, eps):
-        z = th.sqrt(th.clamp_min(x.pow(2) - 1.0, MIN_NORM))
-        ctx.save_for_backward(z, eps)
-        ctx.eps = eps
-        asd = th.log(x + z)
-        return asd
-
-    @staticmethod
-    def backward(ctx, g):
-        (z,) = ctx.saved_tensors
-        z = th.clamp(z, min=ctx.eps)
-        z = g / z
-        return z, None
-
-
-def _arcosh(x, eps=1e-6):
-    return Arcosh.apply(x, eps)
-
-
-def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
+def dist(x, y, *, k, keepdim=False, dim=-1, eps=1e-6):
     r"""
     Compute geodesic distance on the Hyperboloid.
 
@@ -39,7 +22,7 @@ def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
         point on Hyperboloid
     y : tensor
         point on Hyperboloid
-    k : float|tensor
+    k : tensor
         manifold negative curvature
     keepdim : bool
         retain the last dim? (default: false)
@@ -53,17 +36,15 @@ def dist(x, y, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
     tensor
         geodesic distance between :math:`x` and :math:`y`
     """
-    if isinstance(k, float):
-        k = th.Tensor([k])
     return _dist(x, y, k=k, keepdim=keepdim, dim=dim, eps=eps)
 
 
-def _dist(x, y, k, keepdim: bool = False, dim: int = -1, eps=1e-6):
+def _dist(x, y, k:th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
     d = -inner(x, y, dim=dim, keepdim=keepdim)
-    return th.sqrt(k) * _arcosh(d / k, eps)
+    return th.sqrt(k) * arcosh(d / k)
 
 
-def dist0(x, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
+def dist0(x, *, k, keepdim=False, dim=-1, eps=1e-6):
     r"""
     Compute geodesic distance on the Hyperboloid to zero.
 
@@ -71,7 +52,7 @@ def dist0(x, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
     ----------
     x : tensor
         point on Hyperboloid
-    k : float|tensor
+    k : tensor
         manifold negative curvature
     keepdim : bool
         retain the last dim? (default: false)
@@ -85,22 +66,20 @@ def dist0(x, *, k=1.0, keepdim=False, dim=-1, eps=1e-6):
     tensor
         geodesic distance between :math:`x` and :math:`0`
     """
-    if isinstance(k, float):
-        k = th.Tensor([k])
     return _dist0(x, k, keepdim=keepdim, dim=dim, eps=eps)
 
 
-def _dist0(x, k, keepdim: bool = False, dim: int = -1, eps=1e-6):
+def _dist0(x, k:th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
     zp = th.ones_like(x)
     d = zp.size(dim) - 1
     zp = th.cat(
         (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
     )
     d = -inner(x, zp, dim=dim, keepdim=keepdim)
-    return th.sqrt(k) * _arcosh(d / k, eps)
+    return th.sqrt(k) * arcosh(d / k)
 
 
-def project(x, *, k=1.0, dim=-1):
+def project(x, *, k, dim=-1):
     r"""
     Projection on the Hyperboloid.
 
@@ -112,7 +91,7 @@ def project(x, *, k=1.0, dim=-1):
     ----------
     x: tensor
         point in Rn
-    k: float|tensor
+    k: tensor
         hyperboloid negative curvature
     dim : int
         reduction dimension to compute norm
@@ -125,7 +104,7 @@ def project(x, *, k=1.0, dim=-1):
     return _project(x, k=k, dim=dim)
 
 
-def _project(x, k, dim: int = -1):
+def _project(x, k:th.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
     left_ = th.sqrt(k + th.norm(x.narrow(dim, 1, dn), dim=dim) ** 2).unsqueeze(dim)
     right_ = x.narrow(dim, 1, dn)
@@ -133,7 +112,7 @@ def _project(x, k, dim: int = -1):
     return proj
 
 
-def project_polar(x, *, k=1.0, dim=-1):
+def project_polar(x, *, k, dim=-1):
     r"""
     Projection on the Hyperboloid from polar coordinates.
 
@@ -144,7 +123,7 @@ def project_polar(x, *, k=1.0, dim=-1):
     ----------
     x: tensor
         point in Rn
-    k: float|tensor
+    k: tensor
         hyperboloid negative curvature
     dim : int
         reduction dimension to compute norm
@@ -154,12 +133,10 @@ def project_polar(x, *, k=1.0, dim=-1):
     tensor
         projected vector on the manifold
     """
-    if isinstance(k, float):
-        k = th.Tensor([k])
     return _project_polar(x, k=k, dim=dim)
 
 
-def _project_polar(x, k, dim: int = -1):
+def _project_polar(x, k:th.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
     d = x.narrow(dim, 0, dn)
     r = x.narrow(dim, -1, 1)
@@ -169,7 +146,7 @@ def _project_polar(x, k, dim: int = -1):
     return res
 
 
-def project_u(x, v, *, k=1.0, dim=-1):
+def project_u(x, v, *, k, dim=-1):
     r"""
     Projection of the vector on the tangent space of the Hyperboloid.
 
@@ -183,7 +160,7 @@ def project_u(x, v, *, k=1.0, dim=-1):
         point on the Hyperboloid
     v: tensor
         vector in Rn
-    k: float|tensor
+    k: tensor
         hyperboloid negative curvature
     dim : int
         reduction dimension to compute norm
@@ -196,7 +173,7 @@ def project_u(x, v, *, k=1.0, dim=-1):
     return _project_u(x, v, k=k, dim=dim)
 
 
-def _project_u(x, v, k, dim=-1):
+def _project_u(x, v, k:th.Tensor, dim=-1):
     return v.addcmul(inner(x, v, dim=dim, keepdim=True).expand_as(x), x / k)
 
 
@@ -245,8 +222,6 @@ def norm(u, *, keepdim=False, dim=-1):
     ----------
     u : tensor
         tangent vector on Hyperboloid
-    k : float|tensor
-        manifold negative curvature
     keepdim : bool
         retain the last dim? (default: false)
     dim : int
@@ -264,7 +239,7 @@ def _norm(u, keepdim: bool = False, dim: int = -1):
     return th.sqrt(inner(u, u, keepdim=keepdim))
 
 
-def expmap(x, u, *, k=1.0, dim=-1):
+def expmap(x, u, *, k, dim=-1):
     r"""
     Compute exponential map on the Hyperboloid.
 
@@ -279,7 +254,7 @@ def expmap(x, u, *, k=1.0, dim=-1):
         starting point on Hyperboloid
     u : tensor
         unit speed vector on Hyperboloid
-    c : float|tensor
+    k: tensor
         manifold negative curvature
     dim : int
         reduction dimension for operations
@@ -289,12 +264,10 @@ def expmap(x, u, *, k=1.0, dim=-1):
     tensor
         :math:`\gamma_{x, u}(1)` end point
     """
-    if isinstance(k, float):
-        k = th.Tensor([k])
     return _expmap(x, u, k=k, dim=dim)
 
 
-def _expmap(x, u, k, dim: int = -1):
+def _expmap(x, u, k: th.Tensor, dim: int = -1):
     nomin = norm(u, keepdim=True, dim=dim)
     p = (
         th.cosh(nomin / th.sqrt(k)) * x
@@ -303,7 +276,7 @@ def _expmap(x, u, k, dim: int = -1):
     return p
 
 
-def expmap0(u, *, k=1.0, dim=-1):
+def expmap0(u, *, k, dim=-1):
     r"""
     Compute exponential map for Hyperboloid from :math:`0`.
 
@@ -311,7 +284,7 @@ def expmap0(u, *, k=1.0, dim=-1):
     ----------
     u : tensor
         speed vector on Hyperboloid
-    k : float|tensor
+    k : tensor
         manifold negative curvature
     dim : int
         reduction dimension for operations
@@ -321,12 +294,10 @@ def expmap0(u, *, k=1.0, dim=-1):
     tensor
         :math:`\gamma_{0, u}(1)` end point
     """
-    if isinstance(k, float):
-        k = th.Tensor([k])
     return _expmap0(u, k, dim=dim)
 
 
-def _expmap0(u, k, dim: int = -1):
+def _expmap0(u, k:th.Tensor, dim: int = -1):
     zp = th.ones_like(u)
     d = zp.size(dim) - 1
     zp = th.cat(
@@ -340,7 +311,7 @@ def _expmap0(u, k, dim: int = -1):
     return p
 
 
-def logmap(x, y, *, k=1.0, dim=-1):
+def logmap(x, y, *, k, dim=-1):
     r"""
     Compute logarithmic map for two points :math:`x` and :math:`y` on the manifold.
 
@@ -365,7 +336,7 @@ def logmap(x, y, *, k=1.0, dim=-1):
         starting point on Hyperboloid
     y : tensor
         target point on Hyperboloid
-    k : float|tensor
+    k : tensor
         manifold negative curvature
     dim : int
         reduction dimension for operations
@@ -385,7 +356,7 @@ def _logmap(x, y, k, dim: int = -1):
     return dist_ * nomin / denom
 
 
-def logmap0(y, *, k=1.0, dim=-1):
+def logmap0(y, *, k, dim=-1):
     r"""
     Compute logarithmic map for :math:`y` from :math:`0` on the manifold.
 
@@ -393,7 +364,7 @@ def logmap0(y, *, k=1.0, dim=-1):
     ----------
     y : tensor
         target point on Hyperboloid
-    k : float|tensor
+    k : tensor
         manifold negative curvature
     dim : int
         reduction dimension for operations
@@ -419,7 +390,7 @@ def _logmap0(y, k, dim: int = -1):
     return dist_ * nomin / denom
 
 
-def egrad2rgrad(x, grad, *, k=1.0, dim=-1):
+def egrad2rgrad(x, grad, *, k, dim=-1):
     r"""
     Translate Euclidean gradient to Riemannian gradient on tangent space of :math:`x`.
 
@@ -433,7 +404,7 @@ def egrad2rgrad(x, grad, *, k=1.0, dim=-1):
         point on the Hyperboloid
     grad : tensor
         Euclidean gradient for :math:`x`
-    k : float|tensor
+    k : tensor
         manifold negative curvature
     dim : int
         reduction dimension for operations
@@ -451,7 +422,7 @@ def _egrad2rgrad(x, grad, k, dim: int = -1):
     return grad
 
 
-def parallel_transport(x, y, v, *, k=1.0, dim=-1):
+def parallel_transport(x, y, v, *, k, dim=-1):
     r"""
     Perform parallel transport on the Hyperboloid.
 
@@ -463,7 +434,7 @@ def parallel_transport(x, y, v, *, k=1.0, dim=-1):
         end point
     v : tensor
         tangent vector to be transported
-    c : float|tensor
+    k : tensor
         manifold negative curvature
     dim : int
         reduction dimension for operations
@@ -483,7 +454,7 @@ def _parallel_transport(x, y, v, k, dim: int = -1):
     return p
 
 
-def parallel_transport0(y, v, *, k=1.0, dim=-1):
+def parallel_transport0(y, v, *, k, dim=-1):
     r"""
     Perform parallel transport from zero point.
 
@@ -493,7 +464,7 @@ def parallel_transport0(y, v, *, k=1.0, dim=-1):
         end point
     v : tensor
         tangent vector to be transported
-    c : float|tensor
+    k : tensor
         manifold negative curvature
     dim : int
         reduction dimension for operations
@@ -519,7 +490,7 @@ def _parallel_transport0(y, v, k, dim: int = -1):
     return p
 
 
-def geodesic_unit(t, x, u, k=1.0):
+def geodesic_unit(t, x, u, *, k):
     r"""
     Compute unit speed geodesic at time :math:`t` starting from :math:`x` with direction :math:`u/\|u\|_x`.
 
@@ -535,7 +506,7 @@ def geodesic_unit(t, x, u, k=1.0):
         initial point
     u : tensor
         unit direction vector
-    k : float|tensor
+    k : tensor
         manifold negative curvature
 
     Returns
@@ -543,8 +514,6 @@ def geodesic_unit(t, x, u, k=1.0):
     tensor
         the point on geodesic line
     """
-    if isinstance(k, float):
-        k = th.Tensor([k])
     return _geodesic_unit(t, x, u, k=k)
 
 
@@ -552,7 +521,7 @@ def _geodesic_unit(t, x, u, k):
     return th.cosh(t / th.sqrt(k)) * x + th.sqrt(k) * th.sinh(t / th.sqrt(k)) * u
 
 
-def lorentz_to_poincare(x, k=1.0, dim=-1):
+def lorentz_to_poincare(x, k, dim=-1):
     r"""
     Diffeomorphism that maps from Hyperboloid to Poincare disk.
 
@@ -564,6 +533,8 @@ def lorentz_to_poincare(x, k=1.0, dim=-1):
     ----------
     x : tensor
         point on Hyperboloid
+    k : tensor
+        manifold negative curvature
     dim : int
         reduction dimension for operations
 
@@ -576,7 +547,7 @@ def lorentz_to_poincare(x, k=1.0, dim=-1):
     return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + th.sqrt(k))
 
 
-def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):
+def poincare_to_lorentz(x, k, dim=-1, eps=1e-6):
     r"""
     Diffeomorphism that maps from Poincare disk to Hyperboloid.
 
@@ -588,6 +559,8 @@ def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):
     ----------
     x : tensor
         point on Poincare ball
+    k : tensor
+        manifold negative curvature
     dim : int
         reduction dimension for operations
 
@@ -596,8 +569,6 @@ def poincare_to_lorentz(x, k=1.0, dim=-1, eps=1e-6):
     tensor
         points on the Hyperboloid
     """
-    if isinstance(k, float):
-        k = th.Tensor([k])
     x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
     res = (
         th.sqrt(k)
