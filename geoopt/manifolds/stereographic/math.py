@@ -1,4 +1,6 @@
-"""
+r"""
+:math:`\kappa`-Stereographic math module.
+
 The functions for the mathematics in gyrovector spaces are taken from the
 following resources:
 
