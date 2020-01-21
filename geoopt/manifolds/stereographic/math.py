@@ -33,7 +33,7 @@ def tanh(x):
 
 @torch.jit.script
 def artanh(x: torch.Tensor):
-    x = x.clamp(-1 + 1e-5, 1 - 1e-5)
+    x = x.clamp(-1 + 1e-15, 1 - 1e-15)
     return (torch.log(1 + x).sub(torch.log(1 - x))).mul(0.5)
 
 
