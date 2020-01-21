@@ -211,7 +211,7 @@ class Lorentz(Manifold):
             device = self.k.device
 
         zero_point = torch.zeros(*size, dtype=dtype, device=device)
-        zero_point[...,0] = torch.sqrt(self.k)
+        zero_point[..., 0] = torch.sqrt(self.k)
         return geoopt.ManifoldTensor(zero_point, manifold=self)
 
     retr = expmap

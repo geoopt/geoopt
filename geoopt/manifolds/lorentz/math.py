@@ -39,7 +39,7 @@ def dist(x, y, *, k, keepdim=False, dim=-1, eps=1e-6):
     return _dist(x, y, k=k, keepdim=keepdim, dim=dim, eps=eps)
 
 
-def _dist(x, y, k:th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
+def _dist(x, y, k: th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
     d = -inner(x, y, dim=dim, keepdim=keepdim)
     return th.sqrt(k) * arcosh(d / k)
 
@@ -69,7 +69,7 @@ def dist0(x, *, k, keepdim=False, dim=-1, eps=1e-6):
     return _dist0(x, k, keepdim=keepdim, dim=dim, eps=eps)
 
 
-def _dist0(x, k:th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
+def _dist0(x, k: th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
     zp = th.ones_like(x)
     d = zp.size(dim) - 1
     zp = th.cat(
@@ -104,7 +104,7 @@ def project(x, *, k, dim=-1):
     return _project(x, k=k, dim=dim)
 
 
-def _project(x, k:th.Tensor, dim: int = -1):
+def _project(x, k: th.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
     left_ = th.sqrt(k + th.norm(x.narrow(dim, 1, dn), dim=dim) ** 2).unsqueeze(dim)
     right_ = x.narrow(dim, 1, dn)
@@ -136,7 +136,7 @@ def project_polar(x, *, k, dim=-1):
     return _project_polar(x, k=k, dim=dim)
 
 
-def _project_polar(x, k:th.Tensor, dim: int = -1):
+def _project_polar(x, k: th.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
     d = x.narrow(dim, 0, dn)
     r = x.narrow(dim, -1, 1)
@@ -173,7 +173,7 @@ def project_u(x, v, *, k, dim=-1):
     return _project_u(x, v, k=k, dim=dim)
 
 
-def _project_u(x, v, k:th.Tensor, dim=-1):
+def _project_u(x, v, k: th.Tensor, dim=-1):
     return v.addcmul(inner(x, v, dim=dim, keepdim=True).expand_as(x), x / k)
 
 
@@ -297,7 +297,7 @@ def expmap0(u, *, k, dim=-1):
     return _expmap0(u, k, dim=dim)
 
 
-def _expmap0(u, k:th.Tensor, dim: int = -1):
+def _expmap0(u, k: th.Tensor, dim: int = -1):
     zp = th.ones_like(u)
     d = zp.size(dim) - 1
     zp = th.cat(
