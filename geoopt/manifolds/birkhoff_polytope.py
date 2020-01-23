@@ -159,7 +159,7 @@ def proj_doubly_stochastic(
     return x * (r @ c)
 
 
-# @torch.jit.script
+@torch.jit.script
 def proj_tangent(x, u):
     assert x.shape[-2:] == u.shape[-2:], "Wrong shapes"
     x, u = torch.broadcast_tensors(x, u)
