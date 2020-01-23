@@ -10,6 +10,8 @@ __all__ = ["BirkhoffPolytope"]
 
 class BirkhoffPolytope(Manifold):
     r"""
+    Birkhoff Polytope Manifold.
+
     Manifold induced by the Doubly Stochastic matrices as described in
     A. Douik and B. Hassibi, "Manifold Optimization Over the Set
     of Doubly Stochastic Matrices: A Second-Order Geometry"
