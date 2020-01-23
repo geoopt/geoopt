@@ -42,7 +42,7 @@ class BirkhoffPolytope(Manifold):
     """
 
     name = "BirkhoffPolytope"
-
+    reversible = False
     ndim = 2
 
     def __init__(self, max_iter=100, tol=1e-5, eps=1e-12):
@@ -68,7 +68,7 @@ class BirkhoffPolytope(Manifold):
 
         return True, None
 
-    def _check_point_on_manifold(self, x, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x, *, atol=1e-4, rtol=1e-4):
         row_sum = x.sum(dim=-1)
         col_sum = x.sum(dim=-2)
         row_ok = torch.allclose(
@@ -88,10 +88,14 @@ class BirkhoffPolytope(Manifold):
             )
 
     def _check_vector_on_tangent(self, x, u, *, atol=1e-5, rtol=1e-5):
-        diff = u.transpose(-1, -2) @ x + x.transpose(-1, -2) @ u
-        ok = torch.allclose(diff, diff.new((1,)).fill_(0), atol=atol, rtol=rtol)
-        if not ok:
-            return False, "`u^T x + x^T u !=0` with atol={}, rtol={}".format(atol, rtol)
+        diff1 = u.sum(-1)
+        diff2 = u.sum(-2)
+        ok1 = torch.allclose(diff1, diff1.new((1,)).fill_(0), atol=atol, rtol=rtol)
+        ok2 = torch.allclose(diff2, diff2.new((1,)).fill_(0), atol=atol, rtol=rtol)
+        if not ok1:
+            return False, "`u 1 !=0` with atol={}, rtol={}".format(atol, rtol)
+        if not ok2:
+            return False, "`u^T 1 !=0` with atol={}, rtol={}".format(atol, rtol)
         return True, None
 
     def projx(self, x):
@@ -100,41 +104,7 @@ class BirkhoffPolytope(Manifold):
         )
 
     def proju(self, x, u):
-        # takes batch data
-        # batch_size, n, _ = x.shape
-        x_shape = x.shape
-        x = x.reshape(-1, x_shape[-2], x_shape[-1])
-        batch_size, n = x.shape[0:2]
-
-        e = torch.ones(batch_size, n, 1, dtype=x.dtype)
-        I = torch.unsqueeze(torch.eye(x.shape[-1], dtype=x.dtype), 0).repeat(
-            batch_size, 1, 1
-        )
-
-        mu = x * u
-
-        A = linalg.block_matrix([[I, x], [torch.transpose(x, 1, 2), I]])
-
-        B = A[:, :, 1:]
-        b = torch.cat(
-            [
-                torch.sum(mu, dim=2, keepdim=True),
-                torch.transpose(torch.sum(mu, dim=1, keepdim=True), 1, 2),
-            ],
-            dim=1,
-        )
-
-        zeta, _ = torch.solve(
-            B.transpose(1, 2) @ (b - A[:, :, 0:1]), B.transpose(1, 2) @ B
-        )
-        alpha = torch.cat(
-            [torch.ones(batch_size, 1, 1, dtype=x.dtype), zeta[:, 0 : n - 1]], dim=1
-        )
-        beta = zeta[:, n - 1 : 2 * n - 1]
-        rgrad = mu - (alpha @ e.transpose(1, 2) + e @ beta.transpose(1, 2)) * x
-
-        rgrad = rgrad.reshape(x_shape)
-        return rgrad
+        return proj_tangent(x, u)
 
     egrad2rgrad = proju
 
@@ -174,7 +144,7 @@ class BirkhoffPolytope(Manifold):
 
 @torch.jit.script
 def proj_doubly_stochastic(
-    x, max_iter: int = 300, eps: float = 1e-5, tol: float = 1e-3
+    x, max_iter: int = 300, eps: float = 1e-5, tol: float = 1e-5
 ):
     iter = 0
     c = 1.0 / (x.sum(dim=-2, keepdim=True) + eps)
@@ -187,3 +157,39 @@ def proj_doubly_stochastic(
         c = 1.0 / (cinv + eps)
         r = 1.0 / ((x @ c.transpose(-1, -2)) + eps)
     return x * (r @ c)
+
+
+# @torch.jit.script
+def proj_tangent(x, u):
+    assert x.shape[-2:] == u.shape[-2:], "Wrong shapes"
+    x, u = torch.broadcast_tensors(x, u)
+    x_shape = x.shape
+    x = x.reshape(-1, x_shape[-2], x_shape[-1])
+    u = u.reshape(-1, x_shape[-2], x_shape[-1])
+    xt = x.transpose(-1, -2)
+    batch_size, n = x.shape[0:2]
+
+    I = torch.eye(n, dtype=x.dtype, device=x.device)
+    I = I.expand_as(x)
+
+    mu = x * u
+
+    A = linalg.block_matrix([[I, x], [xt, I]])
+
+    B = A[:, :, 1:]
+
+    z1 = mu.sum(dim=-1).unsqueeze(-1)
+    zt1 = mu.sum(dim=-2).unsqueeze(-1)
+
+    b = torch.cat([z1, zt1], dim=1,)
+    rhs = B.transpose(1, 2) @ (b - A[:, :, 0:1])
+    lhs = B.transpose(1, 2) @ B
+    zeta, _ = torch.solve(rhs, lhs)
+    alpha = torch.cat(
+        [torch.ones(batch_size, 1, 1, dtype=x.dtype), zeta[:, 0 : n - 1]], dim=1
+    )
+    beta = zeta[:, n - 1 : 2 * n - 1]
+    rgrad = mu - (alpha + beta.transpose(-1, -2)) * x
+
+    rgrad = rgrad.reshape(x_shape)
+    return rgrad

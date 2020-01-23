@@ -114,7 +114,7 @@ def birkhoff_case():
     ev = torch.randn(*shape, dtype=torch.float64)
     max_iter = 100
     eps = 1e-12
-    tol = 1e-3
+    tol = 1e-5
     iter = 0
     c = 1.0 / (torch.sum(ex, dim=-2, keepdim=True) + eps)
     r = 1.0 / (torch.matmul(ex, c.transpose(-1, -2)) + eps)
