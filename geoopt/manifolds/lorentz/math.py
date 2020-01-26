@@ -464,12 +464,11 @@ def _logmap0(y, k, dim: int = -1):
     zp = torch.cat(
         (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
     )
-
     dist_ = _dist0(y, k=k, dim=dim, keepdim=True)
-    nomin = y + 1.0 / k * _inner0(y, k=k, keepdim=True) * zp
+    nomin = 1.0 / k * _inner0(y, k=k, keepdim=True) * zp
+    nomin = nomin + y
     denom = _norm(nomin, keepdim=True)
     return dist_ * nomin / denom
-
 
 
 def egrad2rgrad(x, grad, *, k, dim=-1):
@@ -603,17 +602,16 @@ def parallel_transport0back(x, v, *, k, dim: int = -1):
 
 @torch.jit.script
 def _parallel_transport0back(x, v, k, dim: int = -1):
-    # TODO: zp tensor creation should be removed
+    # TODO: zero tensor creation should be removed
     zp = torch.ones_like(x)
     d = zp.size(dim) - 1
     zp = torch.cat(
         (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
     )
-    # TODO: logmap0back is required
-    lmap = _logmap0(x, k=k, dim=dim)
+    lmap = _logmap(x, zp, k=k, dim=dim)
     nom = _inner(lmap, v, keepdim=True)
-    denom = _dist0(x, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap0(x, k=k, dim=dim))
+    denom = _dist(x, zp, k=k, dim=dim, keepdim=True) ** 2
+    p = v - nom / denom * (lmap + _logmap(zp, x, k=k, dim=dim))
     return p
 
 

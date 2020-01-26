@@ -155,6 +155,7 @@ def test_parallel_transport0_back(a, b, k):
     b = man.projx(b)
 
     v_0 = torch.rand_like(a) + 1e-5
+    v_0 = man.proju(a, v_0)  # project on tangent plane
 
     zero = torch.ones_like(a)
     d = zero.size(1) - 1
@@ -162,12 +163,12 @@ def test_parallel_transport0_back(a, b, k):
         (zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.0), dim=1
     )
 
-    v_0 = man.proju(zero, v_0)  # project on tangent plane
-
     v_t = man.transp0back(a, v_0)
     v_t = man.transp0(b, v_t)
 
-    v_s = man.transp(a, b, v_0)
+    v_s = man.transp(a, zero, v_0)
+    v_s = man.transp(zero, b, v_s)
+
     np.testing.assert_allclose(v_t, v_s, atol=1e-5, rtol=1e-5)
 
 
