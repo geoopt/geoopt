@@ -115,7 +115,7 @@ def _dist(x, y, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
 
 def dist0(y, *, k, keepdim=False, dim=-1):
     r"""
-    Compute geodesic distance on the Hyperboloid to zero point
+    Compute geodesic distance on the Hyperboloid to zero point.
 
     .. math::
 
