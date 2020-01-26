@@ -40,11 +40,11 @@ class Lorentz(Manifold):
         self.k = torch.nn.Parameter(k, requires_grad=learnable)
 
     def _check_point_on_manifold(
-        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5, dim=-1
     ) -> Tuple[bool, Optional[str]]:
-        dn = x.size(0)
+        dn = x.size(dim) - 1
         x = x ** 2
-        quad_form = -x[0] + x[1:].sum()
+        quad_form = -x.narrow(dim, 0, 1) + x.narrow(dim, 1, dn).sum()
         ok = torch.allclose(quad_form, -self.k, atol=atol, rtol=rtol)
         if not ok:
             reason = f"'x' minkowski quadratic form is not equal to {-self.k.item()}"
@@ -53,9 +53,9 @@ class Lorentz(Manifold):
         return ok, reason
 
     def _check_vector_on_tangent(
-        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
+        self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5, dim=-1
     ) -> Tuple[bool, Optional[str]]:
-        inner_ = math.inner(u, x)
+        inner_ = math.inner(u, x, dim=dim)
         ok = torch.allclose(inner_, torch.zeros(1), atol=atol, rtol=rtol)
         if not ok:
             reason = "Minkowski inner produt is not equal to zero"
@@ -124,6 +124,9 @@ class Lorentz(Manifold):
 
     def transp0(self, y: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.parallel_transport0(y, u, k=self.k, dim=dim)
+
+    def transp0back(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.parallel_transport0back(x, u, k=self.k, dim=dim)
 
     def transp_follow_expmap(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1, project=True
@@ -205,9 +208,9 @@ class Lorentz(Manifold):
         ManifoldTensor
             zero point on the manifold
         """
-        if not dtype:
+        if dtype is None:
             dtype = self.k.dtype
-        if not device:
+        if device is None:
             device = self.k.device
 
         zero_point = torch.zeros(*size, dtype=dtype, device=device)

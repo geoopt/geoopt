@@ -149,6 +149,28 @@ def test_parallel_transport0_preserves_inner_products(a, k):
     np.testing.assert_allclose(vu_a, vu_0, atol=1e-5, rtol=1e-5)
 
 
+def test_parallel_transport0_back(a, b, k):
+    man = lorentz.Lorentz(k=k)
+    a = man.projx(a)
+    b = man.projx(b)
+
+    v_0 = torch.rand_like(a) + 1e-5
+
+    zero = torch.ones_like(a)
+    d = zero.size(1) - 1
+    zero = torch.cat(
+        (zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.0), dim=1
+    )
+
+    v_0 = man.proju(zero, v_0)  # project on tangent plane
+
+    v_t = man.transp0back(a, v_0)
+    v_t = man.transp0(b, v_t)
+
+    v_s = man.transp(a, b, v_0)
+    np.testing.assert_allclose(v_t, v_s, atol=1e-5, rtol=1e-5)
+
+
 def test_parallel_transport0_is_same_as_usual(a, k):
     man = lorentz.Lorentz(k=k)
     a = man.projx(a)

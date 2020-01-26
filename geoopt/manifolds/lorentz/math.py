@@ -4,11 +4,82 @@ import torch as th
 
 @torch.jit.script
 def arcosh(x: torch.Tensor):
-    z = th.sqrt(th.clamp_min(x.pow(2) - 1.0, 1e-15))
-    return th.log(x + z)
+    z = torch.sqrt(torch.clamp_min(x.pow(2) - 1.0, 1e-15))
+    return torch.log(x + z)
 
 
-def dist(x, y, *, k, keepdim=False, dim=-1, eps=1e-6):
+def inner(u, v, *, keepdim=False, dim=-1):
+    r"""
+    Minkowski inner product.
+
+    .. math::
+        \langle\mathbf{u}, \mathbf{v}\rangle_{\mathcal{L}}:=-u_{0} v_{0}+u_{1} v_{1}+\ldots+u_{d} v_{d}
+
+    Parameters
+    ----------
+    u : tensor
+        vector in ambient space
+    v : tensor
+        vector in ambient space
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension
+
+    Returns
+    -------
+    tensor
+        inner product
+    """
+    return _inner(u, v, keepdim=keepdim, dim=dim)
+
+
+@torch.jit.script
+def _inner(u, v, keepdim: bool = False, dim: int = -1):
+    d = u.size(dim) - 1
+    uv = u * v
+    if keepdim is False:
+        return -uv.narrow(dim, 0, 1).sum(dim=dim, keepdim=False) + uv.narrow(
+            dim, 1, d
+        ).sum(dim=dim, keepdim=False)
+    else:
+        return torch.cat((-uv.narrow(dim, 0, 1), uv.narrow(dim, 1, d)), dim=dim).sum(
+            dim=dim, keepdim=True
+        )
+
+
+def inner0(v, *, k, keepdim=False, dim=-1):
+    r"""
+    Minkowski inner product with zero vector.
+
+    Parameters
+    ----------
+    v : tensor
+        vector in ambient space
+    k : tensor
+        manifold negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension
+
+    Returns
+    -------
+    tensor
+        inner product
+    """
+    return _inner0(v, keepdim=keepdim, dim=dim)
+
+
+@torch.jit.script
+def _inner0(v, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
+    res = -v.narrow(dim, 0, 1) * torch.sqrt(k)
+    if keepdim is False:
+        res = res.squeeze(dim)
+    return res
+
+
+def dist(x, y, *, k, keepdim=False, dim=-1):
     r"""
     Compute geodesic distance on the Hyperboloid.
 
@@ -28,23 +99,53 @@ def dist(x, y, *, k, keepdim=False, dim=-1, eps=1e-6):
         retain the last dim? (default: false)
     dim : int
         reduction dimension
-    eps : float
-        stability parameter for arcosh
 
     Returns
     -------
     tensor
         geodesic distance between :math:`x` and :math:`y`
     """
-    return _dist(x, y, k=k, keepdim=keepdim, dim=dim, eps=eps)
+    return _dist(x, y, k=k, keepdim=keepdim, dim=dim)
 
 
-def _dist(x, y, k: th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
-    d = -inner(x, y, dim=dim, keepdim=keepdim)
-    return th.sqrt(k) * arcosh(d / k)
+@torch.jit.script
+def _dist(x, y, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
+    d = -_inner(x, y, dim=dim, keepdim=keepdim)
+    return torch.sqrt(k) * arcosh(d / k)
 
 
-def dist0(x, *, k, keepdim=False, dim=-1, eps=1e-6):
+def dist0(y, *, k, keepdim=False, dim=-1):
+    r"""
+    Compute geodesic distance on the Hyperboloid to zero point
+
+    .. math::
+
+    Parameters
+    ----------
+    y : tensor
+        point on Hyperboloid
+    k : tensor
+        manifold negative curvature
+    keepdim : bool
+        retain the last dim? (default: false)
+    dim : int
+        reduction dimension
+
+    Returns
+    -------
+    tensor
+        geodesic distance between :math:`x` and :math:`y`
+    """
+    return _dist0(y, k=k, keepdim=keepdim, dim=dim)
+
+
+@torch.jit.script
+def _dist0(y, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
+    d = -_inner0(y, k=k, dim=dim, keepdim=keepdim)
+    return torch.sqrt(k) * arcosh(d / k)
+
+
+def dist0(x, *, k, keepdim=False, dim=-1):
     r"""
     Compute geodesic distance on the Hyperboloid to zero.
 
@@ -58,25 +159,24 @@ def dist0(x, *, k, keepdim=False, dim=-1, eps=1e-6):
         retain the last dim? (default: false)
     dim : int
         reduction dimension
-    eps : float
-        stability parameter for arcosh
 
     Returns
     -------
     tensor
         geodesic distance between :math:`x` and :math:`0`
     """
-    return _dist0(x, k, keepdim=keepdim, dim=dim, eps=eps)
+    return _dist0(x, k, keepdim=keepdim, dim=dim)
 
 
-def _dist0(x, k: th.Tensor, keepdim: bool = False, dim: int = -1, eps=1e-6):
-    zp = th.ones_like(x)
+@torch.jit.script
+def _dist0(x, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
+    zp = torch.ones_like(x)
     d = zp.size(dim) - 1
-    zp = th.cat(
-        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    zp = torch.cat(
+        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
     )
-    d = -inner(x, zp, dim=dim, keepdim=keepdim)
-    return th.sqrt(k) * arcosh(d / k)
+    d = -_inner(x, zp, dim=dim, keepdim=keepdim)
+    return torch.sqrt(k) * arcosh(d / k)
 
 
 def project(x, *, k, dim=-1):
@@ -104,9 +204,12 @@ def project(x, *, k, dim=-1):
     return _project(x, k=k, dim=dim)
 
 
-def _project(x, k: th.Tensor, dim: int = -1):
+@torch.jit.script
+def _project(x, k: torch.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
-    left_ = th.sqrt(k + th.norm(x.narrow(dim, 1, dn), dim=dim) ** 2).unsqueeze(dim)
+    left_ = torch.sqrt(
+        k + torch.norm(x.narrow(dim, 1, dn), p=2, dim=dim) ** 2
+    ).unsqueeze(dim)
     right_ = x.narrow(dim, 1, dn)
     proj = torch.cat((left_, right_), dim=dim)
     return proj
@@ -136,12 +239,17 @@ def project_polar(x, *, k, dim=-1):
     return _project_polar(x, k=k, dim=dim)
 
 
-def _project_polar(x, k: th.Tensor, dim: int = -1):
+@torch.jit.script
+def _project_polar(x, k: torch.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
     d = x.narrow(dim, 0, dn)
     r = x.narrow(dim, -1, 1)
-    res = th.cat(
-        (th.cosh(r / th.sqrt(k)), th.sqr(k) * th.sinh(r / th.sqrt(k)) * d), dim=dim
+    res = torch.cat(
+        (
+            torch.cosh(r / torch.sqrt(k)),
+            torch.sqrt(k) * torch.sinh(r / torch.sqrt(k)) * d,
+        ),
+        dim=dim,
     )
     return res
 
@@ -173,41 +281,9 @@ def project_u(x, v, *, k, dim=-1):
     return _project_u(x, v, k=k, dim=dim)
 
 
-def _project_u(x, v, k: th.Tensor, dim=-1):
-    return v.addcmul(inner(x, v, dim=dim, keepdim=True).expand_as(x), x / k)
-
-
-def inner(u, v, *, keepdim=False, dim=-1):
-    r"""
-    Minkowski inner product.
-
-    .. math::
-        \langle\mathbf{u}, \mathbf{v}\rangle_{\mathcal{L}}:=-u_{0} v_{0}+u_{1} v_{1}+\ldots+u_{d} v_{d}
-
-    Parameters
-    ----------
-    u : tensor
-        vector in ambient space
-    v : tensor
-        vector in ambient space
-    keepdim : bool
-        retain the last dim? (default: false)
-    dim : int
-        reduction dimension
-
-    Returns
-    -------
-    tensor
-        inner product
-    """
-    return _inner(u, v, keepdim=keepdim, dim=dim)
-
-
-def _inner(u, v, keepdim: bool = False, dim: int = -1):
-    d = u.size(dim) - 1
-    uv = u * v
-    uv = th.cat((-uv.narrow(dim, 0, 1), uv.narrow(dim, 1, d)), dim=dim)
-    return th.sum(uv, dim=dim, keepdim=keepdim)
+@torch.jit.script
+def _project_u(x, v, k: torch.Tensor, dim: int = -1):
+    return v.addcmul(_inner(x, v, dim=dim, keepdim=True), x / k)
 
 
 def norm(u, *, keepdim=False, dim=-1):
@@ -235,8 +311,9 @@ def norm(u, *, keepdim=False, dim=-1):
     return _norm(u, keepdim=keepdim, dim=dim)
 
 
+@torch.jit.script
 def _norm(u, keepdim: bool = False, dim: int = -1):
-    return th.sqrt(inner(u, u, keepdim=keepdim))
+    return torch.sqrt(_inner(u, u, keepdim=keepdim))
 
 
 def expmap(x, u, *, k, dim=-1):
@@ -267,11 +344,12 @@ def expmap(x, u, *, k, dim=-1):
     return _expmap(x, u, k=k, dim=dim)
 
 
-def _expmap(x, u, k: th.Tensor, dim: int = -1):
-    nomin = norm(u, keepdim=True, dim=dim)
+@torch.jit.script
+def _expmap(x, u, k: torch.Tensor, dim: int = -1):
+    nomin = _norm(u, keepdim=True, dim=dim)
     p = (
-        th.cosh(nomin / th.sqrt(k)) * x
-        + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+        torch.cosh(nomin / torch.sqrt(k)) * x
+        + torch.sqrt(k) * torch.sinh(nomin / torch.sqrt(k)) * u / nomin
     )
     return p
 
@@ -297,16 +375,17 @@ def expmap0(u, *, k, dim=-1):
     return _expmap0(u, k, dim=dim)
 
 
-def _expmap0(u, k: th.Tensor, dim: int = -1):
-    zp = th.ones_like(u)
+@torch.jit.script
+def _expmap0(u, k: torch.Tensor, dim: int = -1):
+    zp = torch.ones_like(u)
     d = zp.size(dim) - 1
-    zp = th.cat(
-        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    zp = torch.cat(
+        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
     )
-    nomin = norm(u, keepdim=True, dim=dim)
+    nomin = _norm(u, keepdim=True, dim=dim)
     p = (
-        th.cosh(nomin / th.sqrt(k)) * zp
-        + th.sqrt(k) * th.sinh(nomin / th.sqrt(k)) * u / nomin
+        torch.cosh(nomin / torch.sqrt(k)) * zp
+        + torch.sqrt(k) * torch.sinh(nomin / torch.sqrt(k)) * u / nomin
     )
     return p
 
@@ -349,10 +428,11 @@ def logmap(x, y, *, k, dim=-1):
     return _logmap(x, y, k=k, dim=dim)
 
 
+@torch.jit.script
 def _logmap(x, y, k, dim: int = -1):
-    dist_ = dist(x, y, k=k, dim=dim, keepdim=True)
-    nomin = y + 1.0 / k * inner(x, y, keepdim=True) * x
-    denom = norm(nomin, keepdim=True)
+    dist_ = _dist(x, y, k=k, dim=dim, keepdim=True)
+    nomin = y + 1.0 / k * _inner(x, y, keepdim=True) * x
+    denom = _norm(nomin, keepdim=True)
     return dist_ * nomin / denom
 
 
@@ -377,17 +457,19 @@ def logmap0(y, *, k, dim=-1):
     return _logmap0(y, k=k, dim=dim)
 
 
+@torch.jit.script
 def _logmap0(y, k, dim: int = -1):
-    zp = th.ones_like(y)
+    zp = torch.ones_like(y)
     d = zp.size(dim) - 1
-    zp = th.cat(
-        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    zp = torch.cat(
+        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
     )
 
-    dist_ = dist(zp, y, k=k, dim=dim, keepdim=True)
-    nomin = y + 1.0 / k * inner(zp, y, keepdim=True) * zp
-    denom = norm(nomin, keepdim=True)
+    dist_ = _dist0(y, k=k, dim=dim, keepdim=True)
+    nomin = y + 1.0 / k * _inner0(y, k=k, keepdim=True) * zp
+    denom = _norm(nomin, keepdim=True)
     return dist_ * nomin / denom
+
 
 
 def egrad2rgrad(x, grad, *, k, dim=-1):
@@ -417,8 +499,9 @@ def egrad2rgrad(x, grad, *, k, dim=-1):
     return _egrad2rgrad(x, grad, k=k, dim=dim)
 
 
+@torch.jit.script
 def _egrad2rgrad(x, grad, k, dim: int = -1):
-    grad = grad.addcmul(inner(x, grad, dim=dim, keepdim=True).expand_as(x), x / k)
+    grad = grad.addcmul(_inner(x, grad, dim=dim, keepdim=True).expand_as(x), x / k)
     return grad
 
 
@@ -447,10 +530,12 @@ def parallel_transport(x, y, v, *, k, dim=-1):
     return _parallel_transport(x, y, v, k=k, dim=dim)
 
 
+@torch.jit.script
 def _parallel_transport(x, y, v, k, dim: int = -1):
-    nom = inner(logmap(x, y, k=k, dim=dim), v, keepdim=True)
-    denom = dist(x, y, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (logmap(x, y, k=k, dim=dim) + logmap(y, x, k=k, dim=dim))
+    lmap = _logmap(x, y, k=k, dim=dim)
+    nom = _inner(lmap, v, keepdim=True)
+    denom = _dist(x, y, k=k, dim=dim, keepdim=True) ** 2
+    p = v - nom / denom * (lmap + _logmap(y, x, k=k, dim=dim))
     return p
 
 
@@ -477,16 +562,58 @@ def parallel_transport0(y, v, *, k, dim=-1):
     return _parallel_transport0(y, v, k=k, dim=dim)
 
 
+@torch.jit.script
 def _parallel_transport0(y, v, k, dim: int = -1):
-    zp = th.ones_like(y)
+    zp = torch.ones_like(y)
     d = zp.size(dim) - 1
-    zp = th.cat(
-        (zp.narrow(dim, 0, 1) * th.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    zp = torch.cat(
+        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
     )
+    lmap = _logmap0(y, k=k, dim=dim)
+    nom = _inner(lmap, v, keepdim=True)
+    denom = _dist0(y, k=k, dim=dim, keepdim=True) ** 2
+    p = v - nom / denom * (lmap + _logmap(y, zp, k=k, dim=dim))
+    return p
 
-    nom = inner(logmap(zp, y, k=k, dim=dim), v, keepdim=True)
-    denom = dist(zp, y, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (logmap(zp, y, k=k, dim=dim) + logmap(y, zp, k=k, dim=dim))
+
+def parallel_transport0back(x, v, *, k, dim: int = -1):
+    r"""
+    Perform parallel transport to the zero point.
+
+    Special case parallel transport with last point at zero that
+    can be computed more efficiently and numerically stable
+
+    Parameters
+    ----------
+    x : tensor
+        target point
+    v : tensor
+        vector to be transported
+    k : tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+    """
+    return _parallel_transport0back(x, v, k=k, dim=dim)
+
+
+@torch.jit.script
+def _parallel_transport0back(x, v, k, dim: int = -1):
+    # TODO: zp tensor creation should be removed
+    zp = torch.ones_like(x)
+    d = zp.size(dim) - 1
+    zp = torch.cat(
+        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
+    )
+    # TODO: logmap0back is required
+    lmap = _logmap0(x, k=k, dim=dim)
+    nom = _inner(lmap, v, keepdim=True)
+    denom = _dist0(x, k=k, dim=dim, keepdim=True) ** 2
+    p = v - nom / denom * (lmap + _logmap0(x, k=k, dim=dim))
     return p
 
 
@@ -517,8 +644,12 @@ def geodesic_unit(t, x, u, *, k):
     return _geodesic_unit(t, x, u, k=k)
 
 
+@torch.jit.script
 def _geodesic_unit(t, x, u, k):
-    return th.cosh(t / th.sqrt(k)) * x + th.sqrt(k) * th.sinh(t / th.sqrt(k)) * u
+    return (
+        torch.cosh(t / torch.sqrt(k)) * x
+        + torch.sqrt(k) * torch.sinh(t / torch.sqrt(k)) * u
+    )
 
 
 def lorentz_to_poincare(x, k, dim=-1):
@@ -544,7 +675,7 @@ def lorentz_to_poincare(x, k, dim=-1):
         points on the Poincare disk
     """
     dn = x.size(dim) - 1
-    return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + th.sqrt(k))
+    return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + torch.sqrt(k))
 
 
 def poincare_to_lorentz(x, k, dim=-1, eps=1e-6):
@@ -569,10 +700,10 @@ def poincare_to_lorentz(x, k, dim=-1, eps=1e-6):
     tensor
         points on the Hyperboloid
     """
-    x_norm_square = th.sum(x * x, dim=dim, keepdim=True)
+    x_norm_square = torch.sum(x * x, dim=dim, keepdim=True)
     res = (
-        th.sqrt(k)
-        * th.cat((1 + x_norm_square, 2 * x), dim=dim)
+        torch.sqrt(k)
+        * torch.cat((1 + x_norm_square, 2 * x), dim=dim)
         / (1.0 - x_norm_square + eps)
     )
     return res
