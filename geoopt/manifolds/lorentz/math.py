@@ -1,5 +1,4 @@
 import torch.jit
-import torch as th
 
 
 @torch.jit.script
