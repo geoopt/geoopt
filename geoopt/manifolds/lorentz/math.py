@@ -144,40 +144,6 @@ def _dist0(y, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return torch.sqrt(k) * arcosh(d / k)
 
 
-def dist0(x, *, k, keepdim=False, dim=-1):
-    r"""
-    Compute geodesic distance on the Hyperboloid to zero.
-
-    Parameters
-    ----------
-    x : tensor
-        point on Hyperboloid
-    k : tensor
-        manifold negative curvature
-    keepdim : bool
-        retain the last dim? (default: false)
-    dim : int
-        reduction dimension
-
-    Returns
-    -------
-    tensor
-        geodesic distance between :math:`x` and :math:`0`
-    """
-    return _dist0(x, k, keepdim=keepdim, dim=dim)
-
-
-@torch.jit.script
-def _dist0(x, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
-    zp = torch.ones_like(x)
-    d = zp.size(dim) - 1
-    zp = torch.cat(
-        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
-    )
-    d = -_inner(x, zp, dim=dim, keepdim=keepdim)
-    return torch.sqrt(k) * arcosh(d / k)
-
-
 def project(x, *, k, dim=-1):
     r"""
     Projection on the Hyperboloid.
@@ -376,16 +342,11 @@ def expmap0(u, *, k, dim=-1):
 
 @torch.jit.script
 def _expmap0(u, k: torch.Tensor, dim: int = -1):
-    zp = torch.ones_like(u)
-    d = zp.size(dim) - 1
-    zp = torch.cat(
-        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
-    )
     nomin = _norm(u, keepdim=True, dim=dim)
-    p = (
-        torch.cosh(nomin / torch.sqrt(k)) * zp
-        + torch.sqrt(k) * torch.sinh(nomin / torch.sqrt(k)) * u / nomin
-    )
+    l_v = torch.cosh(nomin / torch.sqrt(k)) * torch.sqrt(k)
+    r_v = torch.sqrt(k) * torch.sinh(nomin / torch.sqrt(k)) * u / nomin
+    dn = r_v.size(dim) - 1
+    p = torch.cat((l_v + r_v.narrow(dim, 0, 1), r_v.narrow(dim, 1, dn)), dim)
     return p
 
 
@@ -458,14 +419,41 @@ def logmap0(y, *, k, dim=-1):
 
 @torch.jit.script
 def _logmap0(y, k, dim: int = -1):
-    zp = torch.ones_like(y)
-    d = zp.size(dim) - 1
-    zp = torch.cat(
-        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
-    )
     dist_ = _dist0(y, k=k, dim=dim, keepdim=True)
-    nomin = 1.0 / k * _inner0(y, k=k, keepdim=True) * zp
-    nomin = nomin + y
+    nomin_ = 1.0 / k * _inner0(y, k=k, keepdim=True) * torch.sqrt(k)
+    dn = y.size(dim) - 1
+    nomin = torch.cat((nomin_ + y.narrow(dim, 0, 1), y.narrow(dim, 1, dn)), dim)
+    denom = _norm(nomin, keepdim=True)
+    return dist_ * nomin / denom
+
+
+def logmap0back(x, *, k, dim=-1):
+    r"""
+    Compute logarithmic map for :math:`0` from :math:`x` on the manifold.
+
+    Parameters
+    ----------
+    x : tensor
+        target point on Hyperboloid
+    k : tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        tangent vector that transports :math:`0` to :math:`y`
+    """
+    return _logmap0back(x, k=k, dim=dim)
+
+
+@torch.jit.script
+def _logmap0back(x, k, dim: int = -1):
+    dist_ = _dist0(x, k=k, dim=dim, keepdim=True)
+    nomin_ = 1.0 / k * _inner0(x, k=k, keepdim=True) * x
+    dn = nomin_.size(dim) - 1
+    nomin = torch.cat((nomin_.narrow(dim, 0, 1) + torch.sqrt(k), nomin_.narrow(dim, 1, dn)), dim)
     denom = _norm(nomin, keepdim=True)
     return dist_ * nomin / denom
 
@@ -499,7 +487,7 @@ def egrad2rgrad(x, grad, *, k, dim=-1):
 
 @torch.jit.script
 def _egrad2rgrad(x, grad, k, dim: int = -1):
-    grad = grad.addcmul(_inner(x, grad, dim=dim, keepdim=True).expand_as(x), x / k)
+    grad = grad.addcmul(_inner(x, grad, dim=dim, keepdim=True), x / k)
     return grad
 
 
@@ -562,15 +550,10 @@ def parallel_transport0(y, v, *, k, dim=-1):
 
 @torch.jit.script
 def _parallel_transport0(y, v, k, dim: int = -1):
-    zp = torch.ones_like(y)
-    d = zp.size(dim) - 1
-    zp = torch.cat(
-        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
-    )
     lmap = _logmap0(y, k=k, dim=dim)
     nom = _inner(lmap, v, keepdim=True)
     denom = _dist0(y, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap(y, zp, k=k, dim=dim))
+    p = v - nom / denom * (lmap + _logmap0back(y, k=k, dim=dim))
     return p
 
 
@@ -601,16 +584,10 @@ def parallel_transport0back(x, v, *, k, dim: int = -1):
 
 @torch.jit.script
 def _parallel_transport0back(x, v, k, dim: int = -1):
-    # TODO: zero tensor creation should be removed
-    zp = torch.ones_like(x)
-    d = zp.size(dim) - 1
-    zp = torch.cat(
-        (zp.narrow(dim, 0, 1) * torch.sqrt(k), zp.narrow(dim, 1, d) * 0.0), dim=dim
-    )
-    lmap = _logmap(x, zp, k=k, dim=dim)
+    lmap = _logmap0back(x, k=k, dim=dim)
     nom = _inner(lmap, v, keepdim=True)
-    denom = _dist(x, zp, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap(zp, x, k=k, dim=dim))
+    denom = _dist0(x, k=k, dim=dim, keepdim=True) ** 2
+    p = v - nom / denom * (lmap + _logmap0(x, k=k, dim=dim))
     return p
 
 
