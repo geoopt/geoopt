@@ -67,7 +67,7 @@ def inner0(v, *, k, keepdim=False, dim=-1):
     tensor
         inner product
     """
-    return _inner0(v, keepdim=keepdim, dim=dim)
+    return _inner0(v, k=k, keepdim=keepdim, dim=dim)
 
 
 @torch.jit.script
@@ -453,7 +453,9 @@ def _logmap0back(x, k, dim: int = -1):
     dist_ = _dist0(x, k=k, dim=dim, keepdim=True)
     nomin_ = 1.0 / k * _inner0(x, k=k, keepdim=True) * x
     dn = nomin_.size(dim) - 1
-    nomin = torch.cat((nomin_.narrow(dim, 0, 1) + torch.sqrt(k), nomin_.narrow(dim, 1, dn)), dim)
+    nomin = torch.cat(
+        (nomin_.narrow(dim, 0, 1) + torch.sqrt(k), nomin_.narrow(dim, 1, dn)), dim
+    )
     denom = _norm(nomin, keepdim=True)
     return dist_ * nomin / denom
 

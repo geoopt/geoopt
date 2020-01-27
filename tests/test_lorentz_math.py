@@ -188,6 +188,25 @@ def test_parallel_transport0_is_same_as_usual(a, k):
     np.testing.assert_allclose(v_a, v_a1, atol=1e-5, rtol=1e-5)
 
 
+def test_zero_point_ops(a, k):
+    man = lorentz.Lorentz(k=k)
+    a = man.projx(a)
+
+    zero = torch.ones_like(a)
+    d = zero.size(1) - 1
+    zero = torch.cat(
+        (zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.0), dim=1
+    )
+    inner_z = man.inner0(a)
+    inner = man.inner(a, zero)
+    np.testing.assert_allclose(inner, inner_z, atol=1e-5, rtol=1e-5)
+
+    lmap_z = man.logmap0back(a)
+    lmap = man.logmap(a, zero)
+
+    np.testing.assert_allclose(lmap, lmap_z, atol=1e-5, rtol=1e-5)
+
+
 def test_parallel_transport_a_b(a, b, k):
     man = lorentz.Lorentz(k=k)
     v_0 = torch.rand_like(a)

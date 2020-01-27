@@ -68,6 +68,10 @@ class Lorentz(Manifold):
     ) -> torch.Tensor:
         return math.dist(x, y, k=self.k, keepdim=keepdim, dim=dim)
 
+    @__scaling__(ScalingInfo(1))
+    def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
+        return math.dist0(x, k=self.k, dim=dim, keepdim=keepdim)
+
     def norm(self, u: torch.Tensor, *, keepdim=False, dim=-1) -> torch.Tensor:
         return math.norm(u, keepdim=keepdim, dim=dim)
 
@@ -80,10 +84,6 @@ class Lorentz(Manifold):
     def proju(self, x: torch.Tensor, v: torch.Tensor, *, dim=-1) -> torch.Tensor:
         v = math.project_u(x, v, k=self.k, dim=dim)
         return v
-
-    @__scaling__(ScalingInfo(1))
-    def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
-        return math.dist0(x, k=self.k, dim=dim, keepdim=keepdim)
 
     def expmap(
         self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1
@@ -109,10 +109,16 @@ class Lorentz(Manifold):
     def logmap0(self, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.logmap0(y, k=self.k, dim=dim)
 
+    def logmap0back(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.logmap0back(x, k=self.k, dim=dim)
+
     def inner(
         self, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False, dim=-1,
     ) -> torch.Tensor:
         return math.inner(u, v)
+
+    def inner0(self, v: torch.Tensor = None, *, keepdim=False, dim=-1,) -> torch.Tensor:
+        return math.inner0(v, k=self.k)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.egrad2rgrad(x, u, k=self.k, dim=dim)
