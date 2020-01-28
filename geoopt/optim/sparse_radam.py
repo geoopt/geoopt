@@ -1,16 +1,19 @@
 import torch.optim
 
-from .mixin import OptimMixin
+from .mixin import OptimMixin, SparseMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
 from ..utils import copy_or_set_
 
 
-__all__ = ["RiemannianAdam"]
+__all__ = ["SparseRiemannianAdam"]
 
 
-class RiemannianAdam(OptimMixin, torch.optim.Adam):
+class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
     r"""
-    Riemannian Adam with the same API as :class:`torch.optim.Adam`.
+    Implements lazy version of Adam algorithm suitable for sparse gradients.
+
+    In this variant, only moments that show up in the gradient get updated, and
+    only those portions of the gradient get applied to the parameters.
 
     Parameters
     ----------
@@ -25,8 +28,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
     eps : float (optional)
         term added to the denominator to improve
         numerical stability (default: 1e-8)
-    weight_decay : float (optional)
-        weight decay (L2 penalty) (default: 0)
     amsgrad : bool (optional)
         whether to use the AMSGrad variant of this
         algorithm from the paper `On the Convergence of Adam and Beyond`_
@@ -44,6 +45,23 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
 
     """
 
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, amsgrad=False):
+        if not 0.0 <= lr:
+            raise ValueError("Invalid learning rate: {}".format(lr))
+        if not 0.0 <= eps:
+            raise ValueError("Invalid epsilon value: {}".format(eps))
+        if not 0.0 <= betas[0] < 1.0:
+            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+        if not 0.0 <= betas[1] < 1.0:
+            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
+        defaults = dict(lr=lr, betas=betas, eps=eps, amsgrad=amsgrad)
+        super(SparseRiemannianAdam, self).__init__(params, defaults)
+
+    def __setstate__(self, state):
+        super(SparseRiemannianAdam, self).__setstate__(state)
+        for group in self.param_groups:
+            group.setdefault("amsgrad", False)
+
     def step(self, closure=None):
         loss = None
         if closure is not None:
@@ -53,7 +71,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 if "step" not in group:
                     group["step"] = 0
                 betas = group["betas"]
-                weight_decay = group["weight_decay"]
                 eps = group["eps"]
                 learning_rate = group["lr"]
                 amsgrad = group["amsgrad"]
@@ -66,11 +83,11 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     else:
                         manifold = self._default_manifold
 
-                    if grad.is_sparse:
+                    if not grad.is_sparse:
                         raise RuntimeError(
-                            "RiemannianAdam does not support sparse gradients, use SparseRiemannianAdam instead"
+                            "SparseRiemannianAdam does not support sparse gradients, use RiemannianAdam instead"
                         )
-
+                    rows = grad.coalesce().indices()[0].unique()
                     state = self.state[point]
 
                     # State initialization
@@ -83,22 +100,28 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                         if amsgrad:
                             # Maintains max of all exp. moving avg. of sq. grad. values
                             state["max_exp_avg_sq"] = torch.zeros_like(point)
-                    # make local variables for easy access
-                    exp_avg = state["exp_avg"]
-                    exp_avg_sq = state["exp_avg_sq"]
+
+                    full_point = point
+                    # only nonzero rows are required to make an update
+                    grad = grad.index_select(0, rows).to_dense()
+                    # this takes not view, but copy, we are required to make updates later
+                    point = point[rows]
+                    exp_avg = state["exp_avg"][rows]
+                    exp_avg_sq = state["exp_avg_sq"][rows]
                     # actual step
-                    grad.add_(weight_decay, point)
                     grad = manifold.egrad2rgrad(point, grad)
                     exp_avg.mul_(betas[0]).add_(1 - betas[0], grad)
                     exp_avg_sq.mul_(betas[1]).add_(
                         1 - betas[1], manifold.component_inner(point, grad)
                     )
                     if amsgrad:
-                        max_exp_avg_sq = state["max_exp_avg_sq"]
+                        max_exp_avg_sq = state["max_exp_avg_sq"][rows]
                         # Maintains the maximum of all 2nd moment running avg. till now
                         torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                         # Use the max. for normalizing running avg. of gradient
                         denom = max_exp_avg_sq.sqrt().add_(eps)
+                        # do not forget to update the state
+                        state["max_exp_avg_sq"][rows] = max_exp_avg_sq
                     else:
                         denom = exp_avg_sq.sqrt().add_(eps)
                     group["step"] += 1
@@ -115,9 +138,10 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     new_point, exp_avg_new = manifold.retr_transp(
                         point, -step_size * direction, exp_avg
                     )
-                    # use copy only for user facing point
-                    copy_or_set_(point, new_point)
-                    exp_avg.set_(exp_avg_new)
+                    # now we update all full tensors
+                    full_point[rows] = new_point
+                    state["exp_avg"][rows] = exp_avg_new
+                    state["exp_avg_sq"][rows] = exp_avg_sq
 
                     group["step"] += 1
                 if self._stabilize is not None and group["step"] % self._stabilize == 0:
