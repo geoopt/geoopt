@@ -1,17 +1,22 @@
-import geoopt.manifolds.poincare.math as pmath
+from geoopt import Stereographic
 import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import rcParams
+import shutil
+if shutil.which("latex") is not None:
+    rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    rcParams["text.usetex"] = True
 
-rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
-rcParams["text.usetex"] = True
 
 sns.set_style("white")
 
 x = torch.tensor((-0.25, -0.75)) / 2
 y = torch.tensor((0.65, -0.55)) / 2
-x_plus_y = pmath.mobius_add(x, y)
+
+manifold = Stereographic(-1)
+
+x_plus_y = manifold.mobius_add(x, y)
 
 
 circle = plt.Circle((0, 0), 1, fill=False, color="b")
