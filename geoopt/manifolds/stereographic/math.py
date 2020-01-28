@@ -1774,7 +1774,6 @@ def sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
 
 @torch.jit.script
 def _sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
-    # TODO: test
     inv_r = torch.sqrt(k.abs()).clamp_min(1e-15)
     factor = 1.0 / (1.0 + inv_r * x.narrow(dim, -1, 1))
     proj = factor * x.narrow(dim, 0, x.size(dim) - 1)
@@ -1804,7 +1803,6 @@ def inv_sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
 
 @torch.jit.script
 def _inv_sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
-    # TODO: test
     inv_r = torch.sqrt(k.abs()).clamp_min(1e-15)
     lam_x = _lambda_x(x, k, keepdim=True, dim=dim)
     A = lam_x * x
