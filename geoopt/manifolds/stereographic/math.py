@@ -1931,7 +1931,7 @@ def weighted_midpoint(
     )
 
 
-# @torch.jit.script
+@torch.jit.script
 def _weighted_midpoint(
     xs: torch.Tensor,
     k: torch.Tensor,
