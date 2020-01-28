@@ -1840,44 +1840,6 @@ def antipode(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
     -------
     tensor
         antipode
-
-    Notes
-    -----
-    This implementation uses stereographic projection
-    """
-    return _antipode(x, k, dim=dim)
-
-
-# Max: progress for the commit stops here
-
-
-def antipode(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
-    r"""
-    Compute the antipode of a point :math:`x_1,...,x_n` for :math:`\kappa > 0`.
-
-    Let :math:`x` be a point on some sphere. Then :math:`-x` is its antipode.
-    Since we're dealing with stereographic projections, for :math:`sproj(x)` we
-    get the antipode :math:`sproj(-x)`. Which is given as follows:
-
-    .. math::
-
-        \text{antipode}(x)
-        =
-        \frac{1+\kappa\|x\|^2_2}{2\kappa\|x\|^2_2}{}(-x)
-
-    Parameters
-    ----------
-    x : tensor
-        points :math:`x_1,...,x_n` on manifold to compute antipode for
-    k : tensor
-        sectional curvature of manifold
-    dim : int
-        reduction dimension for operations
-
-    Returns
-    -------
-    tensor
-        antipode
     """
     return _antipode(x, k, dim=dim)
 
@@ -1889,7 +1851,7 @@ def _antipode(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     if torch.all(k.le(0)):
         return -x
     v = x / x.norm(p=2, dim=dim, keepdim=True).clamp_min(1e-15)
-    R = k.abs().sqrt().reciprocal()
+    R = k.abs().clamp_min(1e-15).sqrt().reciprocal()
     pi = 3.141592653589793
 
     a = _geodesic_unit(pi * R, x, v, k, dim=dim)
