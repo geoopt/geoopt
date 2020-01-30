@@ -139,12 +139,12 @@ def test_n_additions_via_scalar_multiplication(n, a, c, negative, manifold):
     if negative:
         tolerance = {
             torch.float32: dict(atol=4e-5, rtol=1e-3),
-            torch.float64: dict(atol=1e-5, rtol=1e-4),
+            torch.float64: dict(atol=1e-5, rtol=1e-3),
         }
     else:
         tolerance = {
             torch.float32: dict(atol=2e-6, rtol=1e-3),
-            torch.float64: dict(atol=1e-5, rtol=1e-4),
+            torch.float64: dict(atol=1e-5, rtol=1e-3),
         }
     if negative:
         np.testing.assert_allclose(y, ny, **tolerance[c.dtype])
@@ -444,7 +444,7 @@ def test_distance2plane(a, c, manifold):
 
 def test_sproj(manifold, a):
     ma = manifold.sproj(manifold.inv_sproj(a))
-    np.testing.assert_allclose(ma, a, atol=1e-6)
+    np.testing.assert_allclose(ma, a, atol=1e-5)
 
 
 def test_antipode(manifold, negative, a, dtype, seed):

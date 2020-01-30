@@ -20,6 +20,7 @@ __all__ = [
     "sign",
     "prod",
     "clamp_abs",
+    "sabs",
 ]
 
 
@@ -75,9 +76,14 @@ def sign(x):
 
 
 @torch.jit.script
-def clamp_abs(x, eps: float):
+def sabs(x, eps: float = 1e-15):
+    return x.abs().add_(eps)
+
+
+@torch.jit.script
+def clamp_abs(x, eps: float = 1e-15):
     s = sign(x)
-    return s * x.abs().clamp_min(eps)
+    return s * sabs(x, eps=eps)
 
 
 @torch.jit.script
