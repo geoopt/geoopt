@@ -451,8 +451,9 @@ class Stereographic(Manifold):
         dim: int = -1,
         keepdim: bool = False,
         lincomb: bool = False,
+        project=True,
     ):
-        return math.weighted_midpoint(
+        mid = math.weighted_midpoint(
             xs=xs,
             weights=weights,
             k=self.k,
@@ -461,6 +462,10 @@ class Stereographic(Manifold):
             keepdim=keepdim,
             lincomb=lincomb,
         )
+        if project:
+            return math.project(mid, k=self.k, dim=dim)
+        else:
+            return mid
 
     def sproj(self, x: torch.Tensor, *, dim: int = -1):
         return math.sproj(x, k=self.k, dim=dim)

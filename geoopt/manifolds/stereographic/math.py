@@ -33,7 +33,7 @@ def tanh(x):
 
 @torch.jit.script
 def artanh(x: torch.Tensor):
-    x = x.clamp(-1 + 1e-15, 1 - 1e-15)
+    x = x.clamp(-1 + 1e-7, 1 - 1e-7)
     return (torch.log(1 + x).sub(torch.log(1 - x))).mul(0.5)
 
 
@@ -253,7 +253,11 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
         return k_sqrt.reciprocal() * scaled_x.asin()
     else:
         arsin_k_nonzero = (
-            torch.where(k_sign.gt(0), scaled_x.asin(), arsinh(scaled_x))
+            torch.where(
+                k_sign.gt(0),
+                scaled_x.clamp(-1 + 1e-7, 1 - 1e-7).asin(),
+                arsinh(scaled_x),
+            )
             * k_sqrt.reciprocal()
         )
         return torch.where(k_zero, arsin_k_zero_taylor(x, k, order=1), arsin_k_nonzero)
@@ -315,7 +319,7 @@ def _project(x, k, dim: int = -1, eps: float = -1.0):
         else:
             eps = 1e-5
     maxnorm = (1 - eps) / (sabs(k) ** 0.5)
-    maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), float("inf")))
+    maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), 1e16))
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
