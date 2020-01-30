@@ -23,7 +23,7 @@ following resources:
 import functools
 import torch.jit
 from typing import List, Optional
-from ...utils import list_range, drop_dims, sign, clamp_abs
+from ...utils import list_range, drop_dims, sign, clamp_abs, sabs
 
 
 @torch.jit.script
@@ -33,7 +33,7 @@ def tanh(x):
 
 @torch.jit.script
 def artanh(x: torch.Tensor):
-    x = x.clamp(-1 + 1e-15, 1 - 1e-15)
+    x = x.clamp(-1 + 1e-7, 1 - 1e-7)
     return (torch.log(1 + x).sub(torch.log(1 - x))).mul(0.5)
 
 
@@ -196,7 +196,7 @@ def tan_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
         return tan_k_zero_taylor(x, k, order=1)
-    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
+    k_sqrt = sabs(k).sqrt()
     scaled_x = x * k_sqrt
 
     if torch.all(k_sign.lt(0)):
@@ -220,7 +220,7 @@ def artan_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
         return artan_k_zero_taylor(x, k, order=1)
-    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
+    k_sqrt = sabs(k).sqrt()
     scaled_x = x * k_sqrt
 
     if torch.all(k_sign.lt(0)):
@@ -244,7 +244,7 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
         return arsin_k_zero_taylor(x, k)
-    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
+    k_sqrt = sabs(k).sqrt()
     scaled_x = x * k_sqrt
 
     if torch.all(k_sign.lt(0)):
@@ -253,7 +253,11 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
         return k_sqrt.reciprocal() * scaled_x.asin()
     else:
         arsin_k_nonzero = (
-            torch.where(k_sign.gt(0), scaled_x.asin(), arsinh(scaled_x))
+            torch.where(
+                k_sign.gt(0),
+                scaled_x.clamp(-1 + 1e-7, 1 - 1e-7).asin(),
+                arsinh(scaled_x),
+            )
             * k_sqrt.reciprocal()
         )
         return torch.where(k_zero, arsin_k_zero_taylor(x, k, order=1), arsin_k_nonzero)
@@ -268,7 +272,7 @@ def sin_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = torch.masked_fill(k_sign, k_zero, zero.to(k_sign.dtype))
     if torch.all(k_zero):
         return sin_k_zero_taylor(x, k)
-    k_sqrt = k.abs().clamp_min(1e-15).sqrt()
+    k_sqrt = sabs(k).sqrt()
     scaled_x = x * k_sqrt
 
     if torch.all(k_sign.lt(0)):
@@ -314,8 +318,8 @@ def _project(x, k, dim: int = -1, eps: float = -1.0):
             eps = 4e-3
         else:
             eps = 1e-5
-    maxnorm = (1 - eps) / (k.abs() ** 0.5)
-    maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), float("inf")))
+    maxnorm = (1 - eps) / (sabs(k) ** 0.5)
+    maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), 1e16))
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
@@ -1774,7 +1778,7 @@ def sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
 
 @torch.jit.script
 def _sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
-    inv_r = torch.sqrt(k.abs().clamp_min(1e-15))
+    inv_r = torch.sqrt(sabs(k))
     factor = 1.0 / (1.0 + inv_r * x.narrow(dim, -1, 1))
     proj = factor * x.narrow(dim, 0, x.size(dim) - 1)
     return proj
@@ -1803,7 +1807,7 @@ def inv_sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
 
 @torch.jit.script
 def _inv_sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
-    inv_r = torch.sqrt(k.abs().clamp_min(1e-15))
+    inv_r = torch.sqrt(sabs(k))
     lam_x = _lambda_x(x, k, keepdim=True, dim=dim)
     A = lam_x * x
     B = 1.0 / inv_r * (lam_x - 1.0)
@@ -1849,7 +1853,7 @@ def _antipode(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     if torch.all(k.le(0)):
         return -x
     v = x / x.norm(p=2, dim=dim, keepdim=True).clamp_min(1e-15)
-    R = k.abs().clamp_min(1e-15).sqrt().reciprocal()
+    R = sabs(k).sqrt().reciprocal()
     pi = 3.141592653589793
 
     a = _geodesic_unit(pi * R, x, v, k, dim=dim)

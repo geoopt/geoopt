@@ -37,6 +37,8 @@ def c(seed, dtype, negative):
     # test broadcasted and non broadcasted versions
     if seed == 30:
         c = torch.tensor(0.0).to(dtype)
+    elif seed == 39:
+        c = 10 ** torch.arange(-15, 1, dtype=dtype)[:, None]
     elif seed == 35:
         c = torch.zeros(100, 1, dtype=dtype)
     elif seed > 35:
@@ -45,7 +47,7 @@ def c(seed, dtype, negative):
         c = torch.tensor(random.random()).to(dtype)
     if not negative:
         c = -c
-    return c
+    return c.requires_grad_(True)
 
 
 @pytest.fixture
@@ -55,66 +57,139 @@ def k(c):
 
 @pytest.fixture
 def manifold(k):
-    return stereographic.Stereographic(k=k)
+    return stereographic.Stereographic(k=k, learnable=True)
 
 
 @pytest.fixture
-def a(seed, c, manifold):
-    if seed in {30, 35}:
-        a = torch.randn(100, 10, dtype=c.dtype)
-    elif seed > 35:
-        # do not check numerically unstable regions
-        # I've manually observed small differences there
-        a = torch.empty(100, 10, dtype=c.dtype).normal_(-1, 1)
-        a /= a.norm(dim=-1, keepdim=True) * 1.3
-        a *= (torch.rand_like(c) * abs(c)) ** 0.5
+def B(c):
+    if c.dim() > 1:
+        return c.shape[0]
     else:
-        a = torch.empty(100, 10, dtype=c.dtype).normal_(-1, 1)
-        a /= a.norm(dim=-1, keepdim=True) * 1.3
-        a *= random.uniform(0, abs(c)) ** 0.5
-    return manifold.projx(a)
+        return 100
 
 
 @pytest.fixture
-def b(seed, c, manifold):
-    if seed in {30, 35}:
-        b = torch.randn(100, 10, dtype=c.dtype)
-    elif seed > 35:
-        b = torch.empty(100, 10, dtype=c.dtype).normal_(-1, 1)
-        b /= b.norm(dim=-1, keepdim=True) * 1.3
-        b *= (torch.rand_like(c) * abs(c)) ** 0.5
-    else:
-        b = torch.empty(100, 10, dtype=c.dtype).normal_(-1, 1)
-        b /= b.norm(dim=-1, keepdim=True) * 1.3
-        b *= random.uniform(0, abs(c)) ** 0.5
-    return manifold.projx(b)
+def a(seed, c, manifold, B):
+    r = manifold.radius
+    a = torch.empty(B, 10, dtype=c.dtype).normal_(-1, 1)
+    a /= a.norm(dim=-1, keepdim=True)
+    a *= torch.where(torch.isfinite(r), r, torch.ones((), dtype=c.dtype)).clamp_max_(
+        100
+    )
+    a *= torch.rand_like(a)
+    return manifold.projx(a).detach().requires_grad_(True)
+
+
+@pytest.fixture
+def b(seed, c, manifold, B):
+    r = manifold.radius
+    a = torch.empty(B, 10, dtype=c.dtype).normal_(-1, 1)
+    a /= a.norm(dim=-1, keepdim=True)
+    a *= torch.where(torch.isfinite(r), r, torch.ones((), dtype=c.dtype)).clamp_max_(
+        100
+    )
+    a *= torch.rand_like(a)
+    return manifold.projx(a).detach().requires_grad_(True)
+
+
+@pytest.fixture
+def logunif_input(dtype):
+    inp = 10 ** torch.arange(-15, 1, dtype=dtype)
+    inp = torch.cat([-inp.flip(0), torch.zeros([1], dtype=dtype), inp])
+    return inp.requires_grad_(True)
+
+
+def test_tanh_grad(logunif_input):
+    stereographic.math.tanh(logunif_input).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+
+
+def test_artanh_grad(logunif_input):
+    stereographic.math.artanh(logunif_input).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+
+
+def test_arsinh_grad(logunif_input):
+    stereographic.math.arsinh(logunif_input).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+
+
+def test_tan_k_grad(logunif_input):
+    k = logunif_input.detach().clone().requires_grad_()
+    stereographic.math.tan_k(logunif_input[None], k[:, None]).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+    assert torch.isfinite(k.grad).all()
+
+
+def test_artan_k_grad(logunif_input):
+    k = logunif_input.detach().clone().requires_grad_()
+    stereographic.math.artan_k(logunif_input[None], k[:, None]).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+    assert torch.isfinite(k.grad).all()
+
+
+def test_arsin_k_grad(logunif_input):
+    k = logunif_input.detach().clone().requires_grad_()
+    stereographic.math.arsin_k(logunif_input[None], k[:, None]).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+    assert torch.isfinite(k.grad).all()
+
+
+def test_sin_k_grad(logunif_input):
+    k = logunif_input.detach().clone().requires_grad_()
+    stereographic.math.sin_k(logunif_input[None], k[:, None]).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+    assert torch.isfinite(k.grad).all()
+
+
+def test_project_k_grad(logunif_input):
+    vec = logunif_input[:, None] * torch.ones(logunif_input.shape[0], 10)
+    k = logunif_input.detach().clone().requires_grad_()
+    stereographic.math.project(vec, k=k[:, None]).sum().backward()
+    assert torch.isfinite(logunif_input.grad).all()
+    assert torch.isfinite(k.grad).all()
 
 
 def test_mobius_addition_left_cancelation(a, b, c, manifold):
     res = manifold.mobius_add(-a, manifold.mobius_add(a, b))
-    tolerance = {torch.float32: dict(atol=1e-6, rtol=1e-6), torch.float64: dict()}
-    np.testing.assert_allclose(res, b, **tolerance[c.dtype])
+    tolerance = {torch.float32: dict(atol=5e-5, rtol=5e-4), torch.float64: dict()}
+    np.testing.assert_allclose(res.detach(), b.detach(), **tolerance[c.dtype])
+    res.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_mobius_addition_zero_a(b, c, manifold):
-    a = torch.zeros(100, 10, dtype=c.dtype)
+    a = torch.zeros_like(b)
     res = manifold.mobius_add(a, b)
-    np.testing.assert_allclose(res, b)
+    np.testing.assert_allclose(res.detach(), b.detach())
+    res.sum().backward()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_mobius_addition_zero_b(a, c, manifold):
-    b = torch.zeros(100, 10, dtype=c.dtype)
+    b = torch.zeros_like(a)
     res = manifold.mobius_add(a, b)
-    np.testing.assert_allclose(res, a)
+    np.testing.assert_allclose(res.detach(), a.detach())
+    res.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_mobius_addition_negative_cancellation(a, c, manifold):
     res = manifold.mobius_add(a, -a)
     tolerance = {
-        torch.float32: dict(atol=1e-6, rtol=1e-6),
+        torch.float32: dict(atol=1e-4, rtol=1e-6),
         torch.float64: dict(atol=1e-6),
     }
-    np.testing.assert_allclose(res, torch.zeros_like(res), **tolerance[c.dtype])
+    np.testing.assert_allclose(
+        res.detach(), torch.zeros_like(res), **tolerance[c.dtype]
+    )
+    res.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_mobius_negative_addition(a, b, c, manifold):
@@ -124,51 +199,68 @@ def test_mobius_negative_addition(a, b, c, manifold):
         torch.float32: dict(atol=1e-7, rtol=1e-6),
         torch.float64: dict(atol=1e-10),
     }
-    np.testing.assert_allclose(res, res1, **tolerance[c.dtype])
+
+    np.testing.assert_allclose(res.detach(), res1.detach(), **tolerance[c.dtype])
+    res.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 @pytest.mark.parametrize("n", list(range(5)))
 def test_n_additions_via_scalar_multiplication(n, a, c, negative, manifold):
-    n = torch.as_tensor(n, dtype=a.dtype)
+    n = torch.as_tensor(n, dtype=a.dtype).requires_grad_()
     y = torch.zeros_like(a)
     for _ in range(int(n.item())):
         y = manifold.mobius_add(a, y)
     ny = manifold.mobius_scalar_mul(n, a)
     if negative:
         tolerance = {
-            torch.float32: dict(atol=1e-6, rtol=1e-6),
-            torch.float64: dict(atol=1e-10),
+            torch.float32: dict(atol=4e-5, rtol=1e-3),
+            torch.float64: dict(atol=1e-5, rtol=1e-3),
         }
     else:
         tolerance = {
-            torch.float32: dict(atol=2e-6, rtol=1e-6),
-            torch.float64: dict(atol=1e-10),
+            torch.float32: dict(atol=2e-6, rtol=1e-3),
+            torch.float64: dict(atol=1e-5, rtol=1e-3),
         }
     if negative:
-        np.testing.assert_allclose(y, ny, **tolerance[c.dtype])
+        np.testing.assert_allclose(y.detach(), ny.detach(), **tolerance[c.dtype])
     else:
         try:
-            np.testing.assert_allclose(y, ny, **tolerance[c.dtype])
+            np.testing.assert_allclose(y.detach(), ny.detach(), **tolerance[c.dtype])
         except AssertionError as e:
             assert not torch.isnan(y).any(), "Found nans"
             assert not torch.isnan(ny).any(), "Found nans"
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    ny.sum().backward()
+    assert torch.isfinite(n.grad).all()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 @pytest.fixture
-def r1(seed, dtype):
+def r1(seed, dtype, B):
     if seed % 3 == 0:
-        return torch.tensor(random.uniform(-1, 1), dtype=dtype)
+        return (
+            torch.tensor(random.uniform(-1, 1), dtype=dtype)
+            .detach()
+            .requires_grad_(True)
+        )
     else:
-        return torch.rand(100, 1, dtype=dtype) * 2 - 1
+        return (torch.rand(B, 1, dtype=dtype) * 2 - 1).detach().requires_grad_(True)
 
 
 @pytest.fixture
-def r2(seed, dtype):
+def r2(seed, dtype, B):
     if seed % 3 == 1:
-        return torch.tensor(random.uniform(-1, 1), dtype=dtype)
+        return (
+            torch.tensor(random.uniform(-1, 1), dtype=dtype)
+            .detach()
+            .requires_grad_(True)
+        )
     else:
-        return torch.rand(100, 1, dtype=dtype) * 2 - 1
+        return (torch.rand(B, 1, dtype=dtype) * 2 - 1).detach().requires_grad_(True)
 
 
 def test_scalar_multiplication_distributive(a, c, r1, r2, manifold):
@@ -180,11 +272,16 @@ def test_scalar_multiplication_distributive(a, c, r1, r2, manifold):
         manifold.mobius_scalar_mul(r1, a), manifold.mobius_scalar_mul(r2, a),
     )
     tolerance = {
-        torch.float32: dict(atol=1e-6, rtol=1e-7),
-        torch.float64: dict(atol=1e-7, rtol=1e-10),
+        torch.float32: dict(atol=5e-6, rtol=1e-4),
+        torch.float64: dict(atol=1e-7, rtol=1e-4),
     }
-    np.testing.assert_allclose(res1, res, **tolerance[c.dtype])
-    np.testing.assert_allclose(res2, res, **tolerance[c.dtype])
+    np.testing.assert_allclose(res1.detach(), res.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(res2.detach(), res.detach(), **tolerance[c.dtype])
+    res.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(r1.grad).all()
+    assert torch.isfinite(r2.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_scalar_multiplication_associative(a, c, r1, r2, manifold):
@@ -192,11 +289,16 @@ def test_scalar_multiplication_associative(a, c, r1, r2, manifold):
     res1 = manifold.mobius_scalar_mul(r1, manifold.mobius_scalar_mul(r2, a))
     res2 = manifold.mobius_scalar_mul(r2, manifold.mobius_scalar_mul(r1, a))
     tolerance = {
-        torch.float32: dict(atol=1e-6, rtol=1e-6),  # worked with rtol=1e-7 locally
-        torch.float64: dict(atol=1e-7, rtol=1e-10),
+        torch.float32: dict(atol=1e-5, rtol=1e-5),
+        torch.float64: dict(atol=1e-7, rtol=1e-7),
     }
-    np.testing.assert_allclose(res1, res, **tolerance[c.dtype])
-    np.testing.assert_allclose(res2, res, **tolerance[c.dtype])
+    np.testing.assert_allclose(res1.detach(), res.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(res2.detach(), res.detach(), **tolerance[c.dtype])
+    res.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(r1.grad).all()
+    assert torch.isfinite(r2.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_scaling_property(a, c, r1, manifold):
@@ -207,18 +309,26 @@ def test_scaling_property(a, c, r1, manifold):
         torch.float32: dict(rtol=1e-5, atol=1e-6),
         torch.float64: dict(atol=1e-10),
     }
-    np.testing.assert_allclose(x1, x2, **tolerance[c.dtype])
+    np.testing.assert_allclose(x1.detach(), x2.detach(), **tolerance[c.dtype])
+    x2.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(r1.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_geodesic_borders(a, b, c, manifold):
     geo0 = manifold.geodesic(torch.tensor(0.0, dtype=a.dtype), a, b)
     geo1 = manifold.geodesic(torch.tensor(1.0, dtype=a.dtype), a, b)
     tolerance = {
-        torch.float32: dict(rtol=1e-5, atol=1e-6),
+        torch.float32: dict(rtol=1e-5, atol=5e-5),
         torch.float64: dict(atol=1e-10),
     }
-    np.testing.assert_allclose(geo0, a, **tolerance[c.dtype])
-    np.testing.assert_allclose(geo1, b, **tolerance[c.dtype])
+    np.testing.assert_allclose(geo0.detach(), a.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(geo1.detach(), b.detach(), **tolerance[c.dtype])
+    (geo0 + geo1).sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_geodesic_segment_length_property(a, b, c, manifold):
@@ -234,10 +344,17 @@ def test_geodesic_segment_length_property(a, b, c, manifold):
     speed = manifold.dist(a, b, keepdim=True).unsqueeze(0).expand_as(dist_ab_t0mt1)
     # we have exactly 12 line segments
     tolerance = {
-        torch.float32: dict(rtol=1e-5, atol=1e-6),
-        torch.float64: dict(atol=1e-10),
+        torch.float32: dict(rtol=1e-5, atol=5e-3),
+        torch.float64: dict(rtol=1e-5, atol=5e-3),
     }
-    np.testing.assert_allclose(dist_ab_t0mt1, speed / segments, **tolerance[c.dtype])
+    length = speed / segments
+    np.testing.assert_allclose(
+        dist_ab_t0mt1.detach(), length.detach(), **tolerance[c.dtype]
+    )
+    (length + dist_ab_t0mt1).sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_geodesic_segement_unit_property(a, b, c, manifold):
@@ -253,19 +370,27 @@ def test_geodesic_segement_unit_property(a, b, c, manifold):
     true_distance_travelled = t.expand_as(dist_ab_t0mt1)
     # we have exactly 12 line segments
     tolerance = {
-        torch.float32: dict(atol=1e-6, rtol=1e-5),
+        torch.float32: dict(atol=2e-4, rtol=5e-5),
         torch.float64: dict(atol=1e-10),
     }
     np.testing.assert_allclose(
-        dist_ab_t0mt1, true_distance_travelled, **tolerance[c.dtype]
+        dist_ab_t0mt1.detach(), true_distance_travelled.detach(), **tolerance[c.dtype]
     )
+    (true_distance_travelled + dist_ab_t0mt1).sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_expmap_logmap(a, b, c, manifold):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
     bh = manifold.expmap(x=a, u=manifold.logmap(a, b))
-    tolerance = {torch.float32: dict(rtol=1e-5, atol=1e-6), torch.float64: dict()}
-    np.testing.assert_allclose(bh, b, **tolerance[c.dtype])
+    tolerance = {torch.float32: dict(rtol=1e-5, atol=1e-5), torch.float64: dict()}
+    np.testing.assert_allclose(bh.detach(), b.detach(), **tolerance[c.dtype])
+    bh.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_expmap0_logmap0(a, c, manifold):
@@ -274,15 +399,21 @@ def test_expmap0_logmap0(a, c, manifold):
     norm = manifold.norm(torch.zeros_like(v), v, keepdim=True)
     dist = manifold.dist0(a, keepdim=True)
     bh = manifold.expmap0(v)
-    tolerance = {torch.float32: dict(atol=1e-6), torch.float64: dict()}
-    np.testing.assert_allclose(bh, a, **tolerance[c.dtype])
-    np.testing.assert_allclose(norm, dist, **tolerance[c.dtype])
+    tolerance = {torch.float32: dict(atol=1e-5, rtol=1e-5), torch.float64: dict()}
+    np.testing.assert_allclose(bh.detach(), a.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(norm.detach(), dist.detach(), **tolerance[c.dtype])
+    (bh.sum() + dist.sum()).backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_matvec_zeros(a, c, manifold):
     mat = a.new_zeros((3, a.shape[-1]))
     z = manifold.mobius_matvec(mat, a)
-    np.testing.assert_allclose(z, 0.0)
+    np.testing.assert_allclose(z.detach(), 0.0)
+    z.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_matvec_via_equiv_fn_apply(a, c, negative, manifold):
@@ -292,14 +423,17 @@ def test_matvec_via_equiv_fn_apply(a, c, negative, manifold):
     tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
 
     if negative:
-        np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
+        np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
     else:
         try:
-            np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
+            np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
         except AssertionError as e:
             assert not torch.isnan(y).any(), "Found nans"
             assert not torch.isnan(y1).any(), "Found nans"
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    y.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_mobiusify(a, c, negative):
@@ -313,14 +447,17 @@ def test_mobiusify(a, c, negative):
     y1 = stereographic.math.mobius_matvec(mat, a, k=-c)
     tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
     if negative:
-        np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
+        np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
     else:
         try:
-            np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
+            np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
         except AssertionError as e:
             assert not torch.isnan(y).any(), "Found nans"
             assert not torch.isnan(y1).any(), "Found nans"
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    y.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(c.grad).all()
 
 
 def test_matvec_chain_via_equiv_fn_apply(a, c, negative, manifold):
@@ -331,16 +468,19 @@ def test_matvec_chain_via_equiv_fn_apply(a, c, negative, manifold):
     )
     y1 = manifold.mobius_matvec(mat1, a)
     y1 = manifold.mobius_matvec(mat2, y1)
-    tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
+    tolerance = {torch.float32: dict(atol=1e-5, rtol=1e-5), torch.float64: dict()}
     if negative:
-        np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
+        np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
     else:
         try:
-            np.testing.assert_allclose(y, y1, **tolerance[c.dtype])
+            np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
         except AssertionError as e:
             assert not torch.isnan(y).any(), "Found nans"
             assert not torch.isnan(y1).any(), "Found nans"
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    y.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_transp0_preserves_inner_products(a, c, manifold):
@@ -353,7 +493,10 @@ def test_transp0_preserves_inner_products(a, c, manifold):
     # compute norms
     vu_0 = manifold.inner(zero, v_0, u_0, keepdim=True)
     vu_a = manifold.inner(a, v_a, u_a, keepdim=True)
-    np.testing.assert_allclose(vu_a, vu_0, atol=1e-6, rtol=1e-6)
+    np.testing.assert_allclose(vu_a.detach(), vu_0.detach(), atol=1e-6, rtol=1e-6)
+    (vu_0 + vu_a).sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_transp0_is_same_as_usual(a, c, manifold):
@@ -363,7 +506,10 @@ def test_transp0_is_same_as_usual(a, c, manifold):
     v_a = manifold.transp0(a, v_0)
     v_a1 = manifold.transp(zero, a, v_0)
     # compute norms
-    np.testing.assert_allclose(v_a, v_a1, atol=1e-6, rtol=1e-6)
+    np.testing.assert_allclose(v_a.detach(), v_a1.detach(), atol=1e-6, rtol=1e-6)
+    (v_a + v_a1).sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_transp_a_b(a, b, c, manifold):
@@ -375,10 +521,15 @@ def test_transp_a_b(a, b, c, manifold):
     # compute norms
     vu_1 = manifold.inner(b, v_1, u_1, keepdim=True)
     vu_0 = manifold.inner(a, v_0, u_0, keepdim=True)
-    np.testing.assert_allclose(vu_0, vu_1, atol=1e-6, rtol=1e-6)
+    np.testing.assert_allclose(vu_0.detach(), vu_1.detach(), atol=1e-6, rtol=1e-6)
+    (vu_0 + vu_1).sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_add_infinity_and_beyond(a, b, c, negative, manifold):
+    _a = a
     if torch.isclose(c, c.new_zeros(())).any():
         pytest.skip("zero not checked")
     infty = b * 10000000
@@ -388,8 +539,8 @@ def test_add_infinity_and_beyond(a, b, c, negative, manifold):
         z = manifold.mobius_scalar_mul(torch.tensor(1000.0, dtype=z.dtype), z)
         z = manifold.projx(z)
         infty = manifold.transp(a, z, infty)
-        assert np.isfinite(z).all(), (i, z)
-        assert np.isfinite(infty).all(), (i, infty)
+        assert torch.isfinite(z).all(), (i, z)
+        assert torch.isfinite(infty).all(), (i, infty)
         a = z
     z = manifold.expmap(a, -infty)
     # they just need to be very far, exact answer is not supposed
@@ -398,7 +549,7 @@ def test_add_infinity_and_beyond(a, b, c, negative, manifold):
         torch.float64: dict(rtol=1e-1, atol=1e-3),
     }
     if negative:
-        np.testing.assert_allclose(z, -a, **tolerance[c.dtype])
+        np.testing.assert_allclose(z.detach(), -a.detach(), **tolerance[c.dtype])
     else:
         assert not torch.isnan(z).any(), "Found nans"
         assert not torch.isnan(a).any(), "Found nans"
@@ -408,52 +559,72 @@ def test_mobius_coadd(a, b, c, negative, manifold):
     # (a \boxplus_c b) \ominus_c b = a
     ah = manifold.mobius_sub(manifold.mobius_coadd(a, b), b)
     if negative:
-        np.testing.assert_allclose(ah, a, atol=1e-5)
+        np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
     else:
         try:
-            np.testing.assert_allclose(ah, a, atol=1e-5)
+            np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
         except AssertionError as e:
             assert not torch.isnan(ah).any(), "Found nans"
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    ah.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_mobius_cosub(a, b, c, negative, manifold):
     # (a \oplus_c b) \boxminus b = a
     ah = manifold.mobius_cosub(manifold.mobius_add(a, b), b)
     if negative:
-        np.testing.assert_allclose(ah, a, atol=1e-5)
+        np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
     else:
         try:
-            np.testing.assert_allclose(ah, a, atol=1e-5)
+            np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
         except AssertionError as e:
             assert not torch.isnan(ah).any(), "Found nans"
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    ah.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(b.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_distance2plane(a, c, manifold):
-    v = torch.rand_like(a)
+    v = torch.rand_like(a).requires_grad_()
     vr = v / manifold.norm(a, v, keepdim=True)
     z = manifold.expmap(a, vr)
     dist1 = manifold.dist(a, z)
     dist = manifold.dist2plane(z, a, vr)
 
-    np.testing.assert_allclose(dist, dist1, atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(dist.detach(), dist1.detach(), atol=2e-4, rtol=1e-4)
+    (dist + dist1).sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(v.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
 def test_sproj(manifold, a):
     ma = manifold.sproj(manifold.inv_sproj(a))
-    np.testing.assert_allclose(ma, a, atol=1e-6)
+    np.testing.assert_allclose(ma.detach(), a.detach(), atol=1e-5)
+    ma.sum().backward()
+    assert torch.isfinite(a.grad).all()
+    assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_antipode(manifold, negative, a, dtype):
+def test_antipode(manifold, negative, a, dtype, seed):
+    if seed == 39:
+        pytest.skip("This is amazingly unstable when tested against extreme values")
     ma = manifold.antipode(a)
     if manifold.k.le(0).all():
-        np.testing.assert_allclose(ma, -a)
+        np.testing.assert_allclose(ma.detach(), -a.detach())
     else:
         s = manifold.inv_sproj(a)
         ms = manifold.inv_sproj(ma)
         tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict(atol=1e-6)}
-        np.testing.assert_allclose(ms, -s, **tolerance[dtype])
+        np.testing.assert_allclose(ms.detach(), -s.detach(), **tolerance[dtype])
+        ma.sum().backward()
+        assert torch.isfinite(a.grad).all()
+        assert torch.isfinite(manifold.k.grad).all()
 
 
 @pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
