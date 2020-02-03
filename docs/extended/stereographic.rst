@@ -2,7 +2,7 @@
 =============================================
 
 Stereographic projection models comes to bind constant curvature spaces. Such as spheres,
-hyperboloids and regular Euclidean manifold. Let' look at what does this mean. As we mention
+hyperboloids and regular Euclidean manifold. Let's look at what does this mean. As we mentioned
 constant curvature, let's name this constant :math:`\kappa`.
 
 Hyperbolic spaces
@@ -41,7 +41,7 @@ We should expect this limiting behaviour recovers Euclidean geometry.
 Spherical Spaces
 ----------------
 Another case of constant curvature manifolds is sphere. Unlike Hyperboloid this manifold is compact and has
-:math:`\kappa`. But still we can embed a sphere onto a plane ignoring one of the poles.
+positive :math:`\kappa`. But still we can embed a sphere onto a plane ignoring one of the poles.
 
 .. figure:: ../plots/extended/stereographic/sphere-sproj.png
    :width: 300
@@ -144,3 +144,4 @@ so expect adventures in ``float32`` (but this is not certain).
 
 
 .. _Andreas Bloch: https://andbloch.github.io/K-Stereographic-Model
+
