@@ -319,7 +319,7 @@ def _project(x, k, dim: int = -1, eps: float = -1.0):
         else:
             eps = 1e-5
     maxnorm = (1 - eps) / (sabs(k) ** 0.5)
-    maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), 1e16))
+    maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), 1e15))
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
