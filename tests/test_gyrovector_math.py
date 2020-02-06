@@ -537,7 +537,9 @@ def test_add_infinity_and_beyond(a, b, c, negative, manifold):
         z = manifold.expmap(a, infty, project=False)
         z = manifold.projx(z)
         assert torch.isfinite(z).all(), (i, z)
-        z = manifold.mobius_scalar_mul(torch.tensor(1000.0, dtype=z.dtype), z, project=False)
+        z = manifold.mobius_scalar_mul(
+            torch.tensor(1000.0, dtype=z.dtype), z, project=False
+        )
         z = manifold.projx(z)
         assert torch.isfinite(z).all(), (i, z)
         infty = manifold.transp(a, z, infty)
