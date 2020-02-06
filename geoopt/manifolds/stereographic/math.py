@@ -312,7 +312,6 @@ def project(x: torch.Tensor, *, k: torch.Tensor, dim=-1, eps=-1):
 
 @torch.jit.script
 def _project(x, k, dim: int = -1, eps: float = -1.0):
-    norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-5)
     if eps < 0:
         if x.dtype == torch.float32:
             eps = 4e-3
@@ -320,6 +319,8 @@ def _project(x, k, dim: int = -1, eps: float = -1.0):
             eps = 1e-5
     maxnorm = (1 - eps) / (sabs(k) ** 0.5)
     maxnorm = torch.where(k.lt(0), maxnorm, k.new_full((), 1e15))
+    x = x.clamp(-1e15, 1e15)
+    norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
     cond = norm > maxnorm
     projected = x / norm * maxnorm
     return torch.where(cond, projected, x)
