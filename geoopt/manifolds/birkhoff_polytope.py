@@ -3,7 +3,8 @@ import torch
 from .base import Manifold
 from .. import linalg
 import torch.jit
-from ..utils import make_tuple
+from ..tensor import ManifoldTensor
+from ..utils import make_tuple, size2shape
 
 __all__ = ["BirkhoffPolytope"]
 
@@ -142,6 +143,59 @@ class BirkhoffPolytope(Manifold):
     def transp_follow_expmap(self, x, u, v):
         y = self.expmap(x, u)
         return self.transp(x, y, v)
+
+    def random_naive(self, *size, dtype=None, device=None) -> torch.Tensor:
+        """
+        Naive approach to get random matrix on Birkhoff Polytope manifold.
+
+        A helper function to sample a random point on the Birkhoff Polytope manifold.
+        The measure is non-uniform for this method, but fast to compute.
+
+        Parameters
+        ----------
+        size : shape
+            the desired output shape
+        dtype : torch.dtype
+            desired dtype
+        device : torch.device
+            desired device
+
+        Returns
+        -------
+        ManifoldTensor
+            random point on Birkhoff Polytope manifold
+        """
+        self._assert_check_shape(size2shape(*size), "x")
+        # projection requires all values be non-negative
+        tens = torch.randn(*size, device=device, dtype=dtype).abs_()
+        return ManifoldTensor(self.projx(tens), manifold=self)
+
+    random = random_naive
+
+    def origin(self, *size, dtype=None, device=None, seed=42) -> torch.Tensor:
+        """
+        Identity matrix point origin.
+
+        Parameters
+        ----------
+        size : shape
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : int
+            ignored
+
+        Returns
+        -------
+        ManifoldTensor
+        """
+        shape = size2shape(*size)
+        self._assert_check_shape(shape, "x")
+        eye = torch.eye(*shape[-2:], dtype=dtype, device=device)
+        eye = eye.expand(shape)
+        return ManifoldTensor(eye, manifold=self)
 
 
 @torch.jit.script
