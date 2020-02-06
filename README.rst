@@ -75,6 +75,7 @@ Manifolds
 -  ``geoopt.Stiefel`` – Stiefel manifold on matrices
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
+-  ``geoopt.BirkhoffPolytope`` - manifold of Doubly Stochastic matrices
 -  ``geoopt.PoincareBall`` - Poincare ball model (`wiki <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_)
 -  ``geoopt.ProductManifold`` - Product manifold constructor
 -  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``
