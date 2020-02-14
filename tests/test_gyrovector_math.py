@@ -535,7 +535,6 @@ def test_add_infinity_and_beyond(a, b, c, negative, manifold):
     infty = b * 10000000
     for i in range(100):
         z = manifold.expmap(a, infty, project=False)
-        assert not torch.isnan(z).any(), ("Found nans", i, z)
         z = manifold.projx(z)
         assert not torch.isnan(z).any(), ("Found nans", i, z)
         assert torch.isfinite(z).all(), ("Found Infs", i, z)
