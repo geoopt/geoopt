@@ -565,10 +565,10 @@ def test_mobius_coadd(a, b, c, negative, manifold):
     # (a \boxplus_c b) \ominus_c b = a
     ah = manifold.mobius_sub(manifold.mobius_coadd(a, b), b)
     if negative:
-        np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
+        np.testing.assert_allclose(ah.detach(), a.detach(), atol=5e-5)
     else:
         try:
-            np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
+            np.testing.assert_allclose(ah.detach(), a.detach(), atol=5e-5)
         except AssertionError as e:
             assert not torch.isnan(ah).any(), "Found nans"
             warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
