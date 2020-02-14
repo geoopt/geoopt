@@ -202,10 +202,10 @@ def tan_k(x: torch.Tensor, k: torch.Tensor):
     if torch.all(k_sign.lt(0)):
         return k_sqrt.reciprocal() * tanh(scaled_x)
     elif torch.all(k_sign.gt(0)):
-        return k_sqrt.reciprocal() * scaled_x.tan()
+        return k_sqrt.reciprocal() * scaled_x.clamp_max(1e38).tan()
     else:
         tan_k_nonzero = (
-            torch.where(k_sign.gt(0), scaled_x.tan(), tanh(scaled_x))
+            torch.where(k_sign.gt(0), scaled_x.clamp_max(1e38).tan(), tanh(scaled_x))
             * k_sqrt.reciprocal()
         )
         return torch.where(k_zero, tan_k_zero_taylor(x, k, order=1), tan_k_nonzero)
