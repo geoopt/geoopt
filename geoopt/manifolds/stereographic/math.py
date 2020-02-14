@@ -1021,11 +1021,17 @@ def expmap(x: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, dim=-1):
 def _expmap(x: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
     lam = _lambda_x(x, k, dim=dim, keepdim=True)
-    assert not torch.isnan(lam).any(), "Found nans"
-    second_term = tan_k((lam / 2.0) * u_norm, k) * (u / u_norm)
+    tan_k_input = (lam / 2.0) * u_norm
+    second_term_tan_k = tan_k(tan_k_input, k)
+    second_term_direction = u / u_norm
+    second_term = second_term_tan_k * second_term_direction
+    assert not torch.isnan(second_term_tan_k).any(), (
+        "Found nans",
+        tan_k_input[(~torch.isfinite(second_term_tan_k)).nonzero()],
+    )
+    assert not torch.isnan(second_term_direction).any(), "Found nans"
     assert not torch.isnan(second_term).any(), "Found nans"
     y = _mobius_add(x, second_term, k, dim=dim)
-    assert not torch.isnan(y).any(), "Found nans"
     return y
 
 
