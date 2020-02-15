@@ -385,7 +385,7 @@ def test_geodesic_segement_unit_property(a, b, c, manifold):
 def test_expmap_logmap(a, b, c, manifold):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
     bh = manifold.expmap(x=a, u=manifold.logmap(a, b))
-    tolerance = {torch.float32: dict(rtol=1e-5, atol=1e-5), torch.float64: dict()}
+    tolerance = {torch.float32: dict(rtol=1e-5, atol=5e-5), torch.float64: dict()}
     np.testing.assert_allclose(bh.detach(), b.detach(), **tolerance[c.dtype])
     bh.sum().backward()
     assert torch.isfinite(a.grad).all()
