@@ -59,7 +59,9 @@ def strip_tuple(tup: Tuple) -> Union[Tuple, Any]:
         return tup
 
 
-def make_tuple(obj: Union[Tuple, Any]) -> Tuple:
+def make_tuple(obj: Union[Tuple, List, Any]) -> Tuple:
+    if isinstance(obj, list):
+        obj = tuple(obj)
     if not isinstance(obj, tuple):
         return (obj,)
     else:
