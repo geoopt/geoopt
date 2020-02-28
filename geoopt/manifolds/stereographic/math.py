@@ -1974,7 +1974,7 @@ def _weighted_midpoint(
             for d in reducedim:
                 alpha *= xs.size(d)
         else:
-            weights = weights.expand_as(gamma)
+            weights, _ = torch.broadcast_tensors(weights, gamma)
             alpha = weights.sum(reducedim, keepdim=True)
         a_mean = _mobius_scalar_mul(alpha, a_mean, k=k, dim=dim)
     if not keepdim:
