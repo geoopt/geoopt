@@ -340,9 +340,10 @@ class Stereographic(Manifold):
         dim=-1,
         keepdim=False,
         signed=False,
+        scaled=False,
     ) -> torch.Tensor:
         return math.dist2plane(
-            x, p, a, dim=dim, k=self.k, keepdim=keepdim, signed=signed
+            x, p, a, dim=dim, k=self.k, keepdim=keepdim, signed=signed, scaled=scaled
         )
 
     # this does not yet work with scaling

@@ -1425,6 +1425,7 @@ def dist2plane(
     k: torch.Tensor,
     keepdim=False,
     signed=False,
+    scaled=False,
     dim=-1,
 ):
     r"""
@@ -1544,6 +1545,8 @@ def dist2plane(
         retain the last dim? (default: false)
     signed : bool
         return signed distance
+    scaled : bool
+        scale distance by tangent norm
     dim : int
         reduction dimension for operations
 
@@ -1552,7 +1555,9 @@ def dist2plane(
     tensor
         distance to the hyperplane
     """
-    return _dist2plane(x, a, p, k, keepdim=keepdim, signed=signed, dim=dim)
+    return _dist2plane(
+        x, a, p, k, keepdim=keepdim, signed=signed, dim=dim, scaled=scaled
+    )
 
 
 @torch.jit.script
@@ -1563,6 +1568,7 @@ def _dist2plane(
     k: torch.Tensor,
     keepdim: bool = False,
     signed: bool = False,
+    scaled: bool = False,
     dim: int = -1,
 ):
     diff = _mobius_add(-p, x, k, dim=dim)
@@ -1570,10 +1576,13 @@ def _dist2plane(
     sc_diff_a = (diff * a).sum(dim=dim, keepdim=keepdim)
     if not signed:
         sc_diff_a = sc_diff_a.abs()
-    a_norm = a.norm(dim=dim, keepdim=keepdim, p=2).clamp_min(1e-15)
+    a_norm = a.norm(dim=dim, keepdim=keepdim, p=2)
     num = 2.0 * sc_diff_a
-    denom = ((1 + k * diff_norm2) * a_norm).clamp_min(1e-15)
-    return arsin_k(num / denom, k)
+    denom = clamp_abs((1 + k * diff_norm2) * a_norm)
+    distance = arsin_k(num / denom, k)
+    if scaled:
+        distance = distance * a_norm
+    return distance
 
 
 def parallel_transport(
