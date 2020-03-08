@@ -1581,7 +1581,7 @@ def _dist2plane(
     denom = clamp_abs((1 + k * diff_norm2) * a_norm)
     distance = arsin_k(num / denom, k)
     if scaled:
-        distance = distance * a_norm
+        distance = distance * a_norm * _lambda_x(p, a, keepdim=keepdim, dim=dim)
     return distance
 
 
