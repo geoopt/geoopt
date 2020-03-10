@@ -695,3 +695,22 @@ def test_weighted_midpoint_euclidean(lincomb):
         assert torch.allclose(mid, a.sum(0))
     else:
         assert torch.allclose(mid, a.mean(0))
+
+
+@pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
+def test_weighted_midpoint_weighted_zero_sum(_k, lincomb):
+    manifold = stereographic.Stereographic(_k, learnable=True)
+    a = manifold.expmap0(torch.eye(3, 10)).detach().requires_grad_(True)
+    weights = torch.rand_like(a[..., 0])
+    weights = weights - weights.sum() / weights.numel()
+    mid = manifold.weighted_midpoint(a, lincomb=lincomb, weights=weights)
+    if _k == 0 and lincomb:
+        np.testing.assert_allclose(
+            mid.detach(),
+            torch.cat([weights, torch.zeros(a.size(-1) - a.size(0))]),
+            atol=1e-6,
+        )
+    assert mid.shape == a.shape[-1:]
+    assert torch.isfinite(mid).all()
+    mid.sum().backward()
+    assert torch.isfinite(a.grad).all()

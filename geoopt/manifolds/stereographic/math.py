@@ -1960,9 +1960,21 @@ def _weighted_midpoint(
         weights = torch.tensor(1.0, dtype=xs.dtype, device=xs.device)
     else:
         weights = weights.unsqueeze(dim)
-    nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
     denominator = ((gamma - 1) * weights).sum(reducedim, keepdim=True)
-    two_mean = nominator / clamp_abs(denominator, 1e-15)
+    zero = torch.tensor(0.0, dtype=xs.dtype, device=xs.device)
+    one = torch.tensor(1.0, dtype=xs.dtype, device=xs.device)
+    ill_conditioned = torch.isclose(denominator, zero, atol=1e-7)
+    if lincomb:
+        nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
+        two_mean = nominator / torch.where(ill_conditioned, one, denominator)
+    elif ill_conditioned.any():
+        weights_denom = torch.where(ill_conditioned, weights + 1e-7, weights)
+        nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
+        denominator = ((gamma - 1) * weights_denom).sum(reducedim, keepdim=True)
+        two_mean = nominator / denominator
+    else:
+        nominator = (gamma * weights * xs).sum(reducedim, keepdim=True)
+        two_mean = nominator / clamp_abs(denominator)
     a_mean = _mobius_scalar_mul(
         torch.tensor(0.5, dtype=xs.dtype, device=xs.device), two_mean, k=k, dim=dim
     )
@@ -1985,6 +1997,7 @@ def _weighted_midpoint(
         else:
             weights, _ = torch.broadcast_tensors(weights, gamma)
             alpha = weights.sum(reducedim, keepdim=True)
+            alpha = torch.where(ill_conditioned, one, alpha)
         a_mean = _mobius_scalar_mul(alpha, a_mean, k=k, dim=dim)
     if not keepdim:
         a_mean = drop_dims(a_mean, reducedim)
