@@ -136,12 +136,12 @@ class Scaled(Manifold):
         if isinstance(self.base, Scaled):
             return self.base._base_attributes
         else:
-            base_attribures = set(dir(self.base.__class__))
-            base_attribures |= set(self.base.__dict__.keys())
-            return base_attribures
+            base_attributes = set(dir(self.base.__class__))
+            base_attributes |= set(self.base.__dict__.keys())
+            return base_attributes
 
     def __dir__(self):
-        return list(set(super().__dir__()) | self.base_attribures)
+        return list(set(super().__dir__()) | self._base_attributes)
 
     def __repr__(self):
         extra = self.base.extra_repr()
