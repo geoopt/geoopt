@@ -5,7 +5,7 @@ if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
 elif  [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     echo "folder $MINICONDA_SUB_PATH does not exist"
     echo "installing miniconda for windows";
-    choco install miniconda3 --params="'/JustMe /AddToPath:1 /D:$MINICONDA_PATH_WIN'";
+    choco install miniconda3 --params="'/JustMe /AddToPath:1 /D:$MINICONDA_PATH_WIN'" -y;
 fi;
 # end installing miniconda
 
