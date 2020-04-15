@@ -24,6 +24,7 @@ from .manifolds import (
     SphereProjectionExact,
     ProductManifold,
     Scaled,
+    BirkhoffPolytope,
 )
 
 __version__ = "0.1.2"

@@ -10,7 +10,7 @@ Methods”`_ ICLR2019 and more.
 
 Installation
 ------------
-Make sure you have pytorch installed
+Make sure you have pytorch>=1.2.0 installed
 
 There are two ways to install geoopt:
 
@@ -76,6 +76,7 @@ Manifolds
 -  ``geoopt.Stiefel`` – Stiefel manifold on matrices
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
+-  ``geoopt.BirkhoffPolytope`` - manifold of Doubly Stochastic matrices
 -  ``geoopt.Stereographic`` - Constant curvature stereographic projection model
 -  ``geoopt.SphereProjection`` - Sphere stereographic projection model
 -  ``geoopt.PoincareBall`` - Poincare ball model (`wiki <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_)
