@@ -26,17 +26,36 @@ def dtype(request):
     return request.param
 
 
+def tolerant_allclose_check(a, b, strict=True, **tolerance):
+    if strict:
+        np.testing.assert_allclose(a.detach(), b.detach(), **tolerance)
+    else:
+        try:
+            np.testing.assert_allclose(a.detach(), b.detach(), **tolerance)
+        except AssertionError as e:
+            assert not torch.isnan(a).any(), "Found nans"
+            assert not torch.isnan(b).any(), "Found nans"
+            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+
+
 @pytest.fixture(params=[True, False], ids=["negative", "positive"])
 def negative(request):
     return request.param
+
+
+@pytest.fixture()
+def strict(seed, dtype, negative):
+    return seed in {30, 31} and dtype == torch.float64 or negative
 
 
 # c = -k
 @pytest.fixture
 def c(seed, dtype, negative):
     # test broadcasted and non broadcasted versions
-    if seed == 30:
+    if seed == 30:  # strict seed
         c = torch.tensor(0.0).to(dtype)
+    elif seed == 31:  # strict seed too
+        c = torch.tensor(1.0).to(dtype)
     elif seed == 39:
         c = 10 ** torch.arange(-15, 1, dtype=dtype)[:, None]
     elif seed == 35:
@@ -69,25 +88,21 @@ def B(c):
 
 
 @pytest.fixture
-def a(seed, c, manifold, B):
+def a(seed, c, manifold, B, dtype):
     r = manifold.radius
-    a = torch.empty(B, 10, dtype=c.dtype).normal_(-1, 1)
+    a = torch.empty(B, 10, dtype=dtype).normal_(-1, 1)
     a /= a.norm(dim=-1, keepdim=True)
-    a *= torch.where(torch.isfinite(r), r, torch.ones((), dtype=c.dtype)).clamp_max_(
-        100
-    )
+    a *= torch.where(torch.isfinite(r), r, torch.ones((), dtype=dtype)).clamp_max_(100)
     a *= torch.rand_like(a)
     return manifold.projx(a).detach().requires_grad_(True)
 
 
 @pytest.fixture
-def b(seed, c, manifold, B):
+def b(seed, c, manifold, B, dtype):
     r = manifold.radius
-    a = torch.empty(B, 10, dtype=c.dtype).normal_(-1, 1)
+    a = torch.empty(B, 10, dtype=dtype).normal_(-1, 1)
     a /= a.norm(dim=-1, keepdim=True)
-    a *= torch.where(torch.isfinite(r), r, torch.ones((), dtype=c.dtype)).clamp_max_(
-        100
-    )
+    a *= torch.where(torch.isfinite(r), r, torch.ones((), dtype=dtype)).clamp_max_(100)
     a *= torch.rand_like(a)
     return manifold.projx(a).detach().requires_grad_(True)
 
@@ -150,17 +165,17 @@ def test_project_k_grad(logunif_input):
     assert torch.isfinite(k.grad).all()
 
 
-def test_mobius_addition_left_cancelation(a, b, c, manifold):
+def test_mobius_addition_left_cancelation(a, b, manifold, dtype):
     res = manifold.mobius_add(-a, manifold.mobius_add(a, b))
     tolerance = {torch.float32: dict(atol=5e-5, rtol=5e-4), torch.float64: dict()}
-    np.testing.assert_allclose(res.detach(), b.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(res.detach(), b.detach(), **tolerance[dtype])
     res.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(b.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_mobius_addition_zero_a(b, c, manifold):
+def test_mobius_addition_zero_a(b, manifold):
     a = torch.zeros_like(b)
     res = manifold.mobius_add(a, b)
     np.testing.assert_allclose(res.detach(), b.detach())
@@ -178,21 +193,19 @@ def test_mobius_addition_zero_b(a, c, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_mobius_addition_negative_cancellation(a, c, manifold):
+def test_mobius_addition_negative_cancellation(a, manifold, dtype):
     res = manifold.mobius_add(a, -a)
     tolerance = {
         torch.float32: dict(atol=1e-4, rtol=1e-6),
         torch.float64: dict(atol=1e-6),
     }
-    np.testing.assert_allclose(
-        res.detach(), torch.zeros_like(res), **tolerance[c.dtype]
-    )
+    np.testing.assert_allclose(res.detach(), torch.zeros_like(res), **tolerance[dtype])
     res.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_mobius_negative_addition(a, b, c, manifold):
+def test_mobius_negative_addition(a, b, manifold, dtype):
     res = manifold.mobius_add(-b, -a)
     res1 = -manifold.mobius_add(b, a)
     tolerance = {
@@ -200,7 +213,7 @@ def test_mobius_negative_addition(a, b, c, manifold):
         torch.float64: dict(atol=1e-10),
     }
 
-    np.testing.assert_allclose(res.detach(), res1.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(res.detach(), res1.detach(), **tolerance[dtype])
     res.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(b.grad).all()
@@ -208,7 +221,7 @@ def test_mobius_negative_addition(a, b, c, manifold):
 
 
 @pytest.mark.parametrize("n", list(range(5)))
-def test_n_additions_via_scalar_multiplication(n, a, c, negative, manifold):
+def test_n_additions_via_scalar_multiplication(n, a, dtype, negative, manifold, strict):
     n = torch.as_tensor(n, dtype=a.dtype).requires_grad_()
     y = torch.zeros_like(a)
     for _ in range(int(n.item())):
@@ -224,15 +237,7 @@ def test_n_additions_via_scalar_multiplication(n, a, c, negative, manifold):
             torch.float32: dict(atol=2e-6, rtol=1e-3),
             torch.float64: dict(atol=1e-5, rtol=1e-3),
         }
-    if negative:
-        np.testing.assert_allclose(y.detach(), ny.detach(), **tolerance[c.dtype])
-    else:
-        try:
-            np.testing.assert_allclose(y.detach(), ny.detach(), **tolerance[c.dtype])
-        except AssertionError as e:
-            assert not torch.isnan(y).any(), "Found nans"
-            assert not torch.isnan(ny).any(), "Found nans"
-            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    tolerant_allclose_check(y, ny, strict=strict, **tolerance[dtype])
     ny.sum().backward()
     assert torch.isfinite(n.grad).all()
     assert torch.isfinite(a.grad).all()
@@ -263,7 +268,7 @@ def r2(seed, dtype, B):
         return (torch.rand(B, 1, dtype=dtype) * 2 - 1).detach().requires_grad_(True)
 
 
-def test_scalar_multiplication_distributive(a, c, r1, r2, manifold):
+def test_scalar_multiplication_distributive(a, r1, r2, manifold, dtype):
     res = manifold.mobius_scalar_mul(r1 + r2, a)
     res1 = manifold.mobius_add(
         manifold.mobius_scalar_mul(r1, a), manifold.mobius_scalar_mul(r2, a),
@@ -275,8 +280,8 @@ def test_scalar_multiplication_distributive(a, c, r1, r2, manifold):
         torch.float32: dict(atol=5e-6, rtol=1e-4),
         torch.float64: dict(atol=1e-7, rtol=1e-4),
     }
-    np.testing.assert_allclose(res1.detach(), res.detach(), **tolerance[c.dtype])
-    np.testing.assert_allclose(res2.detach(), res.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(res1.detach(), res.detach(), **tolerance[dtype])
+    np.testing.assert_allclose(res2.detach(), res.detach(), **tolerance[dtype])
     res.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(r1.grad).all()
@@ -284,7 +289,7 @@ def test_scalar_multiplication_distributive(a, c, r1, r2, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_scalar_multiplication_associative(a, c, r1, r2, manifold):
+def test_scalar_multiplication_associative(a, r1, r2, manifold, dtype):
     res = manifold.mobius_scalar_mul(r1 * r2, a)
     res1 = manifold.mobius_scalar_mul(r1, manifold.mobius_scalar_mul(r2, a))
     res2 = manifold.mobius_scalar_mul(r2, manifold.mobius_scalar_mul(r1, a))
@@ -292,8 +297,8 @@ def test_scalar_multiplication_associative(a, c, r1, r2, manifold):
         torch.float32: dict(atol=1e-5, rtol=1e-5),
         torch.float64: dict(atol=1e-7, rtol=1e-7),
     }
-    np.testing.assert_allclose(res1.detach(), res.detach(), **tolerance[c.dtype])
-    np.testing.assert_allclose(res2.detach(), res.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(res1.detach(), res.detach(), **tolerance[dtype])
+    np.testing.assert_allclose(res2.detach(), res.detach(), **tolerance[dtype])
     res.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(r1.grad).all()
@@ -301,7 +306,7 @@ def test_scalar_multiplication_associative(a, c, r1, r2, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_scaling_property(a, c, r1, manifold):
+def test_scaling_property(a, r1, manifold, dtype):
     x1 = a / a.norm(dim=-1, keepdim=True)
     ra = manifold.mobius_scalar_mul(r1, a)
     x2 = manifold.mobius_scalar_mul(abs(r1), a) / ra.norm(dim=-1, keepdim=True)
@@ -309,32 +314,32 @@ def test_scaling_property(a, c, r1, manifold):
         torch.float32: dict(rtol=1e-5, atol=1e-6),
         torch.float64: dict(atol=1e-10),
     }
-    np.testing.assert_allclose(x1.detach(), x2.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(x1.detach(), x2.detach(), **tolerance[dtype])
     x2.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(r1.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_geodesic_borders(a, b, c, manifold):
-    geo0 = manifold.geodesic(torch.tensor(0.0, dtype=a.dtype), a, b)
-    geo1 = manifold.geodesic(torch.tensor(1.0, dtype=a.dtype), a, b)
+def test_geodesic_borders(a, b, manifold, dtype):
+    geo0 = manifold.geodesic(torch.tensor(0.0, dtype=dtype), a, b)
+    geo1 = manifold.geodesic(torch.tensor(1.0, dtype=dtype), a, b)
     tolerance = {
         torch.float32: dict(rtol=1e-5, atol=5e-5),
         torch.float64: dict(atol=1e-10),
     }
-    np.testing.assert_allclose(geo0.detach(), a.detach(), **tolerance[c.dtype])
-    np.testing.assert_allclose(geo1.detach(), b.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(geo0.detach(), a.detach(), **tolerance[dtype])
+    np.testing.assert_allclose(geo1.detach(), b.detach(), **tolerance[dtype])
     (geo0 + geo1).sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(b.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_geodesic_segment_length_property(a, b, c, manifold):
+def test_geodesic_segment_length_property(a, b, manifold, dtype):
     extra_dims = len(a.shape)
     segments = 12
-    t = torch.linspace(0, 1, segments + 1, dtype=c.dtype).view(
+    t = torch.linspace(0, 1, segments + 1, dtype=dtype).view(
         (segments + 1,) + (1,) * extra_dims
     )
     gamma_ab_t = manifold.geodesic(t, a, b)
@@ -349,7 +354,7 @@ def test_geodesic_segment_length_property(a, b, c, manifold):
     }
     length = speed / segments
     np.testing.assert_allclose(
-        dist_ab_t0mt1.detach(), length.detach(), **tolerance[c.dtype]
+        dist_ab_t0mt1.detach(), length.detach(), **tolerance[dtype]
     )
     (length + dist_ab_t0mt1).sum().backward()
     assert torch.isfinite(a.grad).all()
@@ -357,10 +362,10 @@ def test_geodesic_segment_length_property(a, b, c, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_geodesic_segement_unit_property(a, b, c, manifold):
+def test_geodesic_segement_unit_property(a, b, manifold, dtype):
     extra_dims = len(a.shape)
     segments = 12
-    t = torch.linspace(0, 1, segments + 1, dtype=c.dtype).view(
+    t = torch.linspace(0, 1, segments + 1, dtype=dtype).view(
         (segments + 1,) + (1,) * extra_dims
     )
     gamma_ab_t = manifold.geodesic_unit(t, a, b)
@@ -374,7 +379,7 @@ def test_geodesic_segement_unit_property(a, b, c, manifold):
         torch.float64: dict(atol=1e-10),
     }
     np.testing.assert_allclose(
-        dist_ab_t0mt1.detach(), true_distance_travelled.detach(), **tolerance[c.dtype]
+        dist_ab_t0mt1.detach(), true_distance_travelled.detach(), **tolerance[dtype]
     )
     (true_distance_travelled + dist_ab_t0mt1).sum().backward()
     assert torch.isfinite(a.grad).all()
@@ -382,32 +387,32 @@ def test_geodesic_segement_unit_property(a, b, c, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_expmap_logmap(a, b, c, manifold):
+def test_expmap_logmap(a, b, manifold, dtype):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
     bh = manifold.expmap(x=a, u=manifold.logmap(a, b))
     tolerance = {torch.float32: dict(rtol=1e-5, atol=5e-5), torch.float64: dict()}
-    np.testing.assert_allclose(bh.detach(), b.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(bh.detach(), b.detach(), **tolerance[dtype])
     bh.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(b.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_expmap0_logmap0(a, c, manifold):
+def test_expmap0_logmap0(a, manifold, dtype):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
     v = manifold.logmap0(a)
     norm = manifold.norm(torch.zeros_like(v), v, keepdim=True)
     dist = manifold.dist0(a, keepdim=True)
     bh = manifold.expmap0(v)
     tolerance = {torch.float32: dict(atol=1e-5, rtol=1e-5), torch.float64: dict()}
-    np.testing.assert_allclose(bh.detach(), a.detach(), **tolerance[c.dtype])
-    np.testing.assert_allclose(norm.detach(), dist.detach(), **tolerance[c.dtype])
+    np.testing.assert_allclose(bh.detach(), a.detach(), **tolerance[dtype])
+    np.testing.assert_allclose(norm.detach(), dist.detach(), **tolerance[dtype])
     (bh.sum() + dist.sum()).backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_matvec_zeros(a, c, manifold):
+def test_matvec_zeros(a, manifold):
     mat = a.new_zeros((3, a.shape[-1]))
     z = manifold.mobius_matvec(mat, a)
     np.testing.assert_allclose(z.detach(), 0.0)
@@ -416,27 +421,19 @@ def test_matvec_zeros(a, c, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_matvec_via_equiv_fn_apply(a, c, negative, manifold):
+def test_matvec_via_equiv_fn_apply(a, negative, manifold, strict, dtype):
     mat = a.new(3, a.shape[-1]).normal_()
     y = manifold.mobius_fn_apply(lambda x: x @ mat.transpose(-1, -2), a)
     y1 = manifold.mobius_matvec(mat, a)
     tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
 
-    if negative:
-        np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
-    else:
-        try:
-            np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
-        except AssertionError as e:
-            assert not torch.isnan(y).any(), "Found nans"
-            assert not torch.isnan(y1).any(), "Found nans"
-            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    tolerant_allclose_check(y, y1, strict=strict, **tolerance[dtype])
     y.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_mobiusify(a, c, negative):
+def test_mobiusify(a, c, negative, strict, dtype):
     mat = a.new(3, a.shape[-1]).normal_()
 
     @stereographic.math.mobiusify
@@ -446,21 +443,14 @@ def test_mobiusify(a, c, negative):
     y = matvec(a, k=-c)
     y1 = stereographic.math.mobius_matvec(mat, a, k=-c)
     tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
-    if negative:
-        np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
-    else:
-        try:
-            np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
-        except AssertionError as e:
-            assert not torch.isnan(y).any(), "Found nans"
-            assert not torch.isnan(y1).any(), "Found nans"
-            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+
+    tolerant_allclose_check(y, y1, strict=strict, **tolerance[dtype])
     y.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(c.grad).all()
 
 
-def test_matvec_chain_via_equiv_fn_apply(a, c, negative, manifold):
+def test_matvec_chain_via_equiv_fn_apply(a, negative, manifold, dtype):
     mat1 = a.new(a.shape[-1], a.shape[-1]).normal_()
     mat2 = a.new(a.shape[-1], a.shape[-1]).normal_()
     y = manifold.mobius_fn_apply_chain(
@@ -469,21 +459,14 @@ def test_matvec_chain_via_equiv_fn_apply(a, c, negative, manifold):
     y1 = manifold.mobius_matvec(mat1, a)
     y1 = manifold.mobius_matvec(mat2, y1)
     tolerance = {torch.float32: dict(atol=1e-5, rtol=1e-5), torch.float64: dict()}
-    if negative:
-        np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
-    else:
-        try:
-            np.testing.assert_allclose(y.detach(), y1.detach(), **tolerance[c.dtype])
-        except AssertionError as e:
-            assert not torch.isnan(y).any(), "Found nans"
-            assert not torch.isnan(y1).any(), "Found nans"
-            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+
+    tolerant_allclose_check(y, y1, strict=negative, **tolerance[dtype])
     y.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_transp0_preserves_inner_products(a, c, manifold):
+def test_transp0_preserves_inner_products(a, manifold):
     # pointing to the center
     v_0 = torch.rand_like(a) + 1e-5
     u_0 = torch.rand_like(a) + 1e-5
@@ -499,7 +482,7 @@ def test_transp0_preserves_inner_products(a, c, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_transp0_is_same_as_usual(a, c, manifold):
+def test_transp0_is_same_as_usual(a, manifold):
     # pointing to the center
     v_0 = torch.rand_like(a) + 1e-5
     zero = torch.zeros_like(a)
@@ -512,7 +495,7 @@ def test_transp0_is_same_as_usual(a, c, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_transp_a_b(a, b, c, manifold):
+def test_transp_a_b(a, b, manifold):
     # pointing to the center
     v_0 = torch.rand_like(a)
     u_0 = torch.rand_like(a)
@@ -528,7 +511,7 @@ def test_transp_a_b(a, b, c, manifold):
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_add_infinity_and_beyond(a, b, c, negative, manifold):
+def test_add_infinity_and_beyond(a, b, c, negative, manifold, dtype):
     _a = a
     if torch.isclose(c, c.new_zeros(())).any():
         pytest.skip("zero not checked")
@@ -555,47 +538,33 @@ def test_add_infinity_and_beyond(a, b, c, negative, manifold):
         torch.float64: dict(rtol=1e-1, atol=1e-3),
     }
     if negative:
-        np.testing.assert_allclose(z.detach(), -a.detach(), **tolerance[c.dtype])
+        np.testing.assert_allclose(z.detach(), -a.detach(), **tolerance[dtype])
     else:
         assert not torch.isnan(z).any(), "Found nans"
         assert not torch.isnan(a).any(), "Found nans"
 
 
-def test_mobius_coadd(a, b, c, negative, manifold):
+def test_mobius_coadd(a, b, negative, manifold, strict):
     # (a \boxplus_c b) \ominus_c b = a
     ah = manifold.mobius_sub(manifold.mobius_coadd(a, b), b)
-    if negative:
-        np.testing.assert_allclose(ah.detach(), a.detach(), atol=5e-5)
-    else:
-        try:
-            np.testing.assert_allclose(ah.detach(), a.detach(), atol=5e-5)
-        except AssertionError as e:
-            assert not torch.isnan(ah).any(), "Found nans"
-            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    tolerant_allclose_check(a, ah, strict=strict, atol=5e-5)
     ah.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(b.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_mobius_cosub(a, b, c, negative, manifold):
+def test_mobius_cosub(a, b, negative, manifold, strict):
     # (a \oplus_c b) \boxminus b = a
     ah = manifold.mobius_cosub(manifold.mobius_add(a, b), b)
-    if negative:
-        np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
-    else:
-        try:
-            np.testing.assert_allclose(ah.detach(), a.detach(), atol=1e-5)
-        except AssertionError as e:
-            assert not torch.isnan(ah).any(), "Found nans"
-            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+    tolerant_allclose_check(a, ah, strict=strict, atol=1e-5)
     ah.sum().backward()
     assert torch.isfinite(a.grad).all()
     assert torch.isfinite(b.grad).all()
     assert torch.isfinite(manifold.k.grad).all()
 
 
-def test_distance2plane(a, c, manifold):
+def test_distance2plane(a, manifold):
     v = torch.rand_like(a).requires_grad_()
     vr = v / manifold.norm(a, v, keepdim=True)
     z = manifold.expmap(a, vr)
