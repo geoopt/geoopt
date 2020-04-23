@@ -333,7 +333,7 @@ class ProductManifold(Manifold):
         return result
 
     def dist(self, x, y, *, keepdim=False):
-        return self.dist2(x, y, keepdim=keepdim) ** 0.5
+        return self.dist2(x, y, keepdim=keepdim).clamp_min_(1e-15) ** 0.5
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor):
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim())
