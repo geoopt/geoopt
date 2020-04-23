@@ -672,7 +672,7 @@ def test_weighted_midpoint_weighted_zero_sum(_k, lincomb):
     a = manifold.expmap0(torch.eye(3, 10)).detach().requires_grad_(True)
     weights = torch.rand_like(a[..., 0])
     weights = weights - weights.sum() / weights.numel()
-    mid = manifold.weighted_midpoint(a, lincomb=lincomb, weights=weights)
+    mid = manifold.weighted_midpoint(a, lincomb=lincomb, weights=weights, posweight=True)
     if _k == 0 and lincomb:
         np.testing.assert_allclose(
             mid.detach(),
