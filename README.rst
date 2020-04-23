@@ -33,8 +33,9 @@ Now, pypi is behind master as we actively develop and implement new features.
 
 PyTorch Support
 ~~~~~~~~~~~~~~~
-Geoopt supports 2 latest stable versions of pytorch upstream or the latest major release.
+Geoopt officially supports 2 latest stable versions of pytorch upstream or the latest major release.
 We also test against the nightly build, but do not be 100% sure about compatibility.
+As for older pytorch versions, you may use it on your own risk.
 
 What is done so far
 -------------------
@@ -76,6 +77,8 @@ Manifolds
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
 -  ``geoopt.BirkhoffPolytope`` - manifold of Doubly Stochastic matrices
+-  ``geoopt.Stereographic`` - Constant curvature stereographic projection model
+-  ``geoopt.SphereProjection`` - Sphere stereographic projection model
 -  ``geoopt.PoincareBall`` - Poincare ball model (`wiki <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_)
 -  ``geoopt.ProductManifold`` - Product manifold constructor
 -  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``

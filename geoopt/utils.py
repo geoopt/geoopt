@@ -1,6 +1,8 @@
 import itertools
-from typing import Tuple, Any, Union
-import torch
+from typing import Tuple, Any, Union, List
+import torch.jit
+import functools
+import operator
 import geoopt
 
 __all__ = [
@@ -11,6 +13,14 @@ __all__ = [
     "broadcast_shapes",
     "ismanifold",
     "canonical_manifold",
+    "list_range",
+    "idx2sign",
+    "drop_dims",
+    "canonical_dims",
+    "sign",
+    "prod",
+    "clamp_abs",
+    "sabs",
 ]
 
 
@@ -49,11 +59,86 @@ def strip_tuple(tup: Tuple) -> Union[Tuple, Any]:
         return tup
 
 
-def make_tuple(obj: Union[Tuple, Any]) -> Tuple:
+def make_tuple(obj: Union[Tuple, List, Any]) -> Tuple:
+    if isinstance(obj, list):
+        obj = tuple(obj)
     if not isinstance(obj, tuple):
         return (obj,)
     else:
         return obj
+
+
+def prod(items):
+    return functools.reduce(operator.mul, items, 1)
+
+
+@torch.jit.script
+def sign(x):
+    return torch.sign(x.sign() + 0.5)
+
+
+@torch.jit.script
+def sabs(x, eps: float = 1e-15):
+    return x.abs().add_(eps)
+
+
+@torch.jit.script
+def clamp_abs(x, eps: float = 1e-15):
+    s = sign(x)
+    return s * sabs(x, eps=eps)
+
+
+@torch.jit.script
+def idx2sign(idx: int, dim: int, neg: bool = True):
+    """
+    Unify idx to be negative or positive, that helps in cases of broadcasting.
+
+    Parameters
+    ----------
+    idx : int
+        current index
+    dim : int
+        maximum dimension
+    neg : bool
+        indicate we need negative index
+
+    Returns
+    -------
+    int
+    """
+    if neg:
+        if idx < 0:
+            return idx
+        else:
+            return (idx + 1) % -(dim + 1)
+    else:
+        return idx % dim
+
+
+@torch.jit.script
+def drop_dims(tensor: torch.Tensor, dims: List[int]):
+    # Workaround to drop several dims in :func:`torch.squeeze`.
+    seen: int = 0
+    for d in dims:
+        tensor = tensor.squeeze(d - seen)
+        seen += 1
+    return tensor
+
+
+@torch.jit.script
+def list_range(end: int):
+    res: List[int] = []
+    for d in range(end):
+        res.append(d)
+    return res
+
+
+@torch.jit.script
+def canonical_dims(dims: List[int], maxdim: int):
+    result: List[int] = []
+    for idx in dims:
+        result.append(idx2sign(idx, maxdim, neg=False))
+    return result
 
 
 def size2shape(*size: Union[Tuple[int], int]) -> Tuple[int]:
