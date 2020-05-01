@@ -222,3 +222,4 @@ def test_parallel_transport_a_b(a, b, k):
     vu_0 = man.inner(v_0, u_0, keepdim=True)
 
     np.testing.assert_allclose(vu_0, vu_1, atol=1e-5, rtol=1e-5)
+
