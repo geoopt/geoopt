@@ -6,4 +6,6 @@ from .poincare import PoincareBall, PoincareBallExact
 from .product import ProductManifold
 from . import poincare
 from . import scaled
+from . import lorentz
+from .lorentz import Lorentz
 from .scaled import Scaled

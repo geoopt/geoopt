@@ -20,6 +20,7 @@ from .manifolds import (
     PoincareBallExact,
     ProductManifold,
     Scaled,
+    Lorentz,
 )
 
 __version__ = "0.1.2"

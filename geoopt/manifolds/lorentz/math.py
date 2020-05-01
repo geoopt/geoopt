@@ -3,8 +3,9 @@ import torch.jit
 
 @torch.jit.script
 def arcosh(x: torch.Tensor):
-    z = torch.sqrt(torch.clamp_min(x.pow(2) - 1.0, 1e-15))
-    return torch.log(x + z)
+    dtype = x.dtype
+    z = torch.sqrt(torch.clamp_min(x.double().pow(2) - 1.0, 1e-15))
+    return torch.log(x + z).to(dtype)
 
 
 def inner(u, v, *, keepdim=False, dim=-1):
@@ -489,6 +490,7 @@ def egrad2rgrad(x, grad, *, k, dim=-1):
 
 @torch.jit.script
 def _egrad2rgrad(x, grad, k, dim: int = -1):
+    grad.narrow(-1, 0, 1).mul_(-1)
     grad = grad.addcmul(_inner(x, grad, dim=dim, keepdim=True), x / k)
     return grad
 
