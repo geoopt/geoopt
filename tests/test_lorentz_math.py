@@ -198,7 +198,7 @@ def test_zero_point_ops(a, k):
         (zero.narrow(1, 0, 1) * torch.sqrt(k), zero.narrow(1, 1, d) * 0.0), dim=1
     )
     inner_z = man.inner0(a)
-    inner = man.inner(a, zero)
+    inner = man.inner(None, a, zero)
     np.testing.assert_allclose(inner, inner_z, atol=1e-5, rtol=1e-5)
 
     lmap_z = man.logmap0back(a)
@@ -222,4 +222,3 @@ def test_parallel_transport_a_b(a, b, k):
     vu_0 = man.inner(v_0, u_0, keepdim=True)
 
     np.testing.assert_allclose(vu_0, vu_1, atol=1e-5, rtol=1e-5)
-

@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.parametrize("params", [dict(lr=1e-2), dict(lr=1, amsgrad=True)])
 def test_adam_lorentz(params):
-    lorentz = geoopt.manifolds.Lorentz(k=torch.Tensor([1.]))
+    lorentz = geoopt.manifolds.Lorentz(k=torch.Tensor([1.0]))
     torch.manual_seed(42)
     with torch.no_grad():
         X = geoopt.ManifoldParameter(torch.randn(20, 10), manifold=lorentz).proj_()
@@ -28,6 +28,7 @@ def test_adam_lorentz(params):
     np.testing.assert_allclose(X.data, Xstar, atol=1e-5, rtol=1e-5)
     optim.load_state_dict(optim.state_dict())
     optim.step(closure)
+
 
 @pytest.mark.parametrize("params", [dict(lr=1e-2), dict(lr=1, amsgrad=True)])
 def test_adam_stiefel(params):

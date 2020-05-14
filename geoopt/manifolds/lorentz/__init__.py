@@ -117,8 +117,15 @@ class Lorentz(Manifold):
         return math.logmap0back(x, k=self.k, dim=dim)
 
     def inner(
-        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False, dim=-1,
+        self,
+        x: torch.Tensor,
+        u: torch.Tensor,
+        v: torch.Tensor = None,
+        *,
+        keepdim=False,
+        dim=-1,
     ) -> torch.Tensor:
+        # TODO: x argument for maintaining the support of optims
         if v is None:
             v = u
         return math.inner(u, v, dim=dim, keepdim=keepdim)
