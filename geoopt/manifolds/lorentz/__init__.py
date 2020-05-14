@@ -88,10 +88,12 @@ class Lorentz(Manifold):
         return v
 
     def expmap(
-        self, x: torch.Tensor, u: torch.Tensor, *, project=True, dim=-1
+        self, x: torch.Tensor, u: torch.Tensor, *, norm_tan=True, project=True, dim=-1
     ) -> torch.Tensor:
+        if norm_tan is True:
+            u = self.proju(x, u, dim=dim)
         res = math.expmap(x, u, k=self.k, dim=dim)
-        if project:
+        if project is True:
             return math.project(res, k=self.k, dim=dim)
         else:
             return res
