@@ -1,6 +1,7 @@
 import torch.jit
 
 
+@torch.jit.script
 def arcosh(x: torch.Tensor):
     dtype = x.dtype
     z = torch.sqrt(torch.clamp_min(x.double().pow(2) - 1.0, 1e-15))
