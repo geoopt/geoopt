@@ -84,7 +84,7 @@ def dist(x, y, *, k, keepdim=False, dim=-1):
 
     .. math::
 
-        d_{\mathcal{L}}^{k}(\mathbf{x}, \mathbf{y})=\sqrt{k} \operatorname{arcosh}\left(-\langle\mathbf{x}, \mathbf{y}\rangle_{\mathcal{L}} / k\right)
+        d_{\mathcal{L}}^{k}(\mathbf{x}, \mathbf{y})=\sqrt{k} \operatorname{arcosh}\left(-\frac{\langle\mathbf{x}, \mathbf{y}\rangle_{\mathcal{L}}}{k}\right)
 
     Parameters
     ----------
@@ -113,7 +113,7 @@ def _dist(x, y, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return torch.sqrt(k) * arcosh(d / k)
 
 
-def dist0(y, *, k, keepdim=False, dim=-1):
+def dist0(x, *, k, keepdim=False, dim=-1):
     r"""
     Compute geodesic distance on the Hyperboloid to zero point.
 
@@ -121,7 +121,7 @@ def dist0(y, *, k, keepdim=False, dim=-1):
 
     Parameters
     ----------
-    y : tensor
+    x : tensor
         point on Hyperboloid
     k : tensor
         manifold negative curvature
@@ -133,14 +133,14 @@ def dist0(y, *, k, keepdim=False, dim=-1):
     Returns
     -------
     tensor
-        geodesic distance between :math:`x` and :math:`y`
+        geodesic distance between :math:`x` and zero point
     """
-    return _dist0(y, k=k, keepdim=keepdim, dim=dim)
+    return _dist0(x, k=k, keepdim=keepdim, dim=dim)
 
 
 @torch.jit.script
-def _dist0(y, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
-    d = -_inner0(y, k=k, dim=dim, keepdim=keepdim)
+def _dist0(x, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
+    d = -_inner0(x, k=k, dim=dim, keepdim=keepdim)
     return torch.sqrt(k) * arcosh(d / k)
 
 
@@ -150,7 +150,7 @@ def project(x, *, k, dim=-1):
 
     .. math::
 
-        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathbb{H}^{d, 1}}(\mathbf{x}):=\left(\sqrt{1+\left\|\mathbf{x}_{1: d}\right\|_{2}^{2}}, \mathbf{x}_{1: d}\right)
+        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathbb{H}^{d, 1}}(\mathbf{x}):=\left(\sqrt{k+\left\|\mathbf{x}_{1: d}\right\|_{2}^{2}}, \mathbf{x}_{1: d}\right)
 
     Parameters
     ----------
@@ -185,7 +185,7 @@ def project_polar(x, *, k, dim=-1):
     Projection on the Hyperboloid from polar coordinates.
 
     ... math::
-        \pi((\mathbf{d}, r))=(\sinh (r) \mathbf{d}, \cosh (r))
+        \pi((\mathbf{d}, r))=(\sqrt{k} \sinh (r/\sqrt{k}) \mathbf{d}, \cosh (r / \sqrt{k}))
 
     Parameters
     ----------
@@ -221,11 +221,11 @@ def _project_polar(x, k: torch.Tensor, dim: int = -1):
 
 def project_u(x, v, *, k, dim=-1):
     r"""
-    Projection of the vector on the tangent space of the Hyperboloid.
+    Projection of the vector on the tangent space.
 
     ... math::
 
-        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathcal{T}_{\mathbf{x}} \mathbb{H}^{d, 1}(\mathbf{v})}:=\mathbf{v}+\langle\mathbf{x}, \mathbf{v}\rangle_{\mathcal{L}} \mathbf{x}
+        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathcal{T}_{\mathbf{x}} \mathbb{H}^{d, 1}(\mathbf{v})}:=\mathbf{v}+\langle\mathbf{x}, \mathbf{v}\rangle_{\mathcal{L}} \mathbf{x} / k
 
     Parameters
     ----------
@@ -287,13 +287,13 @@ def expmap(x, u, *, k, dim=-1):
 
     .. math::
 
-        \exp _{\mathbf{x}}^{K}(\mathbf{v})=\cosh \left(\frac{\|\mathbf{v}\|_{\mathcal{L}}}{\sqrt{K}}\right) \mathbf{x}+\sqrt{K} \sinh \left(\frac{\|\mathbf{v}\|_{\mathcal{L}}}{\sqrt{K}}\right) \frac{\mathbf{v}}{\|\mathbf{v}\|_{\mathcal{L}}}
+        \exp _{\mathbf{x}}^{k}(\mathbf{v})=\cosh \left(\frac{\|\mathbf{v}\|_{\mathcal{L}}}{\sqrt{k}}\right) \mathbf{x}+\sqrt{k} \sinh \left(\frac{\|\mathbf{v}\|_{\mathcal{L}}}{\sqrt{k}}\right) \frac{\mathbf{v}}{\|\mathbf{v}\|_{\mathcal{L}}}
 
 
     Parameters
     ----------
     x : tensor
-        starting point on Hyperboloid
+        point on Hyperboloid
     u : tensor
         unit speed vector on Hyperboloid
     k: tensor
@@ -356,10 +356,10 @@ def logmap(x, y, *, k, dim=-1):
 
     .. math::
 
-        \log _{\mathbf{x}}^{K}(\mathbf{y})=d_{\mathcal{L}}^{K}(\mathbf{x}, \mathbf{y})
-            \frac{\mathbf{y}+\frac{1}{K}\langle\mathbf{x},
+        \log _{\mathbf{x}}^{k}(\mathbf{y})=d_{\mathcal{L}}^{k}(\mathbf{x}, \mathbf{y})
+            \frac{\mathbf{y}+\frac{1}{k}\langle\mathbf{x},
             \mathbf{y}\rangle_{\mathcal{L}} \mathbf{x}}{\left\|
-            \mathbf{y}+\frac{1}{K}\langle\mathbf{x},
+            \mathbf{y}+\frac{1}{k}\langle\mathbf{x},
             \mathbf{y}\rangle_{\mathcal{L}} \mathbf{x}\right\|_{\mathcal{L}}}
 
     The result of Logarithmic map is a vector such that
@@ -600,7 +600,7 @@ def geodesic_unit(t, x, u, *, k):
 
     .. math::
 
-        \gamma_{\mathbf{x} \rightarrow \mathbf{u}}^{K}(t)=\cosh \left(\frac{t}{\sqrt{K}}\right) \mathbf{x}+\sqrt{K} \sinh \left(\frac{t}{\sqrt{K}}\right) \mathbf{u}
+        \gamma_{\mathbf{x} \rightarrow \mathbf{u}}^{k}(t)=\cosh \left(\frac{t}{\sqrt{k}}\right) \mathbf{x}+\sqrt{k} \sinh \left(\frac{t}{\sqrt{k}}\right) \mathbf{u}
 
     Parameters
     ----------
@@ -635,7 +635,7 @@ def lorentz_to_poincare(x, k, dim=-1):
 
     .. math::
 
-        \Pi_{\mathbb{H}^{d, 1} \rightarrow \mathbb{D}^{d, 1}\left(x_{0}, \ldots, x_{d}\right)}=\frac{\left(x_{1}, \ldots, x_{d}\right)}{x_{0}+1}
+        \Pi_{\mathbb{H}^{d, 1} \rightarrow \mathbb{D}^{d, 1}\left(x_{0}, \ldots, x_{d}\right)}=\frac{\left(x_{1}, \ldots, x_{d}\right)}{x_{0}+\sqrt{k}}
 
     Parameters
     ----------
@@ -661,7 +661,7 @@ def poincare_to_lorentz(x, k, dim=-1, eps=1e-6):
 
     .. math::
 
-        \Pi_{\mathbb{D}^{d, k} \rightarrow \mathbb{H}^{d d, 1}}\left(x_{1}, \ldots, x_{d}\right)=\frac{\left(1+|| \mathbf{x}||_{2}^{2}, 2 x_{1}, \ldots, 2 x_{d}\right)}{1-\|\mathbf{x}\|_{2}^{2}}
+        \Pi_{\mathbb{D}^{d, k} \rightarrow \mathbb{H}^{d d, 1}}\left(x_{1}, \ldots, x_{d}\right)=\frac{\sqrt{k} \left(1+|| \mathbf{x}||_{2}^{2}, 2 x_{1}, \ldots, 2 x_{d}\right)}{1-\|\mathbf{x}\|_{2}^{2}}
 
     Parameters
     ----------
