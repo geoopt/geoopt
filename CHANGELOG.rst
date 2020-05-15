@@ -1,6 +1,14 @@
 This file tracks important changes in PRs
 
-geoopt v.0.1.2
+geoopt v0.2.0
+=============
+
+New Features
+------------
+* BirkhoffPolytope (#125)
+
+
+geoopt v0.1.2
 ==============
 
 Bug Fixes
@@ -10,7 +18,7 @@ Bug Fixes
 * Fix Sphere distance for small values
 
 
-geoopt v.0.1.1
+geoopt v0.1.1
 ==============
 
 New Features

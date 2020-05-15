@@ -18,9 +18,14 @@ from .manifolds import (
     SphereExact,
     PoincareBall,
     PoincareBallExact,
+    Stereographic,
+    StereographicExact,
+    SphereProjection,
+    SphereProjectionExact,
     ProductManifold,
     Scaled,
     Lorentz,
+    BirkhoffPolytope,
 )
 
 __version__ = "0.1.2"
