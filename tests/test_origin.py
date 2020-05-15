@@ -24,6 +24,13 @@ def test_random_Stiefel():
     assert point.manifold is manifold
 
 
+def test_random_BirkhoffPolytope():
+    manifold = geoopt.BirkhoffPolytope()
+    point = manifold.origin(3, 10, 10)
+    manifold.assert_check_point_on_manifold(point)
+    assert point.manifold is manifold
+
+
 def test_random_Sphere():
     manifold = geoopt.Sphere()
     point = manifold.origin(3, 10, 10)

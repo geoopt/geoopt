@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List
 import torch.jit
 from . import _expm
 
@@ -66,12 +66,15 @@ def expm(x: torch.Tensor):  # pragma: no cover
     return result
 
 
-def block_matrix(blocks: Tuple[Tuple[torch.Tensor, ...], ...]):
+@torch.jit.script
+def block_matrix(blocks: List[List[torch.Tensor]], dim0: int = -2, dim1: int = -1):
     # [[A, B], [C, D]] ->
     # [AB]
     # [CD]
-    blocks = tuple(torch.cat(mats, dim=-1) for mats in blocks)
-    return torch.cat(blocks, dim=-2)
+    hblocks = []
+    for mats in blocks:
+        hblocks.append(torch.cat(mats, dim=dim1))
+    return torch.cat(hblocks, dim=dim0)
 
 
 # left here for convenience

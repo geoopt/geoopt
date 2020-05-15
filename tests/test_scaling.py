@@ -50,7 +50,7 @@ def test_rescaling_methods_accessible():
     rsball = geoopt.Scaled(sball, 0.5)
     v0 = torch.arange(10).float() / 10
     v1 = -torch.arange(10).float() / 10
-    rsball.geodesic(0.5, v0, v1)
+    rsball.geodesic(torch.tensor(0.5), v0, v1)
 
 
 def test_scaling_getattr():
@@ -58,7 +58,7 @@ def test_scaling_getattr():
     sball = geoopt.Scaled(ball, 2)
     pa, pb = sball.random(2, 10)
     # this one is representative and not present in __scaling__
-    sball.geodesic(0.5, pa, pb)
+    sball.geodesic(torch.tensor(0.5), pa, pb)
 
 
 def test_scaling_not_implemented():

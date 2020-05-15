@@ -1,14 +1,17 @@
 import torch.optim.optimizer
 from ..tensor import ManifoldParameter, ManifoldTensor
-from .mixin import OptimMixin
+from .mixin import OptimMixin, SparseMixin
 from ..utils import copy_or_set_
 
-__all__ = ["RiemannianSGD"]
+__all__ = ["SparseRiemannianSGD"]
 
 
-class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
+class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
     r"""
-    Riemannian Stochastic Gradient Descent with the same API as :class:`torch.optim.SGD`.
+    Implements lazy version of SGD algorithm suitable for sparse gradients.
+
+    In this variant, only moments that show up in the gradient get updated, and
+    only those portions of the gradient get applied to the parameters.
 
     Parameters
     ----------
@@ -19,8 +22,6 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
         learning rate
     momentum : float (optional)
         momentum factor (default: 0)
-    weight_decay : float (optional)
-        weight decay (L2 penalty) (default: 0)
     dampening : float (optional)
         dampening for momentum (default: 0)
     nesterov : bool (optional)
@@ -34,28 +35,15 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
     """
 
     def __init__(
-        self,
-        params,
-        lr,
-        momentum=0,
-        dampening=0,
-        weight_decay=0,
-        nesterov=False,
-        stabilize=None,
+        self, params, lr, momentum=0, dampening=0, nesterov=False, stabilize=None,
     ):
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
-        if weight_decay < 0.0:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
         defaults = dict(
-            lr=lr,
-            momentum=momentum,
-            dampening=dampening,
-            weight_decay=weight_decay,
-            nesterov=nesterov,
+            lr=lr, momentum=momentum, dampening=dampening, nesterov=nesterov,
         )
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
@@ -69,7 +57,6 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
             for group in self.param_groups:
                 if "step" not in group:
                     group["step"] = 0
-                weight_decay = group["weight_decay"]
                 momentum = group["momentum"]
                 dampening = group["dampening"]
                 nesterov = group["nesterov"]
@@ -78,25 +65,31 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                     grad = point.grad
                     if grad is None:
                         continue
-                    if grad.is_sparse:
+                    if not grad.is_sparse:
                         raise RuntimeError(
-                            "RiemannianSGD does not support sparse gradients, use SparseRiemannianSGD instead"
+                            "SparseRiemannianAdam does not support sparse gradients, use RiemannianAdam instead"
                         )
+                    # select rows that contain gradient
+                    rows = grad.coalesce().indices()[0].unique()
                     state = self.state[point]
 
                     # State initialization
                     if len(state) == 0:
                         if momentum > 0:
-                            state["momentum_buffer"] = grad.clone()
+                            state["momentum_buffer"] = grad.to_dense().clone()
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:
                         manifold = self._default_manifold
 
-                    grad.add_(weight_decay, point)
+                    full_point = point
+                    # only nonzero rows are required to make an update
+                    grad = grad.index_select(0, rows).to_dense()
+                    point = point[rows]
+
                     grad = manifold.egrad2rgrad(point, grad)
                     if momentum > 0:
-                        momentum_buffer = state["momentum_buffer"]
+                        momentum_buffer = state["momentum_buffer"][rows]
                         momentum_buffer.mul_(momentum).add_(1 - dampening, grad)
                         if nesterov:
                             grad = grad.add_(momentum, momentum_buffer)
@@ -106,12 +99,12 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                         new_point, new_momentum_buffer = manifold.retr_transp(
                             point, -learning_rate * grad, momentum_buffer
                         )
-                        momentum_buffer.set_(new_momentum_buffer)
                         # use copy only for user facing point
-                        copy_or_set_(point, new_point)
+                        state["momentum_buffer"][rows] = new_momentum_buffer
+                        full_point[rows] = new_point
                     else:
                         new_point = manifold.retr(point, -learning_rate * grad)
-                        copy_or_set_(point, new_point)
+                        full_point[rows] = new_point
 
                     group["step"] += 1
                 if self._stabilize is not None and group["step"] % self._stabilize == 0:
