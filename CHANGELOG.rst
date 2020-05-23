@@ -7,6 +7,9 @@ New Features
 ------------
 * BirkhoffPolytope (#125)
 
+Maintenance
+-----------
+* Tests for pytorch>=1.4, cpuonly (#133)
 
 geoopt v0.1.2
 ==============
