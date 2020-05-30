@@ -6,6 +6,7 @@ geoopt v0.2.0
 New Features
 ------------
 * BirkhoffPolytope (#125)
+* Lorenz Manifold (#121)
 
 Maintenance
 -----------
