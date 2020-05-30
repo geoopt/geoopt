@@ -14,4 +14,6 @@ from .stereographic import (
 from .product import ProductManifold
 from . import stereographic
 from . import scaled
+from . import lorentz
+from .lorentz import Lorentz
 from .scaled import Scaled

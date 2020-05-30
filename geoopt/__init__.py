@@ -24,6 +24,7 @@ from .manifolds import (
     SphereProjectionExact,
     ProductManifold,
     Scaled,
+    Lorentz,
     BirkhoffPolytope,
 )
 
