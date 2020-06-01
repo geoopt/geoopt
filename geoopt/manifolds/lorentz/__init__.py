@@ -25,7 +25,9 @@ _lorentz_ball_doc = r"""
 
 class Lorentz(Manifold):
     __doc__ = r"""{}
-    """
+    """.format(
+        _lorentz_ball_doc
+    )
 
     ndim = 1
     reversible = False
