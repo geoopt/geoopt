@@ -109,7 +109,7 @@ Citing Geoopt
 ~~~~~~~~~~~~~
 If you find this project useful in your research, please kindly add this bibtex entry in references and cite.
 
-.. code::
+.. code:: bibtex
 
     @misc{geoopt2020kochurov,
         title={Geoopt: Riemannian Optimization in PyTorch},
