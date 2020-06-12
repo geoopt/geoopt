@@ -8,6 +8,7 @@ New Features
 * BirkhoffPolytope (#125)
 * Lorenz Manifold (#121)
 * :math:`kappa`-Stereographic model (#126)
+* Sparse optimizers (#130)
 
 Maintenance
 -----------
