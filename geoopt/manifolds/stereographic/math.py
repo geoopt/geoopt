@@ -330,7 +330,7 @@ def lambda_x(x: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     Compute the conformal factor :math:`\lambda^\kappa_x` for a point on the ball.
 
     .. math::
-        \lambda^\kappa_x = \frac{1}{1 + \kappa \|x\|_2^2}
+        \lambda^\kappa_x = \frac{2}{1 + \kappa \|x\|_2^2}
 
     Parameters
     ----------
