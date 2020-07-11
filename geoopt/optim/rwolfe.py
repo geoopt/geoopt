@@ -238,5 +238,4 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         # Sometimes new_phi produced by scalar search is nonsense, use this instead.
         new_closure = self.phi_(step_size)
-        print('AAAAA')
         return new_closure
