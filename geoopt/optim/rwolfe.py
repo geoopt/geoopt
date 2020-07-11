@@ -1,7 +1,8 @@
-"""Riemannian Line Search
+"""Riemannian Line Search.
 
 This module implements line search on Riemannian manifolds using geoopt.
-This module uses the same syntax as a Torch optimizer"""
+This module uses the same syntax as a Torch optimizer
+"""
 
 from .mixin import OptimMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
@@ -13,6 +14,7 @@ __all__ = ["RiemannianLineSearch"]
 
 class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     r"""Riemannian line search optimizer using strong Wolfe conditions.
+
     If we try to minimize objective $f:M\to \mathbb{R}$, then we take a step in
     the direction $\eta=\mathrm{grad} f(x)$. We define objective function
     $$\phi(\alpha) = f(R_x(\alpha\eta))$$, where $R_x$ is the retraction at $x$.
@@ -58,7 +60,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         c2=0.9,
         fallback_stepsize=1,
         amax=50,
-        amin=1e-8
+        amin=1e-8,
     ):
         defaults = dict(
             c1=c1,
@@ -83,7 +85,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         self._step_size_dic = dict()
 
     def phi_(self, step_size):
-        "compute the line search objective, and store its derivatives in the state"
+        """Compute the line search objective, and store its derivatives in the state."""
 
         if step_size in self._step_size_dic:
             return self._step_size_dic[step_size]
@@ -137,10 +139,13 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         return phi
 
     def derphi_(self, step_size):
-        """Compute derivative of phi. The derivative of phi is given by computing inner
+        """Compute derivative of phi.
+
+        The derivative of phi is given by computing inner
         product between all tensor gradients at target point and those at source point.
         The source gradients are transported to the target point, and both gradients are
-        projected."""
+        projected.
+        """
 
         # Call phi_ to compute gradients; Does nothing if phi_ was
         # already called with this stepsize during this step
@@ -162,7 +167,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         return derphi
 
     def init_loss(self):
-        "Compute loss and gradients at start of line search"
+        """Compute loss and gradients at start of line search."""
 
         loss = self.closure()
         derphi0 = 0
@@ -191,8 +196,11 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         return loss, derphi0
 
     def step(self, closure):
-        """Do a line search step using strong wolfe conditions. If no suitable stepsize
-        can be computed, do unit step."""
+        """Do a line search step using strong wolfe conditions.
+
+        If no suitable stepsize can be computed, do unit step.
+        """
+
         self.closure = closure
         phi0, derphi0 = self.init_loss()
         self._step_size_dic = dict()
