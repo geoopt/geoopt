@@ -10,6 +10,7 @@ import torch
 
 __all__ = ["RiemannianLineSearch"]
 
+
 class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     r"""Riemannian line search optimizer using strong Wolfe conditions.
     If we try to minimize objective $f:M\to \mathbb{R}$, then we take a step in
@@ -237,4 +238,5 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         # Sometimes new_phi produced by scalar search is nonsense, use this instead.
         new_closure = self.phi_(step_size)
+        print('AAAAA')
         return new_closure

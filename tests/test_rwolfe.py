@@ -4,12 +4,9 @@ import torch
 import numpy as np
 import pytest
 
+
 @pytest.mark.parametrize(
-    "params",
-    [
-        dict(),
-        dict(c1=1e-3,c2=0.1)
-    ],
+    "params", [dict(), dict(c1=1e-3, c2=0.1)],
 )
 def test_rwolfe_stiefel(params):
     stiefel = geoopt.manifolds.Stiefel()
