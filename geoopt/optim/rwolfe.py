@@ -160,13 +160,12 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             ).item()
         return derphi
 
-    def init_loss(self, closure):
+    def init_loss(self):
         "Compute loss and gradients at start of line search"
 
-        loss = closure()
+        loss = self.closure()
         derphi0 = 0
         grad_norms = []
-        self.step_size_history = []
         self._step_size_dic = dict()
 
         for point in self._params:
@@ -194,7 +193,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         """Do a line search step using strong wolfe conditions. If no suitable stepsize
         can be computed, do unit step."""
         self.closure = closure
-        phi0, derphi0 = self.init_loss(closure)
+        phi0, derphi0 = self.init_loss()
         self._step_size_dic = dict()
 
         step_size, new_phi, old_phi = scalar_search_wolfe1(
@@ -236,6 +235,6 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             with torch.no_grad():
                 point.copy_(new_point)
 
-        # Cast scalar to a scalar Torch tensor
-        new_closure = torch.Tensor(1) + new_phi
+        # Sometimes new_phi produced by scalar search is nonsense, use this instead.
+        new_closure = self.phi_(step_size)
         return new_closure
