@@ -7,6 +7,7 @@ This module uses the same syntax as a Torch optimizer
 from .mixin import OptimMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
 from scipy.optimize.linesearch import scalar_search_wolfe1
+import warnings
 import torch
 
 __all__ = ["RiemannianLineSearch"]
@@ -73,7 +74,14 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         super(RiemannianLineSearch, self).__init__(
             params, defaults, stabilize=stabilize
         )
-        self._params = self.param_groups[0]["params"]
+        self._params = []
+        for group in self.param_groups:
+            self._params.extend(group["params"])
+        if len(self.param_groups) > 1:
+            warning_string = """Multiple parameter groups detected.
+            Line search parameters will be taken from first group.
+            """
+            warnings.warn(warning_string, UserWarning)
         self.c1 = self.param_groups[0]["c1"]
         self.c2 = self.param_groups[0]["c2"]
         self.fallback_stepsize = self.param_groups[0]["fallback_stepsize"]
@@ -130,6 +138,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
             state["new_grad"] = grad
 
+            state["der_phi"] = manifold.inner(point, -grad, state["grad_retr"])
+
         # roll back parameters to before step
         with torch.no_grad():
             for point, old_point in zip(self._params, param_copy):
@@ -154,16 +164,11 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         derphi = 0
         for point in self._params:
             state = self.state[point]
-            if "grad" not in state:
+            if "der_phi" not in state:
                 continue
 
-            # For some reason using the metric for inner product gives wrong results,
-            # therefore us euclidean product instead.
-            derphi += torch.tensordot(
-                -state["new_grad"],
-                state["grad_retr"],
-                dims=len(state["new_grad"].shape),
-            ).item()
+            derphi += state["der_phi"].item()
+
         return derphi
 
     def init_loss(self):
@@ -171,7 +176,6 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         loss = self.closure()
         derphi0 = 0
-        grad_norms = []
         self._step_size_dic = dict()
 
         for point in self._params:
@@ -186,12 +190,11 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             state = self.state[point]
             # project gradient onto tangent space
             grad = manifold.egrad2rgrad(point, grad)
-            grad_norms.append(grad.norm().item())
+            grad_norm = manifold.norm(point, grad)
             state["grad"] = grad
-            state["loss"] = loss
 
             # contribution to phi'(0) is just grad norm squared
-            derphi0 += -((grad.norm().item()) ** 2)
+            derphi0 += -((grad_norm) ** 2)
 
         return loss, derphi0
 
@@ -225,9 +228,6 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             step_size = self.fallback_stepsize
 
         for point in self._params:
-            if step_size is None:
-                continue
-
             state = self.state[point]
             if "grad" not in state:
                 continue
@@ -238,12 +238,19 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
             grad = state["grad"]
 
-            # compute retract and transport in gradient direction
+            # Use retract to perform the step
             new_point = manifold.retr(point, -1 * step_size * grad)
 
             with torch.no_grad():
                 point.copy_(new_point)
 
+                if (
+                    self._stabilize is not None
+                    and len(self.step_size_history) % self._stabilize == 0
+                ):
+                    point.copy_(manifold.projx(point))
+
         # Sometimes new_phi produced by scalar search is nonsense, use this instead.
+        # We pull this value from a cache, so this is free
         new_closure = self.phi_(step_size)
         return new_closure
