@@ -6,7 +6,7 @@ This module uses the same syntax as a Torch optimizer
 
 from .mixin import OptimMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
-from scipy.optimize.linesearch import scalar_search_wolfe1
+from scipy.optimize.linesearch import scalar_search_wolfe1, scalar_search_armijo
 import warnings
 import torch
 
@@ -37,6 +37,10 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     params : iterable
         iterable of parameters to optimize or dicts defining
         parameter groups
+    line_search_method : ('wolfe' or 'armijo')
+        Flag whether to use (strong) Wolfe conditions for line search,
+        or use Armijo backtracking. If `armijo` is chosen, parameters
+        `c2` and `amax` are ignored. (default: 'wolfe')
     c1 : float
         Parameter controlling Armijo rule (default: 1e-4)
     c2 : float
@@ -56,14 +60,16 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     def __init__(
         self,
         params,
-        stabilize=None,
+        line_search_method="wolfe",
         c1=1e-4,
         c2=0.9,
         fallback_stepsize=1,
         amax=50,
         amin=1e-8,
+        stabilize=None,
     ):
         defaults = dict(
+            line_search_method=line_search_method,
             c1=c1,
             c2=c2,
             fallback_stepsize=fallback_stepsize,
@@ -82,6 +88,11 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             Line search parameters will be taken from first group.
             """
             warnings.warn(warning_string, UserWarning)
+        self.line_search_method = self.param_groups[0]["line_search_method"]
+        if self.line_search_method not in ("wolfe", "armijo"):
+            raise ValueError(
+                f"Unrecognized line search method '{self.line_search_method}'"
+            )
         self.c1 = self.param_groups[0]["c1"]
         self.c2 = self.param_groups[0]["c2"]
         self.fallback_stepsize = self.param_groups[0]["fallback_stepsize"]
@@ -138,7 +149,9 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
             state["new_grad"] = grad
 
-            state["der_phi"] = torch.sum(manifold.inner(point, -grad, state["grad_retr"]))
+            state["der_phi"] = torch.sum(
+                manifold.inner(point, -grad, state["grad_retr"])
+            )
 
         # roll back parameters to before step
         with torch.no_grad():
@@ -190,7 +203,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             state = self.state[point]
             # project gradient onto tangent space
             grad = manifold.egrad2rgrad(point, grad)
-            grad_norm = torch.sum(manifold.norm(point, grad))
+            grad_norm = torch.sum(manifold.norm(point, grad)).item()
             state["grad"] = grad
 
             # contribution to phi'(0) is just grad norm squared
@@ -208,17 +221,28 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         phi0, derphi0 = self.init_loss()
         self._step_size_dic = dict()
 
-        step_size, new_phi, old_phi = scalar_search_wolfe1(
-            self.phi_,
-            self.derphi_,
-            phi0=phi0,
-            derphi0=derphi0,
-            old_phi0=self.old_phi,
-            c1=self.c1,
-            c2=self.c2,
-            amax=self.amax,
-            amin=self.amin,
-        )
+        if self.line_search_method == "wolfe":
+            step_size, new_phi, old_phi = scalar_search_wolfe1(
+                self.phi_,
+                self.derphi_,
+                phi0=phi0,
+                derphi0=derphi0,
+                old_phi0=self.old_phi,
+                c1=self.c1,
+                c2=self.c2,
+                amax=self.amax,
+                amin=self.amin,
+            )
+        elif self.line_search_method == "armijo":
+            if self.old_phi is None:
+                alpha0 = self.fallback_stepsize
+            else:  # Use previous function value to estimate initial step length
+                alpha0 = 2 * (phi0 - self.old_phi) / derphi0
+            step_size, new_phi = scalar_search_armijo(
+                self.phi_, phi0, derphi0, c1=self.c1, alpha0=alpha0, amin=self.amin,
+            )
+            old_phi = phi0
+
         self.step_size_history.append(step_size)
 
         self.old_phi = old_phi
