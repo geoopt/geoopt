@@ -138,7 +138,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
             state["new_grad"] = grad
 
-            state["der_phi"] = manifold.inner(point, -grad, state["grad_retr"])
+            state["der_phi"] = torch.sum(manifold.inner(point, -grad, state["grad_retr"]))
 
         # roll back parameters to before step
         with torch.no_grad():
@@ -167,7 +167,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             if "der_phi" not in state:
                 continue
 
-            derphi += state["der_phi"].item()
+            derphi += torch.sum(state["der_phi"])
 
         return derphi
 
@@ -190,7 +190,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             state = self.state[point]
             # project gradient onto tangent space
             grad = manifold.egrad2rgrad(point, grad)
-            grad_norm = manifold.norm(point, grad)
+            grad_norm = torch.sum(manifold.norm(point, grad))
             state["grad"] = grad
 
             # contribution to phi'(0) is just grad norm squared
