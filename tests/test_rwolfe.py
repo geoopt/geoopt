@@ -6,9 +6,12 @@ import pytest
 
 
 @pytest.mark.parametrize(
-    "params", [dict(), dict(c1=1e-3, c2=0.1), dict(line_search_method="armijo")],
+    "opt_params",
+    [dict(), dict(c1=1e-3, c2=0.5), dict(amax=1, amin=1e-5), dict(stabilize=10)],
 )
-def test_rwolfe_stiefel(params):
+@pytest.mark.parametrize("batch_size", [None, 1, 16])
+@pytest.mark.parametrize("line_search_method", ["armijo", "wolfe"])
+def test_rwolfe_stiefel(opt_params, batch_size, line_search_method):
     # Use line search to solve orthogonal procrustes
     stiefel = geoopt.manifolds.Stiefel()
     torch.manual_seed(42)
@@ -19,7 +22,10 @@ def test_rwolfe_stiefel(params):
     B = Q @ A
 
     with torch.no_grad():
-        X = stiefel.random((n, n), dtype=torch.float64)
+        if batch_size is None:
+            X = stiefel.random((n, n), dtype=torch.float64)
+        else:
+            X = stiefel.random((batch_size, n, n), dtype=torch.float64)
         X.requires_grad = True
 
     def closure():
@@ -28,12 +34,12 @@ def test_rwolfe_stiefel(params):
         loss.backward()
         return loss.item()
 
-    optim = geoopt.optim.RiemannianLineSearch([X], **params)
-    losses = []
+    optim = geoopt.optim.RiemannianLineSearch(
+        [X], line_search_method=line_search_method, **opt_params
+    )
+    loss = None
     for i in range(1000):
-        losses.append(optim.step(closure))
-        if losses[-1] < 1e-4:
+        loss = optim.step(closure)
+        if optim.last_step_size is None:
             break
-    assert closure() < 1e-4
-
-    optim.step(closure)
+    assert loss < 1e-3
