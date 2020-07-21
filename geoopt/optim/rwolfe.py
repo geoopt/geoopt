@@ -46,8 +46,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     c2 : float
         Parameter controlling curvature rule (default: 0.9)
     fallback_stepsize : float
-        fallback_stepsize to take if no point can be found satisfying the
-        Wolfe conditions (default: 1)
+        fallback_stepsize to take if no point can be found satisfying
+        line search conditions (default: 1)
     amax : float
         maximum step size (default: 50)
     amin : float
@@ -100,6 +100,10 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         self.amin = self.param_groups[0]["amin"]
         self.old_phi = None
         self.step_size_history = []
+        self.last_step_size = None
+        self._last_step = None
+        self._grads_computed = False
+        self.prev_loss = None
         self.closure = None
         self._step_size_dic = dict()
 
@@ -152,6 +156,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             state["der_phi"] = torch.sum(
                 manifold.inner(point, -grad, state["grad_retr"])
             )
+        self._grads_computed = True
 
         # roll back parameters to before step
         with torch.no_grad():
@@ -159,6 +164,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
                 point.copy_(old_point)
 
         self._step_size_dic[step_size] = phi
+        self._last_step = step_size
         return phi
 
     def derphi_(self, step_size):
@@ -184,37 +190,54 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         return derphi
 
-    def init_loss(self):
-        """Compute loss and gradients at start of line search."""
+    def init_loss(self, force_recompute=False):
+        """Compute loss and gradients at start of line search.
 
-        loss = self.closure()
+        Parameters
+        --------
+        force_recompute : bool
+            If True, recompute the gradients. Use this if the parameters
+            have changed in between consecutive steps. (default: False)
+        """
+
+        if force_recompute or (not self._grads_computed):
+            loss = self.closure()
+            reuse_grads = False
+        else:
+            loss = self.prev_loss
+            reuse_grads = True
+
         derphi0 = 0
         self._step_size_dic = dict()
 
         for point in self._params:
-            grad = point.grad
-            if grad is None:
-                continue
+            state = self.state[point]
             if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                 manifold = point.manifold
             else:  # Use euclidean manifold
                 manifold = self._default_manifold
+            if reuse_grads:
+                grad = state["new_grad"]
+            else:
+                grad = point.grad
+                grad = manifold.egrad2rgrad(point, grad)
 
-            state = self.state[point]
-            # project gradient onto tangent space
-            grad = manifold.egrad2rgrad(point, grad)
-            grad_norm = torch.sum(manifold.norm(point, grad)).item()
+            grad_norm_squared = torch.sum(manifold.inner(point, grad)).item()
             state["grad"] = grad
 
             # contribution to phi'(0) is just grad norm squared
-            derphi0 += -((grad_norm) ** 2)
+            derphi0 += -grad_norm_squared
+
+        self._grads_computed = True
 
         return loss, derphi0
 
-    def step(self, closure):
-        """Do a line search step using strong wolfe conditions.
+    def step(self, closure, force_step=False):
+        """Do a line search step using strong wolfe or armijo conditions.
 
-        If no suitable stepsize can be computed, do unit step.
+        If no suitable stepsize can be computed, probably convergence has been reached.
+        The default behavior is to not do a step in this case, but if `force_step=True`,
+        then a step of constant size is taken.
         """
 
         self.closure = closure
@@ -244,14 +267,29 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             old_phi = phi0
 
         self.step_size_history.append(step_size)
+        self.last_step_size = step_size
 
         self.old_phi = old_phi
 
-        # If it fails to find a good step, just do a unit sized step
+        # Ensure that the last step for which we computed the closure coincides with
+        # proposed step size, so that we can reuse the gradients.
+        if self._last_step != step_size:
+            self._grads_computed = False
+
+        # If it fails to find a good step, probably we have convergence
         if step_size is None:
-            step_size = self.fallback_stepsize
+            if force_step:
+                step_size = self.fallback_stepsize
+                self._grads_computed = False
+            else:
+                warning_string = """No suitable step size could be found, and no step
+                was taken. Call `step` with `force_step=True` to take a step anyway.
+                """
+                warnings.warn(warning_string, UserWarning)
 
         for point in self._params:
+            if step_size is None:
+                continue
             state = self.state[point]
             if "grad" not in state:
                 continue
@@ -276,5 +314,9 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         # Sometimes new_phi produced by scalar search is nonsense, use this instead.
         # We pull this value from a cache, so this is free
-        new_closure = self.phi_(step_size)
+        if step_size is not None:
+            new_closure = self.phi_(step_size)
+            self.prev_loss = new_closure
+        else:
+            new_closure = self.prev_loss
         return new_closure
