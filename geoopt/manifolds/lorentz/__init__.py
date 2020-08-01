@@ -60,7 +60,7 @@ class Lorentz(Manifold):
         inner_ = math.inner(u, x, dim=dim)
         ok = torch.allclose(inner_, torch.zeros(1), atol=atol, rtol=rtol)
         if not ok:
-            reason = "Minkowski inner produt is not equal to zero"
+            reason = "Minkowski inner produсt is not equal to zero"
         else:
             reason = None
         return ok, reason
@@ -123,6 +123,7 @@ class Lorentz(Manifold):
         dim=-1,
     ) -> torch.Tensor:
         # TODO: x argument for maintaining the support of optims
+        # FIXME: project U?
         if v is None:
             v = u
         return math.inner(u, v, dim=dim, keepdim=keepdim)
@@ -136,12 +137,14 @@ class Lorentz(Manifold):
     def transp(
         self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor, *, dim=-1
     ) -> torch.Tensor:
+        # FIXME: project U?
         return math.parallel_transport(x, y, v, k=self.k, dim=dim)
 
     def transp0(self, y: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.parallel_transport0(y, u, k=self.k, dim=dim)
 
     def transp0back(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        # FIXME: project U?
         return math.parallel_transport0back(x, u, k=self.k, dim=dim)
 
     def transp_follow_expmap(
@@ -154,6 +157,7 @@ class Lorentz(Manifold):
     def geodesic_unit(
         self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:
+        # FIXME: project U
         res = math.geodesic_unit(t, x, u, k=self.k)
         if project:
             return math.project(res, k=self.k, dim=dim)
