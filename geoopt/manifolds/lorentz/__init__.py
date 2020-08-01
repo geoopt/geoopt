@@ -1,11 +1,9 @@
-import torch as th
 import torch.nn
-import numpy as np
 from typing import Tuple, Optional
 from . import math
 import geoopt
 from ..base import Manifold, ScalingInfo
-from ...utils import size2shape, broadcast_shapes
+from ...utils import size2shape
 
 __all__ = ["Lorentz"]
 
@@ -78,9 +76,6 @@ class Lorentz(Manifold):
 
     def norm(self, u: torch.Tensor, *, keepdim=False, dim=-1) -> torch.Tensor:
         return math.norm(u, keepdim=keepdim, dim=dim)
-
-    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
-        return math.egrad2rgrad(x, u, dim=dim)
 
     def projx(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.project(x, k=self.k, dim=dim)
@@ -203,8 +198,9 @@ class Lorentz(Manifold):
             raise ValueError(
                 "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
             )
-        tens = torch.randn(*size, device=self.k.device, dtype=self.k.dtype) * std + mean
+        tens = torch.randn(*size, device=self.k.device, dtype=self.k.dtype)
         tens /= tens.norm(dim=-1, keepdim=True)
+        tens = tens * std + mean
         return geoopt.ManifoldTensor(self.expmap0(tens), manifold=self)
 
     def origin(
@@ -239,3 +235,4 @@ class Lorentz(Manifold):
         return geoopt.ManifoldTensor(zero_point, manifold=self)
 
     retr = expmap
+    random = random_normal

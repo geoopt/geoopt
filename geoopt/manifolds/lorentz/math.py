@@ -685,3 +685,34 @@ def poincare_to_lorentz(x, k, dim=-1, eps=1e-6):
         / (1.0 - x_norm_square + eps)
     )
     return res
+
+
+def mobius_add(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
+    ...
+
+
+def mobius_matvec(m: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
+    ...
+
+
+def mobius_scalar_mul(r: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
+    ...
+
+
+def mobius_pointwise_mul(w: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
+    ...
+
+
+def mobius_fn_apply(
+    fn: callable, x: torch.Tensor, *args, k: torch.Tensor, dim=-1, **kwargs
+):
+    ...
+
+
+def mobius_fn_apply_chain(x: torch.Tensor, *fns: callable, k: torch.Tensor, dim=-1):
+    ...
+
+
+def mobiusify(fn: callable):
+    ...
+
