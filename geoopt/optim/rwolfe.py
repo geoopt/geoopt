@@ -14,23 +14,39 @@ __all__ = ["RiemannianLineSearch"]
 
 
 class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
-    r"""Riemannian line search optimizer using strong Wolfe conditions.
+    r"""Riemannian line search optimizer.
 
-    If we try to minimize objective $f:M\to \mathbb{R}$, then we take a step in
-    the direction $\eta=\mathrm{grad} f(x)$. We define objective function
-    $$\phi(\alpha) = f(R_x(\alpha\eta))$$, where $R_x$ is the retraction at $x$.
-    The Wolfe conditions for the step size $\alpha$ are then given by
-    $$f(R_x(\alpha\eta))\leq f(x)+c_1 \alpha \langle\mathrm{grad} f(x),\eta\rangle$$
-    and
-    $$\langle\mathrm{grad}f(R_x(\alpha\eta)),\mathcal T(\alpha \eta,\grad f(x))\rangle
-    \geq c_2\langle\mathrm{grad}f(x),\eta\rangle,$$
-    where $\mathcal T$ is the vector transport. In terms of the line search objective
-    these are simply given by
-    $$\phi(\alpha)\leq \phi(0)+c_1\alpha\phi'(0)$$
-    and
-    $$\phi'(\alpha)\geq c_2\phi'(0)$$
+    If we try to minimize objective :math:`f\colon M\to \mathbb{R}`, then we take a
+    step in the direction :math:`\eta=\mathrm{grad} f(x)`. We define objective function
 
-    The constants $c_1$ and $c_2$ satisfy $c_1\in (0,1)$ and $c_2\in (c_1,1)$.
+    .. math::
+        \phi(\alpha) = f(R_x(\alpha\eta)),
+
+    where :math:`R_x` is the retraction at :math:`x`.
+    The Wolfe conditions for the step size :math:`\alpha` are then given by
+
+    .. math::
+        f(R_x(\alpha\eta))\leq f(x)+c_1 \alpha \langle\mathrm{grad} f(x),\eta\rangle
+
+    and
+
+    .. math::
+        \langle\mathrm{grad}f(R_x(\alpha\eta)),\mathcal T(\alpha \eta,\mathrm{grad}
+        f(x))\rangle \geq c_2\langle\mathrm{grad}f(x),\eta\rangle,
+
+    where :math:`\mathcal T` is the vector transport. In terms of the line search
+    objective these are simply given by
+
+    .. math::
+        \phi(\alpha)\leq \phi(0)+c_1\alpha\phi'(0)
+
+    and
+
+    .. math::
+        \phi'(\alpha)\geq c_2\phi'(0)
+
+    The constants :math:`c_1` and :math:`c_2` satisfy :math:`c_1\in (0,1)`
+    and :math:`c_2\in (c_1,1)`.
 
     Parameters
     ----------
@@ -47,7 +63,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         Parameter controlling curvature rule (default: 0.9)
     fallback_stepsize : float
         fallback_stepsize to take if no point can be found satisfying
-        line search conditions (default: 1)
+        line search conditions. See also :meth:`step` (default: 1)
     amax : float
         maximum step size (default: 50)
     amin : float
@@ -55,6 +71,14 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     stabilize : int
         Stabilize parameters if they are off-manifold due to numerical
         reasons every ``stabilize`` steps (default: ``None`` -- no stabilize)
+
+    Attributes
+    ----------
+    last_step_size : int or `None`
+        Last step size taken. If `None` no suitable step size was
+        found, and consequently no step was taken.
+    step_size_history : List[int or `None`]
+        List of all step sizes taken so far.
     """
 
     def __init__(
@@ -107,7 +131,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         self.closure = None
         self._step_size_dic = dict()
 
-    def phi_(self, step_size):
+    def _phi(self, step_size):
         """Compute the line search objective, and store its derivatives in the state."""
 
         if step_size in self._step_size_dic:
@@ -167,7 +191,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         self._last_step = step_size
         return phi
 
-    def derphi_(self, step_size):
+    def _derphi(self, step_size):
         """Compute derivative of phi.
 
         The derivative of phi is given by computing inner
@@ -176,9 +200,9 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         projected.
         """
 
-        # Call phi_ to compute gradients; Does nothing if phi_ was
+        # Call _phi to compute gradients; Does nothing if _phi was
         # already called with this stepsize during this step
-        self.phi_(step_size)
+        self._phi(step_size)
 
         derphi = 0
         for point in self._params:
@@ -190,17 +214,10 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         return derphi
 
-    def init_loss(self, force_recompute=False):
-        """Compute loss and gradients at start of line search.
+    def _init_loss(self, recompute_gradients=False):
+        """Compute loss and gradients at start of line search."""
 
-        Parameters
-        --------
-        force_recompute : bool
-            If True, recompute the gradients. Use this if the parameters
-            have changed in between consecutive steps. (default: False)
-        """
-
-        if force_recompute or (not self._grads_computed):
+        if recompute_gradients or (not self._grads_computed):
             loss = self.closure()
             reuse_grads = False
         else:
@@ -232,22 +249,31 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         return loss, derphi0
 
-    def step(self, closure, force_step=False):
+    def step(self, closure=None, force_step=False, recompute_gradients=False):
         """Do a line search step using strong wolfe or armijo conditions.
 
-        If no suitable stepsize can be computed, probably convergence has been reached.
-        The default behavior is to not do a step in this case, but if `force_step=True`,
-        then a step of constant size is taken.
+        Parameters
+        ----------
+        closure : callable
+            A closure that reevaluates the model and returns the loss. 
+            Optional for most optimizers.
+        force_step : bool
+            If `True`, take a unit step of size `self.fallback_stepsize`
+            if no suitable step size can be found.
+            If `False`, no step is taken in this situation. (default: `False`)
+        recompute_gradients : bool
+            If True, recompute the gradients. Use this if the parameters
+            have changed in between consecutive steps. (default: False)
         """
 
         self.closure = closure
-        phi0, derphi0 = self.init_loss()
+        phi0, derphi0 = self._init_loss(recompute_gradients=recompute_gradients)
         self._step_size_dic = dict()
 
         if self.line_search_method == "wolfe":
             step_size, new_phi, old_phi = scalar_search_wolfe1(
-                self.phi_,
-                self.derphi_,
+                self._phi,
+                self._derphi,
                 phi0=phi0,
                 derphi0=derphi0,
                 old_phi0=self.old_phi,
@@ -262,7 +288,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             else:  # Use previous function value to estimate initial step length
                 alpha0 = 2 * (phi0 - self.old_phi) / derphi0
             step_size, new_phi = scalar_search_armijo(
-                self.phi_, phi0, derphi0, c1=self.c1, alpha0=alpha0, amin=self.amin,
+                self._phi, phi0, derphi0, c1=self.c1, alpha0=alpha0, amin=self.amin,
             )
             old_phi = phi0
 
@@ -315,8 +341,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         # Sometimes new_phi produced by scalar search is nonsense, use this instead.
         # We pull this value from a cache, so this is free
         if step_size is not None:
-            new_closure = self.phi_(step_size)
-            self.prev_loss = new_closure
+            new_loss = self._phi(step_size)
+            self.prev_loss = new_loss
         else:
-            new_closure = self.prev_loss
-        return new_closure
+            new_loss = self.prev_loss
+        return new_loss
