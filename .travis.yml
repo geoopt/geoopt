@@ -17,7 +17,7 @@ env:
 
 matrix:
   allow_failures:
-    - env: PYTHON_VERSION=3.7 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
+    - env: PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
 
 os:
   - linux
