@@ -5,7 +5,7 @@ import pytest
 from geoopt.manifolds import lorentz
 
 
-@pytest.fixture("module", autouse=True, params=range(30, 40))
+@pytest.fixture(scope="module", autouse=True, params=range(30, 40))
 def seed(request):
     seed = request.param
     torch.manual_seed(seed)
@@ -14,7 +14,7 @@ def seed(request):
     return seed
 
 
-@pytest.fixture("module", params=[torch.float64, torch.float32])
+@pytest.fixture(scope="module", params=[torch.float64, torch.float32])
 def dtype(request):
     return request.param
 

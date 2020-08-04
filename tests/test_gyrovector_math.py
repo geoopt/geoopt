@@ -10,7 +10,7 @@ import itertools
 from geoopt.manifolds import stereographic
 
 
-@pytest.fixture("function", autouse=True, params=range(30, 40))
+@pytest.fixture(scope="function", autouse=True, params=range(30, 40))
 def seed(request):
     seed = request.param
     torch.manual_seed(seed)
@@ -20,7 +20,7 @@ def seed(request):
 
 
 @pytest.fixture(
-    "function", params=[torch.float64, torch.float32], ids=["float64", "float32"]
+    scope="function", params=[torch.float64, torch.float32], ids=["float64", "float32"]
 )
 def dtype(request):
     return request.param
