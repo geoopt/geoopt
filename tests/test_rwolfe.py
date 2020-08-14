@@ -31,7 +31,7 @@ def test_rwolfe_stiefel(line_search_params, batch_size, line_search_method, cg_m
 
     def closure():
         optim.zero_grad()
-        loss = (X @ A - B).norm()**2
+        loss = (X @ A - B).norm() ** 2
         loss.backward()
         return loss.item()
 
