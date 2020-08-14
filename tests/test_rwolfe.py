@@ -31,7 +31,7 @@ def test_rwolfe_stiefel(line_search_params, batch_size, line_search_method, cg_m
 
     def closure():
         optim.zero_grad()
-        loss = (X @ A - B).norm()
+        loss = (X @ A - B).norm()**2
         loss.backward()
         return loss.item()
 
@@ -46,6 +46,6 @@ def test_rwolfe_stiefel(line_search_params, batch_size, line_search_method, cg_m
     for i in range(1000):
         loss = optim.step(closure)
         # Stop when no new step can be found, or goal reached
-        if optim.last_step_size is None or loss < 1e-1:
+        if optim.last_step_size is None or loss < 1e-4:
             break
-    assert loss < 1e-1
+    assert loss < 1e-4
