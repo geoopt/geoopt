@@ -523,6 +523,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         if step_size is not None:
             new_loss = self._phi(step_size)
             self.prev_loss = new_loss
+        else:
+            new_loss = self.prev_loss
         return new_loss
 
 
