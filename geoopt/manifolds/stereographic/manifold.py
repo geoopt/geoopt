@@ -100,7 +100,8 @@ class Stereographic(Manifold):
     :class:`SphereProjection`
     :class:`SphereProjectionExact`
     """.format(
-        _stereographic_doc, _references,
+        _stereographic_doc,
+        _references,
     )
 
     ndim = 1
