@@ -2,4 +2,4 @@ from .rsgd import RiemannianSGD
 from .radam import RiemannianAdam
 from .sparse_radam import SparseRiemannianAdam
 from .sparse_rsgd import SparseRiemannianSGD
-from .rwolfe import RiemannianLineSearch
+from .rlinesearch import RiemannianLineSearch

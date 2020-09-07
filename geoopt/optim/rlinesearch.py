@@ -60,7 +60,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     .. math::
         \phi'(\alpha)\geq c_2\phi'(0)
 
-    The Wolfe conditions are more restrictive, but gaurantee that search direction
+    The Wolfe conditions are more restrictive, but guarantee that search direction
     :math:`\eta` is a descent direction.
 
     The constants :math:`c_1` and :math:`c_2` satisfy :math:`c_1\in (0,1)`
@@ -92,7 +92,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         Method used to compute the conjugate gradient scale parameter beta.
         If 'steepest', set the scale parameter to zero, which is equivalent
         to doing steepest descent. Use 'fr' for Fletcher-Reeves, or 'pr' for
-        Polak-Ribière (NB: this sets requires an additional vector transport).
+        Polak-Ribière (NB: this setting requires an additional vector transport).
         If callable, it should be a function of signature
         `(params, states, **kwargs) -> beta`,
         where params are the parameters of this optimizer,
@@ -110,7 +110,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         to be manually set for a user implemented line search method.
     transport_grad : bool, optional
         If True, the transport of the gradient to the new point is computed
-        at the end of every step. Set to True if Polak-Ribière is used, otherwise
+        at the end of every step. Set to `True` if Polak-Ribière is used, otherwise
         defaults to `False`.
     transport_search_direction: bool, optional
         If True, transport the search direction to new point at end of every step.
@@ -136,7 +136,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     line_search_params : dict
     cg_method : callable
     cg_kwargs : dict
-    fallback_setpsize : float
+    fallback_stepsize : float
     """
 
     def __init__(
@@ -673,7 +673,7 @@ def armijo_backtracking(
     # TODO: Allow different schemes to choose initial step size
 
     if old_phi0 is not None and derphi0 != 0:
-        alpha0 = min(1.0, 1.01 * 2 * (phi0 - old_phi0) / derphi0)
+        alpha0 = 1.01 * 2 * (phi0 - old_phi0) / derphi0
     else:
         alpha0 = 1.0
     if alpha0 <= 0:
