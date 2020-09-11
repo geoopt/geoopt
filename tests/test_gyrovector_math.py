@@ -271,10 +271,12 @@ def r2(seed, dtype, B):
 def test_scalar_multiplication_distributive(a, r1, r2, manifold, dtype):
     res = manifold.mobius_scalar_mul(r1 + r2, a)
     res1 = manifold.mobius_add(
-        manifold.mobius_scalar_mul(r1, a), manifold.mobius_scalar_mul(r2, a),
+        manifold.mobius_scalar_mul(r1, a),
+        manifold.mobius_scalar_mul(r2, a),
     )
     res2 = manifold.mobius_add(
-        manifold.mobius_scalar_mul(r1, a), manifold.mobius_scalar_mul(r2, a),
+        manifold.mobius_scalar_mul(r1, a),
+        manifold.mobius_scalar_mul(r2, a),
     )
     tolerance = {
         torch.float32: dict(atol=5e-6, rtol=1e-4),
@@ -454,7 +456,9 @@ def test_matvec_chain_via_equiv_fn_apply(a, negative, manifold, dtype):
     mat1 = a.new(a.shape[-1], a.shape[-1]).normal_()
     mat2 = a.new(a.shape[-1], a.shape[-1]).normal_()
     y = manifold.mobius_fn_apply_chain(
-        a, lambda x: x @ mat1.transpose(-1, -2), lambda x: x @ mat2.transpose(-1, -2),
+        a,
+        lambda x: x @ mat1.transpose(-1, -2),
+        lambda x: x @ mat2.transpose(-1, -2),
     )
     y1 = manifold.mobius_matvec(mat1, a)
     y1 = manifold.mobius_matvec(mat2, y1)

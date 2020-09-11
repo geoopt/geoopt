@@ -35,7 +35,13 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
     """
 
     def __init__(
-        self, params, lr, momentum=0, dampening=0, nesterov=False, stabilize=None,
+        self,
+        params,
+        lr,
+        momentum=0,
+        dampening=0,
+        nesterov=False,
+        stabilize=None,
     ):
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -43,7 +49,10 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
             raise ValueError("Invalid momentum value: {}".format(momentum))
 
         defaults = dict(
-            lr=lr, momentum=momentum, dampening=dampening, nesterov=nesterov,
+            lr=lr,
+            momentum=momentum,
+            dampening=dampening,
+            nesterov=nesterov,
         )
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
