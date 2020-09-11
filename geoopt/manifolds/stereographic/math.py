@@ -1096,7 +1096,11 @@ def geodesic_unit(
 
 @torch.jit.script
 def _geodesic_unit(
-    t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1,
+    t: torch.Tensor,
+    x: torch.Tensor,
+    u: torch.Tensor,
+    k: torch.Tensor,
+    dim: int = -1,
 ):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
     second_term = tan_k(t / 2.0, k) * (u / u_norm)

@@ -237,7 +237,10 @@ def proj_tangent(x, u):
     z1 = mu.sum(dim=-1).unsqueeze(-1)
     zt1 = mu.sum(dim=-2).unsqueeze(-1)
 
-    b = torch.cat([z1, zt1], dim=1,)
+    b = torch.cat(
+        [z1, zt1],
+        dim=1,
+    )
     rhs = B.transpose(1, 2) @ (b - A[:, :, 0:1])
     lhs = B.transpose(1, 2) @ B
     zeta, _ = torch.solve(rhs, lhs)
