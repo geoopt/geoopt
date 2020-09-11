@@ -643,7 +643,13 @@ def strong_wolfe_line_search(
     """
 
     step_size, _, _, _ = scalar_search_wolfe2(
-        phi, derphi, phi0=phi0, old_phi0=old_phi0, c1=c1, c2=c2, amax=amax,
+        phi,
+        derphi,
+        phi0=phi0,
+        old_phi0=old_phi0,
+        c1=c1,
+        c2=c2,
+        amax=amax,
     )
 
     return step_size
