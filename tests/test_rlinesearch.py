@@ -1,7 +1,5 @@
-import sys
 import geoopt
 import torch
-import numpy as np
 import pytest
 
 
