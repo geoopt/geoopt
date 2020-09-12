@@ -355,4 +355,5 @@ intersphinx_mapping = {
     "numpy": ("http://docs.scipy.org/doc/numpy/", None),
     "python": ("https://docs.python.org/", None),
     "torch": ("https://pytorch.org/docs/master/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
 }
