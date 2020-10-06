@@ -6,6 +6,7 @@ geoopt v0.3.0
 New Features
 ------------
 * Riemannian Line Search (#140)
+* Per group stabilization (#149)
 
 Maintenance
 -----------
