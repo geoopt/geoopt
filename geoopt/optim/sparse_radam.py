@@ -110,9 +110,10 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     exp_avg_sq = state["exp_avg_sq"][rows]
                     # actual step
                     grad = manifold.egrad2rgrad(point, grad)
-                    exp_avg.mul_(betas[0]).add_(1 - betas[0], grad)
+                    exp_avg.mul_(betas[0]).add_(grad, alpha=1 - betas[0])
                     exp_avg_sq.mul_(betas[1]).add_(
-                        1 - betas[1], manifold.component_inner(point, grad)
+                        manifold.component_inner(point, grad),
+                        alpha=1 - betas[1]
                     )
                     if amsgrad:
                         max_exp_avg_sq = state["max_exp_avg_sq"][rows]
