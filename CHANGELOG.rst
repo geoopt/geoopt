@@ -9,7 +9,7 @@ New Features
 
 Maintenance
 -----------
-
+* Fix API warnings (raised in #148)
 
 geoopt v0.2.0
 =============
