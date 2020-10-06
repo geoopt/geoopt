@@ -36,7 +36,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
     .. math::
 
-        \phi'(alpha) = \langle\mathrm{grad} f(R_x(\alpha\eta)),\,
+        \phi'(\alpha) = \langle\mathrm{grad} f(R_x(\alpha\eta)),\,
         \mathcal T_{\alpha\eta}(\eta) \rangle_{R_x(\alpha\eta)},
 
     where :math:`\mathcal T_\xi(\eta)` denotes the vector transport of :math:`\eta`
@@ -46,8 +46,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
     .. math::
 
-        \eta_{k+1} = -\mathrm{grad} f(R_{x_k}(\alpha_k\eta_k))+
-        \beta \mathcal T_{\alpha_k\eta_k}(\eta_k)
+        \eta_{k+1} = -\mathrm{grad} f(R_{x_k}(\alpha_k\eta_k))
+        + \beta \mathcal T_{\alpha_k\eta_k}(\eta_k)
 
     Here :math:`\beta` is the scale parameter. If :math:`\beta=0` this is steepest
     descent, other choices are Riemannian version of Fletcher-Reeves and
@@ -83,11 +83,11 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         where phi is scalar line search objective, and derphi is its derivative.
         If no suitable step size can be found, the method should return `None`.
         The following arguments are always passed in `**kwargs`:
-            * **phi0:** float, Value of phi at 0
-            * **old_phi0:** float, Value of phi at previous point
-            * **derphi0:** float, Value derphi at 0
-            * **old_derphi0:** float, Value of derphi at previous point
-            * **old_step_size:** float, Stepsize at previous point
+        * **phi0:** float, Value of phi at 0
+        * **old_phi0:** float, Value of phi at previous point
+        * **derphi0:** float, Value derphi at 0
+        * **old_derphi0:** float, Value of derphi at previous point
+        * **old_step_size:** float, Stepsize at previous point
         If any of these arguments are undefined, they default to `None`.
         Additional arguments can be supplied through the `line_search_params` parameter
     line_search_params : dict

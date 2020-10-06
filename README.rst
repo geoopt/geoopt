@@ -79,8 +79,8 @@ Manifolds
 -  ``geoopt.BirkhoffPolytope`` - manifold of Doubly Stochastic matrices
 -  ``geoopt.Stereographic`` - Constant curvature stereographic projection model
 -  ``geoopt.SphereProjection`` - Sphere stereographic projection model
--  ``geoopt.PoincareBall`` - Poincare ball model (`wiki <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_)
--  ``geoopt.Lorentz`` - Hyperboloid model (`wiki <https://en.wikipedia.org/wiki/Hyperboloid_model>`_)
+-  ``geoopt.PoincareBall`` -  `Poincare ball model <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_
+-  ``geoopt.Lorentz`` - `Hyperboloid model <https://en.wikipedia.org/wiki/Hyperboloid_model>`_
 -  ``geoopt.ProductManifold`` - Product manifold constructor
 -  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``
 

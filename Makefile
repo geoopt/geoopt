@@ -36,7 +36,7 @@ black:  # Format code in-place using black.
 test:  # Test code using pytest.
 	pytest -v geoopt tests --doctest-modules --html=testing-report.html --self-contained-html
 
-lint: linter-check codestyle-check docstyle-check sphinx-check # Lint code using black and pylint (no pydocstyle yet).
+lint: linter-check codestyle-check docstyle-check sphinx-check # Lint code using black, pylint, pydocstyle and sphinx.
 
 check: lint test # Both lint and test code. Runs `make lint` followed by `make test`.
 
