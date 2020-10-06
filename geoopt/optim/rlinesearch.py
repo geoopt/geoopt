@@ -28,12 +28,14 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     This is done by minimizing the line search objective
 
     .. math::
+
         \phi(\alpha) = f(R_x(\alpha\eta)),
 
     where :math:`R_x` is the retraction at :math:`x`.
     Its derivative is given by
 
     .. math::
+
         \phi'(alpha) = \langle\mathrm{grad} f(R_x(\alpha\eta)),\,
         \mathcal T_{\alpha\eta}(\eta) \rangle_{R_x(\alpha\eta)},
 
@@ -43,6 +45,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     The search direction :math:`\eta` is defined recursively by
 
     .. math::
+
         \eta_{k+1} = -\mathrm{grad} f(R_{x_k}(\alpha_k\eta_k))+
         \beta \mathcal T_{\alpha_k\eta_k}(\eta_k)
 
@@ -54,11 +57,13 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     sufficient decrease condition:
 
     .. math::
+
         \phi(\alpha)\leq \phi(0)+c_1\alpha\phi'(0)
 
     And additionally the curvature / (strong) Wolfe condition
 
     .. math::
+
         \phi'(\alpha)\geq c_2\phi'(0)
 
     The Wolfe conditions are more restrictive, but guarantee that search direction
@@ -121,7 +126,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         line search conditions. See also :meth:`step` (default: 1)
     stabilize : int
         Stabilize parameters if they are off-manifold due to numerical
-        reasons every ``stabilize`` steps (default: ``None`` -- no stabilize)
+        reasons every `stabilize` steps (default: `None` -- no stabilize)
     cg_kwargs : dict
         Additional parameters to pass to the method used to compute the
         conjugate gradient scale parameter.
