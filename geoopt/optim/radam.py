@@ -91,8 +91,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     grad = manifold.egrad2rgrad(point, grad)
                     exp_avg.mul_(betas[0]).add_(grad, alpha=1 - betas[0])
                     exp_avg_sq.mul_(betas[1]).add_(
-                        manifold.component_inner(point, grad),
-                        alpha=1 - betas[1]
+                        manifold.component_inner(point, grad), alpha=1 - betas[1]
                     )
                     if amsgrad:
                         max_exp_avg_sq = state["max_exp_avg_sq"]
@@ -121,7 +120,10 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     exp_avg.set_(exp_avg_new)
 
                     group["step"] += 1
-                if self._stabilize is not None and group["step"] % self._stabilize == 0:
+                if (
+                    group["stabilize"] is not None
+                    and group["step"] % group["stabilize"] == 0
+                ):
                     self.stabilize_group(group)
         return loss
 

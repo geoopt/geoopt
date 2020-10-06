@@ -9,6 +9,10 @@ class OptimMixin(object):
         self._stabilize = stabilize
         super().__init__(*args, **kwargs)
 
+    def add_param_group(self, param_group: dict):
+        param_group.setdefault("stabilize", self._stabilize)
+        return super().add_param_group(param_group)
+
     def stabilize_group(self, group):
         pass
 

@@ -4,12 +4,13 @@ This module implements line search on Riemannian manifolds using geoopt.
 This module uses the same syntax as a Torch optimizer
 """
 
-from .mixin import OptimMixin
-from ..tensor import ManifoldParameter, ManifoldTensor
-from ..manifolds import Euclidean
 from scipy.optimize.linesearch import scalar_search_wolfe2, scalar_search_armijo
 import warnings
 import torch
+from .mixin import OptimMixin
+from ..tensor import ManifoldParameter, ManifoldTensor
+from ..manifolds import Euclidean
+from ..utils import copy_or_set_
 
 
 __all__ = ["RiemannianLineSearch"]
@@ -168,6 +169,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         )
         self._params = []
         for group in self.param_groups:
+            group.setdefault("step", 0)
             self._params.extend(group["params"])
         if len(self.param_groups) > 1:
             warning_string = """Multiple parameter groups detected.
@@ -337,7 +339,6 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             loss = self.prev_loss
             reuse_grads = True
 
-        derphi0 = 0
         self._step_size_dic = dict()
 
         for point in self._params:
@@ -513,11 +514,13 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             with torch.no_grad():  # Take suggested step
                 point.copy_(new_point)
 
-                if (
-                    self._stabilize is not None
-                    and len(self.step_size_history) % self._stabilize == 0
-                ):
-                    point.copy_(manifold.projx(point))
+        for group in self.param_groups:
+            group["step"] += 1
+            if (
+                group["stabilize"] is not None
+                and group["step"] % group["stabilize"] == 0
+            ):
+                self.stabilize_group(group)
 
         # Update loss value
         if step_size is not None:
@@ -526,6 +529,16 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         else:
             new_loss = self.prev_loss
         return new_loss
+
+    def stabilize_group(self, group):
+        for p in group["params"]:
+            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                continue
+            state = self.state[p]
+            if not state:  # due to None grads
+                continue
+            manifold = p.manifold
+            copy_or_set_(p, manifold.projx(p))
 
 
 #################################################################################

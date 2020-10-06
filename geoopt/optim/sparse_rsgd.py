@@ -116,7 +116,10 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         full_point[rows] = new_point
 
                     group["step"] += 1
-                if self._stabilize is not None and group["step"] % self._stabilize == 0:
+                if (
+                    group["stabilize"] is not None
+                    and group["step"] % group["stabilize"] == 0
+                ):
                     self.stabilize_group(group)
         return loss
 
