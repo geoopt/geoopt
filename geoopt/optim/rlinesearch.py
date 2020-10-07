@@ -4,12 +4,13 @@ This module implements line search on Riemannian manifolds using geoopt.
 This module uses the same syntax as a Torch optimizer
 """
 
-from .mixin import OptimMixin
-from ..tensor import ManifoldParameter, ManifoldTensor
-from ..manifolds import Euclidean
 from scipy.optimize.linesearch import scalar_search_wolfe2, scalar_search_armijo
 import warnings
 import torch
+from .mixin import OptimMixin
+from ..tensor import ManifoldParameter, ManifoldTensor
+from ..manifolds import Euclidean
+from ..utils import copy_or_set_
 
 
 __all__ = ["RiemannianLineSearch"]
@@ -27,13 +28,15 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     This is done by minimizing the line search objective
 
     .. math::
+
         \phi(\alpha) = f(R_x(\alpha\eta)),
 
     where :math:`R_x` is the retraction at :math:`x`.
     Its derivative is given by
 
     .. math::
-        \phi'(alpha) = \langle\mathrm{grad} f(R_x(\alpha\eta)),\,
+
+        \phi'(\alpha) = \langle\mathrm{grad} f(R_x(\alpha\eta)),\,
         \mathcal T_{\alpha\eta}(\eta) \rangle_{R_x(\alpha\eta)},
 
     where :math:`\mathcal T_\xi(\eta)` denotes the vector transport of :math:`\eta`
@@ -42,8 +45,9 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     The search direction :math:`\eta` is defined recursively by
 
     .. math::
-        \eta_{k+1} = -\mathrm{grad} f(R_{x_k}(\alpha_k\eta_k))+
-        \beta \mathcal T_{\alpha_k\eta_k}(\eta_k)
+
+        \eta_{k+1} = -\mathrm{grad} f(R_{x_k}(\alpha_k\eta_k))
+        + \beta \mathcal T_{\alpha_k\eta_k}(\eta_k)
 
     Here :math:`\beta` is the scale parameter. If :math:`\beta=0` this is steepest
     descent, other choices are Riemannian version of Fletcher-Reeves and
@@ -53,11 +57,13 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     sufficient decrease condition:
 
     .. math::
+
         \phi(\alpha)\leq \phi(0)+c_1\alpha\phi'(0)
 
     And additionally the curvature / (strong) Wolfe condition
 
     .. math::
+
         \phi'(\alpha)\geq c_2\phi'(0)
 
     The Wolfe conditions are more restrictive, but guarantee that search direction
@@ -77,11 +83,11 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         where phi is scalar line search objective, and derphi is its derivative.
         If no suitable step size can be found, the method should return `None`.
         The following arguments are always passed in `**kwargs`:
-            * **phi0:** float, Value of phi at 0
-            * **old_phi0:** float, Value of phi at previous point
-            * **derphi0:** float, Value derphi at 0
-            * **old_derphi0:** float, Value of derphi at previous point
-            * **old_step_size:** float, Stepsize at previous point
+        * **phi0:** float, Value of phi at 0
+        * **old_phi0:** float, Value of phi at previous point
+        * **derphi0:** float, Value derphi at 0
+        * **old_derphi0:** float, Value of derphi at previous point
+        * **old_step_size:** float, Stepsize at previous point
         If any of these arguments are undefined, they default to `None`.
         Additional arguments can be supplied through the `line_search_params` parameter
     line_search_params : dict
@@ -120,7 +126,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         line search conditions. See also :meth:`step` (default: 1)
     stabilize : int
         Stabilize parameters if they are off-manifold due to numerical
-        reasons every ``stabilize`` steps (default: ``None`` -- no stabilize)
+        reasons every `stabilize` steps (default: `None` -- no stabilize)
     cg_kwargs : dict
         Additional parameters to pass to the method used to compute the
         conjugate gradient scale parameter.
@@ -168,6 +174,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         )
         self._params = []
         for group in self.param_groups:
+            group.setdefault("step", 0)
             self._params.extend(group["params"])
         if len(self.param_groups) > 1:
             warning_string = """Multiple parameter groups detected.
@@ -337,7 +344,6 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             loss = self.prev_loss
             reuse_grads = True
 
-        derphi0 = 0
         self._step_size_dic = dict()
 
         for point in self._params:
@@ -513,11 +519,13 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             with torch.no_grad():  # Take suggested step
                 point.copy_(new_point)
 
-                if (
-                    self._stabilize is not None
-                    and len(self.step_size_history) % self._stabilize == 0
-                ):
-                    point.copy_(manifold.projx(point))
+        for group in self.param_groups:
+            group["step"] += 1
+            if (
+                group["stabilize"] is not None
+                and group["step"] % group["stabilize"] == 0
+            ):
+                self.stabilize_group(group)
 
         # Update loss value
         if step_size is not None:
@@ -526,6 +534,16 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         else:
             new_loss = self.prev_loss
         return new_loss
+
+    def stabilize_group(self, group):
+        for p in group["params"]:
+            if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                continue
+            state = self.state[p]
+            if not state:  # due to None grads
+                continue
+            manifold = p.manifold
+            copy_or_set_(p, manifold.projx(p))
 
 
 #################################################################################

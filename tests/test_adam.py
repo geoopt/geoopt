@@ -20,6 +20,7 @@ def test_adam_lorentz(params):
         return loss.item()
 
     optim = geoopt.optim.RiemannianAdam([X], stabilize=4500, **params)
+    assert optim.param_groups[0]["stabilize"] == 4500
     for _ in range(10000):
         if (Xstar - X).norm() < 1e-5:
             break
@@ -47,7 +48,8 @@ def test_adam_stiefel(params):
         loss.backward()
         return loss.item()
 
-    optim = geoopt.optim.RiemannianAdam([X], stabilize=4500, **params)
+    optim = geoopt.optim.RiemannianAdam([dict(params=[X], stabilize=4500)], **params)
+    assert optim.param_groups[0]["stabilize"] == 4500
     assert (X - Xstar).norm() > 1e-5
     for _ in range(10000):
         if (X - Xstar).norm() < 1e-5:

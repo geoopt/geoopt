@@ -99,9 +99,9 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     grad = manifold.egrad2rgrad(point, grad)
                     if momentum > 0:
                         momentum_buffer = state["momentum_buffer"][rows]
-                        momentum_buffer.mul_(momentum).add_(1 - dampening, grad)
+                        momentum_buffer.mul_(momentum).add_(grad, alpha=1 - dampening)
                         if nesterov:
-                            grad = grad.add_(momentum, momentum_buffer)
+                            grad = grad.add_(momentum_buffer, alpha=momentum)
                         else:
                             grad = momentum_buffer
                         # we have all the things projected
@@ -116,7 +116,10 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         full_point[rows] = new_point
 
                     group["step"] += 1
-                if self._stabilize is not None and group["step"] % self._stabilize == 0:
+                if (
+                    group["stabilize"] is not None
+                    and group["step"] % group["stabilize"] == 0
+                ):
                     self.stabilize_group(group)
         return loss
 

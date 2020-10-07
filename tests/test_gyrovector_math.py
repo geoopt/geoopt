@@ -35,7 +35,10 @@ def tolerant_allclose_check(a, b, strict=True, **tolerance):
         except AssertionError as e:
             assert not torch.isnan(a).any(), "Found nans"
             assert not torch.isnan(b).any(), "Found nans"
-            warnings.warn("Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]))
+            warnings.warn(
+                "Unstable numerics: " + " | ".join(str(e).splitlines()[3:6]),
+                RuntimeWarning,
+            )
 
 
 @pytest.fixture(params=[True, False], ids=["negative", "positive"])

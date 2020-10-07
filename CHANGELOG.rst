@@ -1,5 +1,17 @@
 This file tracks important changes in PRs
 
+geoopt v0.3.0
+=============
+
+New Features
+------------
+* Riemannian Line Search (#140)
+* Per group stabilization (#149)
+
+Maintenance
+-----------
+* Fix API warnings (raised in #148)
+
 geoopt v0.2.0
 =============
 
