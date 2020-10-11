@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import warnings
 import itertools
+import geoopt
 from geoopt.manifolds import stereographic
 
 
@@ -612,7 +613,7 @@ def test_antipode(manifold, negative, a, dtype, seed):
 @pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
 def test_weighted_midpoint(_k, lincomb):
     manifold = stereographic.Stereographic(_k, learnable=True)
-    a = manifold.random(2, 3, 10).requires_grad_(True)
+    a = geoopt.ManifoldParameter(manifold.random(2, 3, 10))
     mid = manifold.weighted_midpoint(a, lincomb=lincomb)
     assert torch.isfinite(mid).all()
     assert mid.shape == (a.shape[-1],)
@@ -624,7 +625,7 @@ def test_weighted_midpoint(_k, lincomb):
 @pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
 def test_weighted_midpoint_reduce_dim(_k, lincomb):
     manifold = stereographic.Stereographic(_k, learnable=True)
-    a = manifold.random(2, 3, 10).requires_grad_(True)
+    a = geoopt.ManifoldParameter(manifold.random(2, 3, 10))
     mid = manifold.weighted_midpoint(a, reducedim=[0], lincomb=lincomb)
     assert mid.shape == a.shape[-2:]
     assert torch.isfinite(mid).all()
@@ -636,7 +637,7 @@ def test_weighted_midpoint_reduce_dim(_k, lincomb):
 @pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
 def test_weighted_midpoint_weighted(_k, lincomb):
     manifold = stereographic.Stereographic(_k, learnable=True)
-    a = manifold.random(2, 3, 10).requires_grad_(True)
+    a = geoopt.ManifoldParameter(manifold.random(2, 3, 10))
     mid = manifold.weighted_midpoint(
         a, reducedim=[0], lincomb=lincomb, weights=torch.rand_like(a[..., 0])
     )
@@ -650,7 +651,7 @@ def test_weighted_midpoint_weighted(_k, lincomb):
 @pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
 def test_weighted_midpoint_zero(_k, lincomb):
     manifold = stereographic.Stereographic(_k, learnable=True)
-    a = manifold.random(2, 3, 10).requires_grad_(True)
+    a = geoopt.ManifoldParameter(manifold.random(2, 3, 10))
     mid = manifold.weighted_midpoint(
         a, reducedim=[0], lincomb=lincomb, weights=torch.zeros_like(a[..., 0])
     )
@@ -664,7 +665,7 @@ def test_weighted_midpoint_zero(_k, lincomb):
 @pytest.mark.parametrize("lincomb", [True, False])
 def test_weighted_midpoint_euclidean(lincomb):
     manifold = stereographic.Stereographic(0)
-    a = manifold.random(2, 3, 10).requires_grad_(True)
+    a = geoopt.ManifoldParameter(manifold.random(2, 3, 10))
     mid = manifold.weighted_midpoint(a, reducedim=[0], lincomb=lincomb)
     assert mid.shape == a.shape[-2:]
     if lincomb:
@@ -676,7 +677,7 @@ def test_weighted_midpoint_euclidean(lincomb):
 @pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
 def test_weighted_midpoint_weighted_zero_sum(_k, lincomb):
     manifold = stereographic.Stereographic(_k, learnable=True)
-    a = manifold.expmap0(torch.eye(3, 10)).detach().requires_grad_(True)
+    a = geoopt.ManifoldParameter(manifold.expmap0(torch.eye(3, 10)).detach(), manifold=manifold)
     weights = torch.rand_like(a[..., 0])
     weights = weights - weights.sum() / weights.numel()
     mid = manifold.weighted_midpoint(
