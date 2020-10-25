@@ -1,6 +1,7 @@
 import torch.nn
 from .manifolds import Euclidean, Manifold
 from .docutils import insert_docs
+import functools
 from typing import Union, Tuple
 from .utils import copy_or_set_
 
@@ -16,7 +17,14 @@ class ManifoldTensor(torch.Tensor):
         A manifold for the tensor, (default: :class:`geoopt.Euclidean`)
     """
 
-    manifold: Manifold
+    try:
+        # https://github.com/pytorch/pytorch/issues/46159#issuecomment-707817037
+        from torch._C import _disabled_torch_function_impl  # noqa
+
+        __torch_function__ = _disabled_torch_function_impl
+
+    except ImportError:
+        pass
 
     def __new__(
         cls, *args, manifold: Manifold = Euclidean(), requires_grad=False, **kwargs
@@ -32,6 +40,8 @@ class ManifoldTensor(torch.Tensor):
         instance = torch.Tensor._make_subclass(cls, data, requires_grad)
         instance.manifold = manifold
         return instance
+
+    manifold: Manifold
 
     def proj_(self) -> torch.Tensor:
         """
@@ -119,16 +129,10 @@ class ManifoldTensor(torch.Tensor):
 
     # noinspection PyUnresolvedReferences
     def __reduce_ex__(self, proto):
-        proto = (
-            self.__class__,
-            self.storage(),
-            self.storage_offset(),
-            self.size(),
-            self.stride(),
-            self.requires_grad,
-            dict(),
-        )
-        return _rebuild_manifold_parameter, proto + (self.manifold,)
+        build, proto = super(ManifoldTensor, self).__reduce_ex__(proto)
+        new_build = functools.partial(_rebuild_manifold_tensor, build_fn=build)
+        new_proto = proto + (dict(), self.__class__, self.manifold, self.requires_grad)
+        return new_build, new_proto
 
     @insert_docs(Manifold.unpack_tensor.__doc__, r"\s+tensor : .+\n.+", "")
     def unpack_tensor(self) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
@@ -167,8 +171,6 @@ class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
         ) + torch.Tensor.__repr__(self)
 
 
-def _rebuild_manifold_parameter(cls, *args):
-    import torch._utils
-
-    tensor = torch._utils._rebuild_tensor_v2(*args[:-1])
-    return cls(tensor, manifold=args[-1], requires_grad=args[-3])
+def _rebuild_manifold_tensor(*args, build_fn):
+    tensor = build_fn(*args[:-4])
+    return args[-3](tensor, manifold=args[-2], requires_grad=args[-1])

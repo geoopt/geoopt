@@ -375,9 +375,9 @@ def test_projection_via_assert(unary_case):
         geoopt.utils.canonical_manifold(unary_case.manifold),
         geoopt.manifolds.BirkhoffPolytope,
     ):
-        np.testing.assert_allclose(unary_case.x, px, atol=1e-6)
+        np.testing.assert_allclose(unary_case.x.detach(), px.detach(), atol=1e-6)
     else:
-        np.testing.assert_allclose(unary_case.x, px, atol=1e-4)
+        np.testing.assert_allclose(unary_case.x.detach(), px.detach(), atol=1e-4)
 
 
 def test_vector_projection_via_assert(unary_case):
@@ -389,7 +389,7 @@ def test_vector_projection_via_assert(unary_case):
 
     unary_case.manifold.assert_check_vector_on_tangent(x, pv)
 
-    np.testing.assert_allclose(v, pv, atol=1e-6)
+    np.testing.assert_allclose(v.detach(), pv.detach(), atol=1e-6)
 
 
 def test_broadcast_projx(unary_case):
@@ -400,7 +400,7 @@ def test_broadcast_projx(unary_case):
         unary_case.manifold.assert_check_point_on_manifold(px)
     for x, px in zip(X, pX):
         pxx = unary_case.manifold.projx(x)
-        np.testing.assert_allclose(px, pxx, atol=1e-7)
+        np.testing.assert_allclose(px.detach(), pxx.detach(), atol=1e-7)
 
 
 def test_broadcast_proju(unary_case):
@@ -412,7 +412,7 @@ def test_broadcast_proju(unary_case):
         unary_case.manifold.assert_check_vector_on_tangent(px, pu, atol=1e-5)
     for px, u, pu in zip(pX, U, pU):
         puu = unary_case.manifold.proju(px, u)
-        np.testing.assert_allclose(pu, puu, atol=1e-5)
+        np.testing.assert_allclose(pu.detach(), puu.detach(), atol=1e-5)
 
 
 def test_broadcast_retr(unary_case):
@@ -425,7 +425,7 @@ def test_broadcast_retr(unary_case):
         unary_case.manifold.assert_check_point_on_manifold(y)
     for px, pu, y in zip(pX, pU, Y):
         yy = unary_case.manifold.retr(px, pu)
-        np.testing.assert_allclose(y, yy, atol=1e-5)
+        np.testing.assert_allclose(y.detach(), yy.detach(), atol=1e-5)
 
 
 def test_broadcast_transp(unary_case):
@@ -441,7 +441,7 @@ def test_broadcast_transp(unary_case):
         unary_case.manifold.assert_check_vector_on_tangent(y, q)
     for px, pu, pv, y, q in zip(pX, pU, pV, Y, Q):
         qq = unary_case.manifold.transp_follow_retr(px, pu, pv)
-        np.testing.assert_allclose(q, qq, atol=1e-5)
+        np.testing.assert_allclose(q.detach(), qq.detach(), atol=1e-5)
 
 
 def test_reversibility(unary_case):
@@ -452,8 +452,8 @@ def test_reversibility(unary_case):
         Z, Q = unary_case.manifold.retr_transp(pX, U, U)
         X1, U1 = unary_case.manifold.retr_transp(Z, -Q, Q)
 
-        np.testing.assert_allclose(X1, pX, atol=1e-5)
-        np.testing.assert_allclose(U1, U, atol=1e-5)
+        np.testing.assert_allclose(X1.detach(), pX.detach(), atol=1e-5)
+        np.testing.assert_allclose(U1.detach(), U.detach(), atol=1e-5)
     else:
         pytest.skip(
             "The manifold {} is not supposed to be checked".format(unary_case.manifold)
@@ -469,9 +469,9 @@ def test_logmap(unary_case):
         Y = unary_case.manifold.expmap(pX, U)
         Uh = unary_case.manifold.logmap(pX, Y)
         Yh = unary_case.manifold.expmap(pX, Uh)
-        np.testing.assert_allclose(Yh, Y, atol=1e-6, rtol=1e-6)
+        np.testing.assert_allclose(Yh.detach(), Y.detach(), atol=1e-6, rtol=1e-6)
         Zero = unary_case.manifold.logmap(pX, pX)
-        np.testing.assert_allclose(Zero, 0.0, atol=1e-6, rtol=1e-6)
+        np.testing.assert_allclose(Zero.detach(), 0.0, atol=1e-6, rtol=1e-6)
     except NotImplementedError:
         pytest.skip("logmap was not implemented for {}".format(unary_case.manifold))
 
@@ -483,6 +483,6 @@ def test_dist(unary_case):
     new_point = unary_case.manifold.expmap(point, tangent)
     try:
         dist = unary_case.manifold.dist(point, new_point)
+        np.testing.assert_allclose(dist.detach(), tangent_norm.detach())
     except NotImplementedError:
         pytest.skip("dist is not implemented for {}".format(unary_case.manifold))
-    np.testing.assert_allclose(dist, tangent_norm)

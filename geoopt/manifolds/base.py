@@ -605,7 +605,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def inner(
-        self, x: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor = None, *, keepdim=False
     ) -> torch.Tensor:
         """
         Inner product for tangent vectors at point :math:`x`.
