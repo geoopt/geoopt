@@ -15,7 +15,7 @@ def test_scale_poincare():
     )
     np.testing.assert_allclose(
         sball.dist0(sball.expmap0(v)).item(),
-        sball.norm(torch.zeros_like(v), v),
+        sball.norm(torch.zeros_like(v), v).item(),
         atol=1e-5,
     )
 
@@ -31,7 +31,7 @@ def test_scale_poincare_learnable():
     )
     np.testing.assert_allclose(
         sball.dist0(sball.expmap0(v)).item(),
-        sball.norm(torch.zeros_like(v), v),
+        sball.norm(torch.zeros_like(v), v).item(),
         atol=1e-5,
     )
 

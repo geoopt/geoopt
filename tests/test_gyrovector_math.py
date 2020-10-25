@@ -677,7 +677,9 @@ def test_weighted_midpoint_euclidean(lincomb):
 @pytest.mark.parametrize("_k,lincomb", itertools.product([-1, 0, 1], [True, False]))
 def test_weighted_midpoint_weighted_zero_sum(_k, lincomb):
     manifold = stereographic.Stereographic(_k, learnable=True)
-    a = geoopt.ManifoldParameter(manifold.expmap0(torch.eye(3, 10)).detach(), manifold=manifold)
+    a = geoopt.ManifoldParameter(
+        manifold.expmap0(torch.eye(3, 10)).detach(), manifold=manifold
+    )
     weights = torch.rand_like(a[..., 0])
     weights = weights - weights.sum() / weights.numel()
     mid = manifold.weighted_midpoint(
