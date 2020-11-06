@@ -81,6 +81,9 @@ class SymmetricPositiveDefinite(Manifold):
             v @ torch.diag_embed(sqrt_e) @ v.transpose(-1, -2),
         )
 
+    def _sym(self, x: torch.Tensor) -> torch.Tensor:
+        return (x + x.transpose(-1, -2)) / 2
+
     def _affine_invariant_metric(
         self, x: torch.Tensor, y: torch.Tensor, keepdim=False
     ) -> torch.Tensor:
@@ -142,11 +145,11 @@ class SymmetricPositiveDefinite(Manifold):
         return True, None
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
-        symx = (x + x.transpose(-1, -2)) / 2
+        symx = self._sym(x)
         return self._funcm(symx, partial(torch.clamp, min=EPS[x.dtype]))
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return (u + u.transpose(-1, -2)) / 2
+        return self._sym(u)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return x @ self.proju(x, u) @ x.transpose(-1, -2)
@@ -199,7 +202,8 @@ class SymmetricPositiveDefinite(Manifold):
             )
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError
+        inv_x = self._invm(x)
+        return self._sym(x + u + u @ inv_x @ u / 2)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_sqrt_x, sqrt_x = self._inv_sqrtm2(x)
