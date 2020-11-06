@@ -3,6 +3,7 @@ from .euclidean import Euclidean
 from .stiefel import Stiefel, EuclideanStiefel, CanonicalStiefel, EuclideanStiefelExact
 from .sphere import Sphere, SphereExact
 from .birkhoff_polytope import BirkhoffPolytope
+from .symmetric_positive_definite import SymmetricPositiveDefinite
 from .stereographic import (
     PoincareBall,
     PoincareBallExact,
