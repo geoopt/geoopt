@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Optional, Tuple, Union, get_args
+from typing import Callable, Optional, Tuple, Union
 import torch
 from .base import Manifold
 
