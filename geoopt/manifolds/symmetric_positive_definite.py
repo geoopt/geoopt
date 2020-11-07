@@ -10,8 +10,7 @@ EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
 
 
 class SymmetricPositiveDefinite(Manifold):
-    r"""
-    Manifold of symmetric positive definite matrices.
+    r"""Manifold of symmetric positive definite matrices.
 
     .. math::
 
@@ -21,16 +20,18 @@ class SymmetricPositiveDefinite(Manifold):
 
 
     The tangent space of the manifold contains all symmetric matrices.
-    
-    Reference implementations:
+
+    References
+    ----------
     - https://github.com/pymanopt/pymanopt/blob/master/pymanopt/manifolds/psd.py
     - https://github.com/dalab/matrix-manifolds/blob/master/graphembed/graphembed/manifolds/spd.py
 
     Parameters
     ----------
     ndim : int
-        number of trailing dimensions treated as matrix dimensions. All the operations acting on cuch
-        as inner products, etc will respect the :attr:`ndim`.
+        number of trailing dimensions treated as matrix dimensions. 
+        All the operations acting on such as inner products, etc 
+        will respect the :attr:`ndim`.
     """
 
     __scaling__ = Manifold.__scaling__.copy()
@@ -45,34 +46,119 @@ class SymmetricPositiveDefinite(Manifold):
         self.ndim = ndim
         self.defaulf_metric = defaulf_metric
 
-    def _t(self, x: torch.Tensor) -> torch.Tensor:
-        return x.transpose(-1, -2)
-
     def _funcm(
         self, x: torch.Tensor, func: Callable[[torch.Tensor], torch.Tensor]
     ) -> torch.Tensor:
+        """Apply function to symmetric matrix.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            symmetric matrix
+        func : Callable[[torch.Tensor], torch.Tensor]
+            function to apply
+
+        Returns
+        -------
+        torch.Tensor
+            symmetric matrix with function applied to
+        """
         e, v = torch.symeig(x, eigenvectors=True)
         return v @ torch.diag_embed(func(e)) @ v.transpose(-1, -2)
 
     def _expm(self, x: torch.Tensor, using_native=False) -> torch.Tensor:
+        """Symmetric matrix exponent.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            symmetric matrix
+        using_native : bool, optional
+            if using native matrix exponent `torch.matrix_exp`, by default False
+
+        Returns
+        -------
+        torch.Tensor
+            exp(x)
+        """
         if using_native:
             return torch.matrix_exp(x)
         else:
             return self._funcm(x, torch.exp)
 
     def _logm(self, x: torch.Tensor) -> torch.Tensor:
+        """Symmetric matrix logarithm.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            symmetric matrix
+
+        Returns
+        -------
+        torch.Tensor
+            log(x)
+        """
         return self._funcm(x, torch.log)
 
     def _sqrtm(self, x: torch.Tensor) -> torch.Tensor:
+        """Symmetric matrix square root .
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            symmetric matrix
+
+        Returns
+        -------
+        torch.Tensor
+            sqrt(x)
+        """
         return self._funcm(x, torch.sqrt)
 
     def _invm(self, x: torch.Tensor) -> torch.Tensor:
+        """Symmetric matrix inverse.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            symmetric matrix
+
+        Returns
+        -------
+        torch.Tensor
+            x^{-1}
+        """
         return self._funcm(x, torch.reciprocal)
 
     def _inv_sqrtm1(self, x: torch.Tensor) -> torch.Tensor:
+        """Symmetric matrix inverse square root.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            symmetric matrix
+
+        Returns
+        -------
+        torch.Tensor
+            x^{-1/2}
+        """
         return self._funcm(x, lambda tensor: torch.reciprocal(torch.sqrt(tensor)))
 
     def _inv_sqrtm2(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Symmetric matrix inverse square root, with square root return also.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            symmetric matrix
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            x^{-1/2}, sqrt(x)
+        """
         e, v = torch.symeig(x, eigenvectors=True)
         sqrt_e = torch.sqrt(e)
         inv_sqrt_e = 1 / sqrt_e
@@ -82,46 +168,92 @@ class SymmetricPositiveDefinite(Manifold):
         )
 
     def _sym(self, x: torch.Tensor) -> torch.Tensor:
+        r"""Make matrix symmetric.
+
+        .. math::
+
+            \frac{A + A^T}{2}
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            matrix to symmetrize
+
+        Returns
+        -------
+        torch.Tensor
+            symmetric matrix
+        """
         return (x + x.transpose(-1, -2)) / 2
+
+    _dist_doc = """
+        Parameters
+        ----------
+        x : torch.Tensor
+            point on the manifold
+        y : torch.Tensor
+            point on the manifold
+        keepdim : bool
+            keep the last dim?
+
+        Returns
+        -------
+        torch.Tensor
+            distance between two points
+        """
 
     def _affine_invariant_metric(
         self, x: torch.Tensor, y: torch.Tensor, keepdim=False
     ) -> torch.Tensor:
-        # Affine Invariant Metric
-        # Ref:
-        # Pennec, Xavier, Pierre Fillard, and Nicholas Ayache. "A Riemannian framework for tensor computing." International Journal of computer vision 66.1 (2006): 41-66.
+        r"""Affine Invariant Metric distance.
+
+        {}
+
+        References
+        ----------
+        A Riemannian framework for tensor computing. 2006.
+        """.format(
+            self._dist_doc
+        )
         inv_sqrt_x = self._inv_sqrtm1(x)
         return 0.5 * torch.norm(
             self._logm(inv_sqrt_x @ y @ inv_sqrt_x), dim=[-1, -2], keepdim=keepdim
         )
 
-    def _affine_invariant_inner(
-        self,
-        x: torch.Tensor,
-        u: torch.Tensor,
-        v: torch.Tensor = None,
-        keepdim=False,
-    ) -> torch.Tensor:
-        assert not keepdim, "`torch.trace` doesn't support keepdim."
-        inv_x = self._invm(x)
-        return torch.trace(inv_x @ u @ inv_x @ v)
-
     def _stein_metric(
         self, x: torch.Tensor, y: torch.Tensor, keepdim=False
     ) -> torch.Tensor:
-        # Stein Metric
-        # Ref:
-        # Sra, Suvrit. "A new metric on the manifold of kernel matrices with application to matrix geometric means." Advances in neural information processing systems. 2012.
-        assert not keepdim, "`torch.det` doesn't support keepdim."
-        log_det = lambda x: torch.log(torch.det(x))
+        r"""Stein Metric distance.
+
+        {}
+
+        References
+        ----------
+        A new metric on the manifold of kernel matrices with application to matrix geometric means. 2012.
+        """.format(
+            self._dist_doc
+        )
+
+        def log_det(tensor: torch.Tensor) -> torch.Tensor:
+            return torch.log(torch.det(tensor))
+
+        if keepdim:
+            raise ValueError("`torch.det` doesn't support keepdim.")
         return log_det((x + y) * 0.5) - 0.5 * log_det(x @ y)
 
     def _log_eucliden_metric(
         self, x: torch.Tensor, y: torch.Tensor, keepdim=False
     ) -> torch.Tensor:
-        # Log-Eucliden Metric
-        # Ref:
-        # Arsigny, Vincent, et al. "Log‐Euclidean metrics for fast and simple calculus on diffusion tensors." Magnetic Resonance in Medicine: An Official Journal of the International Society for Magnetic Resonance in Medicine 56.2 (2006): 411-421.
+        r"""Log-Eucliden Metric distance.
+
+        {}
+
+        References
+        ----------
+        Log‐Euclidean metrics for fast and simple calculus on diffusion tensors. 2006.
+        """.format(
+            self._dist_doc
+        )
         return torch.norm(self._logm(x) - self._logm(y), dim=[-1, -2], keepdim=keepdim)
 
     def _check_point_on_manifold(
@@ -167,6 +299,29 @@ class SymmetricPositiveDefinite(Manifold):
         mode: _metric_literal = defaulf_metric,
         keepdim=False,
     ) -> torch.Tensor:
+        """Compute distance between 2 points on the manifold that is the shortest path along geodesics.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            point on the manifold
+        y : torch.Tensor
+            point on the manifold
+        mode : _metric_literal, optional
+            choose metric to compute distance, by default defaulf_metric
+        keepdim : bool, optional
+            keep the last dim?, by default False
+
+        Returns
+        -------
+        torch.Tensor
+            distance between two points
+
+        Raises
+        ------
+        ValueError
+            if `mode` isn't in `_metric_literal`
+        """
         if mode in self._dist_metric:
             return self._dist_metric[mode](self, x, y, keepdim=keepdim)
         else:
@@ -186,20 +341,39 @@ class SymmetricPositiveDefinite(Manifold):
         x: torch.Tensor,
         u: torch.Tensor,
         v: Optional[torch.Tensor] = None,
-        mode: _metric_literal = defaulf_metric,
         keepdim=False,
     ) -> torch.Tensor:
+        """
+        Inner product for tangent vectors at point :math:`x`.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            point on the manifold
+        u : torch.Tensor
+            tangent vector at point :math:`x`
+        v : Optional[torch.Tensor]
+            tangent vector at point :math:`x`
+        keepdim : bool
+            keep the last dim?
+
+        Returns
+        -------
+        torch.Tensor
+            inner product (broadcasted)
+
+        Raises
+        ------
+        ValueError
+            if `keepdim` sine `torch.trace` doesn't support keepdim
+        """
         if v is None:
             v = u
-        if mode in self._dist_metric:
-            return self._inner_metric[mode](self, x, u, v, keepdim=keepdim)
-        else:
-            raise ValueError(
-                "Unsopported metric:'"
-                + mode
-                + "'. Please choose one from "
-                + str(get_args(self._metric_literal))
-            )
+        if keepdim:
+            raise ValueError("`torch.trace` doesn't support keepdim.")
+        inv_x = self._invm(x)
+        return torch.trace(inv_x @ u @ inv_x @ v)
+        
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_x = self._invm(x)
@@ -213,5 +387,5 @@ class SymmetricPositiveDefinite(Manifold):
         inv_sqrt_x, sqrt_x = self._inv_sqrtm2(x)
         return sqrt_x @ self._logm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
-    def extra_repr(self):
+    def extra_repr(self) -> str:
         return "ndim={}".format(self.ndim)
