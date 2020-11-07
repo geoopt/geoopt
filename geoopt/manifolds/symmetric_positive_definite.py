@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Literal, Optional, Tuple, Union, get_args
+from typing import Callable, Optional, Tuple, Union, get_args
 import torch
 from .base import Manifold
 
@@ -29,8 +29,8 @@ class SymmetricPositiveDefinite(Manifold):
     Parameters
     ----------
     ndim : int
-        number of trailing dimensions treated as matrix dimensions. 
-        All the operations acting on such as inner products, etc 
+        number of trailing dimensions treated as matrix dimensions.
+        All the operations acting on such as inner products, etc
         will respect the :attr:`ndim`.
     """
 
@@ -38,10 +38,9 @@ class SymmetricPositiveDefinite(Manifold):
     name = "SymmetricPositiveDefinite"
     ndim = 0
     reversible = True
-    _metric_literal = Literal["AIM", "SM", "LEM"]
-    defaulf_metric: _metric_literal = "AIM"
+    defaulf_metric: str = "AIM"
 
-    def __init__(self, ndim=2, defaulf_metric: _metric_literal = defaulf_metric):
+    def __init__(self, ndim=2, defaulf_metric: str = defaulf_metric):
         super().__init__()
         self.ndim = ndim
         self.defaulf_metric = defaulf_metric
@@ -296,7 +295,7 @@ class SymmetricPositiveDefinite(Manifold):
         self,
         x: torch.Tensor,
         y: torch.Tensor,
-        mode: _metric_literal = defaulf_metric,
+        mode: str = defaulf_metric,
         keepdim=False,
     ) -> torch.Tensor:
         """Compute distance between 2 points on the manifold that is the shortest path along geodesics.
@@ -307,7 +306,7 @@ class SymmetricPositiveDefinite(Manifold):
             point on the manifold
         y : torch.Tensor
             point on the manifold
-        mode : _metric_literal, optional
+        mode : str, optional
             choose metric to compute distance, by default defaulf_metric
         keepdim : bool, optional
             keep the last dim?, by default False
@@ -320,7 +319,7 @@ class SymmetricPositiveDefinite(Manifold):
         Raises
         ------
         ValueError
-            if `mode` isn't in `_metric_literal`
+            if `mode` isn't in `_dist_metric`
         """
         if mode in self._dist_metric:
             return self._dist_metric[mode](self, x, y, keepdim=keepdim)
@@ -329,12 +328,8 @@ class SymmetricPositiveDefinite(Manifold):
                 "Unsopported metric:'"
                 + mode
                 + "'. Please choose one from "
-                + str(get_args(self._metric_literal))
+                + str(tuple(self._dist_metric.keys()))
             )
-
-    _inner_metric = {
-        "AIM": _affine_invariant_inner,
-    }
 
     def inner(
         self,
@@ -373,7 +368,6 @@ class SymmetricPositiveDefinite(Manifold):
             raise ValueError("`torch.trace` doesn't support keepdim.")
         inv_x = self._invm(x)
         return torch.trace(inv_x @ u @ inv_x @ v)
-        
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_x = self._invm(x)
