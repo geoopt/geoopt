@@ -8,6 +8,8 @@ New Features
 
 Maintainance
 ------------
+create pull request templates (#154)
+
 
 Bug Fixes
 ---------
