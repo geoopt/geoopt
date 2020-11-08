@@ -23,7 +23,7 @@
     - [ ] `dist` (if possible)
     - [ ] `egrad2rgrad` -- convert `tensor.grad` to a riemannian gradient (could be just projection)
     - [ ] `class NewManifoldExact(NewManifold)` if you have expmap implemented differently that retr.
-
+- [ ] Added manifold is mentioned in [documentation](https://github.com/geoopt/geoopt/blob/master/docs/manifolds.rst) about manifolds. 
 - [ ] Imports into the package namespace are consistent with other manifolds, see [this file](https://github.com/geoopt/geoopt/blob/master/geoopt/manifolds/__init__.py). Rule of thumb is to import a class unless you have a reason to import a package.
 - [ ] There is a test case in [tests/test_manifold_basic](https://github.com/geoopt/geoopt/blob/master/tests/test_manifold_basic.py). It will require to create a **shape_case** (`manifold_shapes` variable). And a test case `UnaryCase` tuple containing. You can see how it is done for `canonical_stiefel_case()` as an example (it is a generator yielding `UnaryCases`).
     1. initial point
@@ -33,4 +33,4 @@
     Add this test case to `unary_case_base` in that file.
 
 - [ ] Create a simple convergence test to fogure out if there are any potential numerical issues in implementation as done in [stiefel case](https://github.com/geoopt/geoopt/blob/master/tests/test_rsgd.py)
-
+- [ ] And do not forget mention the PR in the [CHANGELOG.rst](https://github.com/geoopt/geoopt/blob/master/CHANGELOG.rst)

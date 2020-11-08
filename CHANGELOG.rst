@@ -1,5 +1,17 @@
 This file tracks important changes in PRs
 
+geoopt (next release)
+=====================
+
+New Features
+------------
+
+Maintainance
+------------
+
+Bug Fixes
+---------
+
 geoopt v0.3.0
 =============
 
