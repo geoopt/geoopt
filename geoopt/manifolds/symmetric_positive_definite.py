@@ -78,7 +78,7 @@ class SymmetricPositiveDefinite(Manifold):
         Returns
         -------
         torch.Tensor
-            exp(x)
+            :math:`\exp(x)`
         """
         if using_native:
             return torch.matrix_exp(x)
@@ -86,7 +86,7 @@ class SymmetricPositiveDefinite(Manifold):
             return self._funcm(x, torch.exp)
 
     def _logm(self, x: torch.Tensor) -> torch.Tensor:
-        """Symmetric matrix logarithm.
+        r"""Symmetric matrix logarithm.
 
         Parameters
         ----------
@@ -96,7 +96,7 @@ class SymmetricPositiveDefinite(Manifold):
         Returns
         -------
         torch.Tensor
-            log(x)
+            :math:`\log(x)`
         """
         return self._funcm(x, torch.log)
 
@@ -111,7 +111,7 @@ class SymmetricPositiveDefinite(Manifold):
         Returns
         -------
         torch.Tensor
-            sqrt(x)
+            :math:`x^{1/2}`
         """
         return self._funcm(x, torch.sqrt)
 
@@ -126,7 +126,7 @@ class SymmetricPositiveDefinite(Manifold):
         Returns
         -------
         torch.Tensor
-            x^{-1}
+            :math:`x^{-1}`
         """
         return self._funcm(x, torch.reciprocal)
 
@@ -141,7 +141,7 @@ class SymmetricPositiveDefinite(Manifold):
         Returns
         -------
         torch.Tensor
-            x^{-1/2}
+            :math:`x^{-1/2}`
         """
         return self._funcm(x, lambda tensor: torch.reciprocal(torch.sqrt(tensor)))
 
@@ -156,7 +156,7 @@ class SymmetricPositiveDefinite(Manifold):
         Returns
         -------
         Tuple[torch.Tensor, torch.Tensor]
-            x^{-1/2}, sqrt(x)
+            :math:`x^{-1/2}`, :math:`x^{1/2}`
         """
         e, v = torch.symeig(x, eigenvectors=True)
         sqrt_e = torch.sqrt(e)
