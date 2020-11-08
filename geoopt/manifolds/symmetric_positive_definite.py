@@ -1,7 +1,8 @@
 from functools import partial
-from typing import Callable, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 import torch
 from .base import Manifold
+from ..linalg import batch_linalg
 
 __all__ = ["SymmetricPositiveDefinite"]
 
@@ -45,146 +46,6 @@ class SymmetricPositiveDefinite(Manifold):
         self.ndim = ndim
         self.defaulf_metric = defaulf_metric
 
-    def _funcm(
-        self, x: torch.Tensor, func: Callable[[torch.Tensor], torch.Tensor]
-    ) -> torch.Tensor:
-        """Apply function to symmetric matrix.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            symmetric matrix
-        func : Callable[[torch.Tensor], torch.Tensor]
-            function to apply
-
-        Returns
-        -------
-        torch.Tensor
-            symmetric matrix with function applied to
-        """
-        e, v = torch.symeig(x, eigenvectors=True)
-        return v @ torch.diag_embed(func(e)) @ v.transpose(-1, -2)
-
-    def _expm(self, x: torch.Tensor, using_native=False) -> torch.Tensor:
-        """Symmetric matrix exponent.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            symmetric matrix
-        using_native : bool, optional
-            if using native matrix exponent `torch.matrix_exp`, by default False
-
-        Returns
-        -------
-        torch.Tensor
-            :math:`\exp(x)`
-        """
-        if using_native:
-            return torch.matrix_exp(x)
-        else:
-            return self._funcm(x, torch.exp)
-
-    def _logm(self, x: torch.Tensor) -> torch.Tensor:
-        r"""Symmetric matrix logarithm.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            symmetric matrix
-
-        Returns
-        -------
-        torch.Tensor
-            :math:`\log(x)`
-        """
-        return self._funcm(x, torch.log)
-
-    def _sqrtm(self, x: torch.Tensor) -> torch.Tensor:
-        """Symmetric matrix square root .
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            symmetric matrix
-
-        Returns
-        -------
-        torch.Tensor
-            :math:`x^{1/2}`
-        """
-        return self._funcm(x, torch.sqrt)
-
-    def _invm(self, x: torch.Tensor) -> torch.Tensor:
-        """Symmetric matrix inverse.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            symmetric matrix
-
-        Returns
-        -------
-        torch.Tensor
-            :math:`x^{-1}`
-        """
-        return self._funcm(x, torch.reciprocal)
-
-    def _inv_sqrtm1(self, x: torch.Tensor) -> torch.Tensor:
-        """Symmetric matrix inverse square root.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            symmetric matrix
-
-        Returns
-        -------
-        torch.Tensor
-            :math:`x^{-1/2}`
-        """
-        return self._funcm(x, lambda tensor: torch.reciprocal(torch.sqrt(tensor)))
-
-    def _inv_sqrtm2(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Symmetric matrix inverse square root, with square root return also.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            symmetric matrix
-
-        Returns
-        -------
-        Tuple[torch.Tensor, torch.Tensor]
-            :math:`x^{-1/2}`, :math:`x^{1/2}`
-        """
-        e, v = torch.symeig(x, eigenvectors=True)
-        sqrt_e = torch.sqrt(e)
-        inv_sqrt_e = 1 / sqrt_e
-        return (
-            v @ torch.diag_embed(inv_sqrt_e) @ v.transpose(-1, -2),
-            v @ torch.diag_embed(sqrt_e) @ v.transpose(-1, -2),
-        )
-
-    def _sym(self, x: torch.Tensor) -> torch.Tensor:
-        r"""Make matrix symmetric.
-
-        .. math::
-
-            \frac{A + A^T}{2}
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            matrix to symmetrize
-
-        Returns
-        -------
-        torch.Tensor
-            symmetric matrix
-        """
-        return (x + x.transpose(-1, -2)) / 2
-
     _dist_doc = """
         Parameters
         ----------
@@ -214,9 +75,11 @@ class SymmetricPositiveDefinite(Manifold):
         """.format(
             self._dist_doc
         )
-        inv_sqrt_x = self._inv_sqrtm1(x)
+        inv_sqrt_x = batch_linalg.sym_inv_sqrtm1(x)
         return 0.5 * torch.norm(
-            self._logm(inv_sqrt_x @ y @ inv_sqrt_x), dim=[-1, -2], keepdim=keepdim
+            batch_linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x),
+            dim=[-1, -2],
+            keepdim=keepdim,
         )
 
     def _stein_metric(
@@ -253,7 +116,11 @@ class SymmetricPositiveDefinite(Manifold):
         """.format(
             self._dist_doc
         )
-        return torch.norm(self._logm(x) - self._logm(y), dim=[-1, -2], keepdim=keepdim)
+        return torch.norm(
+            batch_linalg.sym_logm(x) - batch_linalg.sym_logm(y),
+            dim=[-1, -2],
+            keepdim=keepdim,
+        )
 
     def _check_point_on_manifold(
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5
@@ -276,11 +143,11 @@ class SymmetricPositiveDefinite(Manifold):
         return True, None
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
-        symx = self._sym(x)
-        return self._funcm(symx, partial(torch.clamp, min=EPS[x.dtype]))
+        symx = batch_linalg.sym(x)
+        return batch_linalg.sym_funcm(symx, partial(torch.clamp, min=EPS[x.dtype]))
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return self._sym(u)
+        return batch_linalg.sym(u)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return x @ self.proju(x, u) @ x.transpose(-1, -2)
@@ -366,20 +233,20 @@ class SymmetricPositiveDefinite(Manifold):
             v = u
         if keepdim:
             raise ValueError("`torch.trace` doesn't support keepdim.")
-        inv_x = self._invm(x)
+        inv_x = batch_linalg.sym_invm(x)
         return torch.trace(inv_x @ u @ inv_x @ v)
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_x = self._invm(x)
-        return self._sym(x + u + u @ inv_x @ u / 2)
+        inv_x = batch_linalg.sym_invm(x)
+        return batch_linalg.sym(x + u + u @ inv_x @ u / 2)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_sqrt_x, sqrt_x = self._inv_sqrtm2(x)
-        return sqrt_x @ self._expm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
+        inv_sqrt_x, sqrt_x = batch_linalg.sym_sqrtm2(x)
+        return sqrt_x @ batch_linalg.sym_expm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
     def logmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_sqrt_x, sqrt_x = self._inv_sqrtm2(x)
-        return sqrt_x @ self._logm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
+        inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
+        return sqrt_x @ batch_linalg.sym_logm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
     def extra_repr(self) -> str:
         return "ndim={}".format(self.ndim)
