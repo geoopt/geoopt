@@ -99,9 +99,10 @@ class SymmetricPositiveDefinite(Manifold):
         def log_det(tensor: torch.Tensor) -> torch.Tensor:
             return torch.log(torch.det(tensor))
 
+        ret = log_det((x + y) * 0.5) - 0.5 * log_det(x @ y)
         if keepdim:
-            raise ValueError("`torch.det` doesn't support keepdim.")
-        return log_det((x + y) * 0.5) - 0.5 * log_det(x @ y)
+            return torch.unsqueeze(torch.unsqueeze(ret, -1), -1)
+        return ret
 
     def _log_eucliden_metric(
         self, x: torch.Tensor, y: torch.Tensor, keepdim=False
@@ -231,10 +232,11 @@ class SymmetricPositiveDefinite(Manifold):
         """
         if v is None:
             v = u
-        if keepdim:
-            raise ValueError("`torch.trace` doesn't support keepdim.")
         inv_x = batch_linalg.sym_invm(x)
-        return torch.trace(inv_x @ u @ inv_x @ v)
+        ret = batch_linalg.trace(inv_x @ u @ inv_x @ v)
+        if keepdim:
+            return torch.unsqueeze(torch.unsqueeze(ret, -1), -1)
+        return ret
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_x = batch_linalg.sym_invm(x)

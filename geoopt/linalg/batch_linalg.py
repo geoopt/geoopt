@@ -1,3 +1,5 @@
+from typing import List, Callable, Tuple
+import torch
 import torch.jit
 from . import _expm
 
@@ -89,6 +91,23 @@ def block_matrix(blocks: List[List[torch.Tensor]], dim0: int = -2, dim1: int = -
     for mats in blocks:
         hblocks.append(torch.cat(mats, dim=dim1))
     return torch.cat(hblocks, dim=dim0)
+
+
+@torch.jit.script
+def trace(x: torch.Tensor) -> torch.Tensor:
+    r"""self-implemented matrix trace, since `torch.trace` only support 2-d input.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+        input matrix
+
+    Returns
+    -------
+    torch.Tensor
+        :math:`\operationname{Tr}(x)`
+    """
+    return torch.diagonal(x, dim1=-2, dim2=-1).sum(-1)
 
 
 def sym_funcm(
