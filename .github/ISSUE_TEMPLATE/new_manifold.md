@@ -1,4 +1,4 @@
-# Adding <NewManifold>
+# Adding NewManifold
 
 ## Motivation
 
