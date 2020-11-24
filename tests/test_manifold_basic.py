@@ -31,6 +31,7 @@ manifold_shapes = {
     geoopt.manifolds.Sphere: (10,),
     geoopt.manifolds.SphereExact: (10,),
     geoopt.manifolds.ProductManifold: (10 + 3 + 6 + 1,),
+    geoopt.manifolds.SymmetricPositiveDefinite: (2, 2),
 }
 
 
@@ -268,6 +269,22 @@ def sphere_case():
     yield case
 
 
+def spd_case():
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.SymmetricPositiveDefinite]
+    ex = torch.randn(*shape, dtype=torch.float64)
+    ev = torch.randn(*shape, dtype=torch.float64)
+    x = geoopt.linalg.batch_linalg.sym_funcm(
+        geoopt.linalg.batch_linalg.sym(ex), torch.abs
+    )
+    v = geoopt.linalg.batch_linalg.sym(ev)
+
+    manifold = geoopt.SymmetricPositiveDefinite(2)
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
 def product_case():
     torch.manual_seed(42)
     ex = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
@@ -338,6 +355,7 @@ def scaled(request):
         sphere_projection_case(),
         product_case(),
         birkhoff_case(),
+        spd_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )

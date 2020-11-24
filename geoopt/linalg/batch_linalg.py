@@ -105,7 +105,7 @@ def trace(x: torch.Tensor) -> torch.Tensor:
     Returns
     -------
     torch.Tensor
-        :math:`\operationname{Tr}(x)`
+        :math:`\operatorname{Tr}(x)`
     """
     return torch.diagonal(x, dim1=-2, dim2=-1).sum(-1)
 
@@ -231,7 +231,7 @@ def sym_inv_sqrtm2(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     e, v = torch.symeig(x, eigenvectors=True)
     sqrt_e = torch.sqrt(e)
-    inv_sqrt_e = 1 / sqrt_e
+    inv_sqrt_e = torch.reciprocal(sqrt_e)
     return (
         v @ torch.diag_embed(inv_sqrt_e) @ v.transpose(-1, -2),
         v @ torch.diag_embed(sqrt_e) @ v.transpose(-1, -2),

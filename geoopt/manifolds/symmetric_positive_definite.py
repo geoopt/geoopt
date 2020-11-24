@@ -38,7 +38,7 @@ class SymmetricPositiveDefinite(Manifold):
     __scaling__ = Manifold.__scaling__.copy()
     name = "SymmetricPositiveDefinite"
     ndim = 0
-    reversible = True
+    reversible = False
     defaulf_metric: str = "AIM"
 
     def __init__(self, ndim=2, defaulf_metric: str = defaulf_metric):
@@ -76,7 +76,7 @@ class SymmetricPositiveDefinite(Manifold):
             self._dist_doc
         )
         inv_sqrt_x = batch_linalg.sym_inv_sqrtm1(x)
-        return 0.5 * torch.norm(
+        return torch.norm(
             batch_linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x),
             dim=[-1, -2],
             keepdim=keepdim,
@@ -145,7 +145,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
         symx = batch_linalg.sym(x)
-        return batch_linalg.sym_funcm(symx, partial(torch.clamp, min=EPS[x.dtype]))
+        return batch_linalg.sym_funcm(symx, torch.abs)
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return batch_linalg.sym(u)
@@ -240,10 +240,10 @@ class SymmetricPositiveDefinite(Manifold):
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_x = batch_linalg.sym_invm(x)
-        return batch_linalg.sym(x + u + u @ inv_x @ u / 2)
+        return x + u + 0.5 * u @ inv_x @ u
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_sqrt_x, sqrt_x = batch_linalg.sym_sqrtm2(x)
+        inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
         return sqrt_x @ batch_linalg.sym_expm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
     def logmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
@@ -252,3 +252,8 @@ class SymmetricPositiveDefinite(Manifold):
 
     def extra_repr(self) -> str:
         return "ndim={}".format(self.ndim)
+
+    def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+        inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
+        exp_x_y = batch_linalg.sym_expm(0.5 * batch_linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x))
+        return  sqrt_x @ exp_x_y  @ batch_linalg.sym(inv_sqrt_x @ v @ inv_sqrt_x)  @ exp_x_y @ sqrt_x
