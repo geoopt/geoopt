@@ -40,8 +40,9 @@ class SymmetricPositiveDefinite(Manifold):
     reversible = False
     defaulf_metric: str = "AIM"
 
-    def __init__(self, ndim=2, defaulf_metric: str = defaulf_metric):
+    def __init__(self, dim=2, ndim=2, defaulf_metric: str = defaulf_metric):
         super().__init__()
+        self.dim = dim
         self.ndim = ndim
         self.defaulf_metric = defaulf_metric
 
@@ -239,7 +240,7 @@ class SymmetricPositiveDefinite(Manifold):
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_x = batch_linalg.sym_invm(x)
-        return x + u + 0.5 * u @ inv_x @ u
+        return batch_linalg.sym(x + u + 0.5 * u @ inv_x @ u)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
@@ -250,7 +251,7 @@ class SymmetricPositiveDefinite(Manifold):
         return sqrt_x @ batch_linalg.sym_logm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
     def extra_repr(self) -> str:
-        return "ndim={}".format(self.ndim)
+        return "ndim={}&dim={}".format(self.ndim, self.dim)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
@@ -264,3 +265,9 @@ class SymmetricPositiveDefinite(Manifold):
             @ exp_x_y
             @ sqrt_x
         )
+
+    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
+        tens = 0.5 * torch.randn(*size, dtype=dtype, device=device)
+        tens = batch_linalg.sym(tens)
+        tens = batch_linalg.sym_funcm(tens, torch.exp)
+        return tens
