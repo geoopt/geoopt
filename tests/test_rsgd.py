@@ -41,6 +41,44 @@ def test_rsgd_stiefel(params):
     optim.step(closure)
 
 
+@pytest.mark.parametrize(
+    "params",
+    [
+        dict(lr=1e-2),
+        dict(lr=1e-3, momentum=0.9),
+        dict(momentum=0.9, nesterov=True, lr=1e-3),
+        dict(momentum=0.9, dampening=0.1, lr=1e-3),
+    ],
+)
+def test_rsgd_spd(params):
+    manifold = geoopt.manifolds.SymmetricPositiveDefinite(3)
+    torch.manual_seed(42)
+    with torch.no_grad():
+        X = geoopt.ManifoldParameter(manifold.random(2,2), manifold=manifold).proj_()
+    Xstar = manifold.random(2,2)
+    # Xstar.set_(manifold.projx(Xstar))
+
+    def closure():
+        optim.zero_grad()
+        loss = (X - Xstar).pow(2).sum()
+        # manifold constraint that makes optimization hard if violated
+        loss.backward()
+        return loss.item()
+
+    optim = geoopt.optim.RiemannianSGD([X], **params)
+    assert (X - Xstar).norm() > 1e-5
+    for i in range(10000):
+        cond = (X - Xstar).norm()
+        if cond < 1e-5:
+            break
+        optim.step(closure)
+        print(i, cond)
+    assert X.is_contiguous()
+    np.testing.assert_allclose(X.data, Xstar, atol=1e-5)
+    optim.load_state_dict(optim.state_dict())
+    optim.step(closure)
+
+
 def test_init_manifold():
     torch.manual_seed(42)
     stiefel = geoopt.manifolds.Stiefel()
