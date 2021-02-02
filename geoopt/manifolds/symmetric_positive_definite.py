@@ -271,3 +271,12 @@ class SymmetricPositiveDefinite(Manifold):
         tens = batch_linalg.sym(tens)
         tens = batch_linalg.sym_funcm(tens, torch.exp)
         return tens
+
+    def origin(
+        self,
+        *size: Union[int, Tuple[int]],
+        dtype=None,
+        device=None,
+        seed: Optional[int] = 42
+    ) -> torch.Tensor:
+        return torch.diag_embed(torch.ones(*size[:-1], dtype=dtype, device=device))
