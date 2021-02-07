@@ -13,8 +13,16 @@ from .stereographic import (
     SphereProjectionExact,
 )
 from .product import ProductManifold
-from . import stereographic
-from . import scaled
-from . import lorentz
 from .lorentz import Lorentz
 from .scaled import Scaled
+from . import (
+    stereographic,
+    birkhoff_polytope,
+    euclidean,
+    product,
+    scaled,
+    sphere,
+    stiefel,
+    symmetric_positive_definite,
+    base,
+)

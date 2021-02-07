@@ -1,10 +1,11 @@
 This file tracks important changes in PRs
 
-geoopt (next release)
+geoopt (0.4.0)
 =====================
 
 New Features
 ------------
+new Symmetric Positive Definite manifold (#153)
 
 Maintainance
 ------------
