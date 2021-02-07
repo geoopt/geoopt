@@ -51,7 +51,7 @@ def test_rsgd_stiefel(params):
     ],
 )
 def test_rsgd_spd(params):
-    manifold = geoopt.manifolds.SymmetricPositiveDefinite(3)
+    manifold = geoopt.manifolds.SymmetricPositiveDefinite()
     torch.manual_seed(42)
     with torch.no_grad():
         X = geoopt.ManifoldParameter(manifold.random(2, 2), manifold=manifold).proj_()
