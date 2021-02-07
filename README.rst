@@ -83,7 +83,7 @@ Manifolds
 -  ``geoopt.Lorentz`` - `Hyperboloid model <https://en.wikipedia.org/wiki/Hyperboloid_model>`_
 -  ``geoopt.ProductManifold`` - Product manifold constructor
 -  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``
-
+-  ``geoopt.SymmetricPositiveDefinite`` - SPD matrix manifold
 
 All manifolds implement methods necessary to manipulate tensors on manifolds and
 tangent vectors to be used in general purpose. See more in `documentation`_.
