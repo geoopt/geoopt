@@ -3,6 +3,7 @@ import torch
 from .base import Manifold
 from ..linalg import batch_linalg
 import enum
+import warnings
 
 __all__ = ["SymmetricPositiveDefinite"]
 
@@ -47,6 +48,12 @@ class SymmetricPositiveDefinite(Manifold):
     def __init__(self, default_metric: Union[str, SPDMetric] = "AIM"):
         super().__init__()
         self.default_metric = SPDMetric(default_metric)
+        if self.default_metric != SPDMetric.AIM:
+            warnings.warn(
+                "{} is not fully implemented and results may be not as you expect".format(
+                    self.default_metric
+                )
+            )
 
     _dist_doc = """
         Parameters
