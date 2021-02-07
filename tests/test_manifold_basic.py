@@ -279,7 +279,7 @@ def spd_case():
     )
     v = geoopt.linalg.batch_linalg.sym(ev)
 
-    manifold = geoopt.SymmetricPositiveDefinite(2)
+    manifold = geoopt.SymmetricPositiveDefinite("AIM")
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case

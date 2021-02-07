@@ -2,11 +2,19 @@ from typing import Optional, Tuple, Union
 import torch
 from .base import Manifold
 from ..linalg import batch_linalg
+import enum
+import warnings
 
 __all__ = ["SymmetricPositiveDefinite"]
 
 
 EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
+
+
+class SPDMetric(enum.Enum):
+    AIM = "AIM"
+    SM = "SM"
+    LEM = "LEM"
 
 
 class SymmetricPositiveDefinite(Manifold):
@@ -28,23 +36,24 @@ class SymmetricPositiveDefinite(Manifold):
 
     Parameters
     ----------
-    ndim : int
-        number of trailing dimensions treated as matrix dimensions.
-        All the operations acting on such as inner products, etc
-        will respect the :attr:`ndim`.
+    default_metric: Union[str, SPDMetric]
+        one of AIM, SM, LEM. So far only AIM is fully implemented.
     """
 
     __scaling__ = Manifold.__scaling__.copy()
     name = "SymmetricPositiveDefinite"
-    ndim = 0
+    ndim = 2
     reversible = False
-    defaulf_metric: str = "AIM"
 
-    def __init__(self, dim=2, ndim=2, defaulf_metric: str = defaulf_metric):
+    def __init__(self, default_metric: Union[str, SPDMetric] = "AIM"):
         super().__init__()
-        self.dim = dim
-        self.ndim = ndim
-        self.defaulf_metric = defaulf_metric
+        self.default_metric = SPDMetric(default_metric)
+        if self.default_metric != SPDMetric.AIM:
+            warnings.warn(
+                "{} is not fully implemented and results may be not as you expect".format(
+                    self.default_metric
+                )
+            )
 
     _dist_doc = """
         Parameters
@@ -154,16 +163,15 @@ class SymmetricPositiveDefinite(Manifold):
         return x @ self.proju(x, u) @ x.transpose(-1, -2)
 
     _dist_metric = {
-        "AIM": _affine_invariant_metric,
-        "SM": _stein_metric,
-        "LEM": _log_eucliden_metric,
+        SPDMetric.AIM: _affine_invariant_metric,
+        SPDMetric.SM: _stein_metric,
+        SPDMetric.LEM: _log_eucliden_metric,
     }
 
     def dist(
         self,
         x: torch.Tensor,
         y: torch.Tensor,
-        mode: str = defaulf_metric,
         keepdim=False,
     ) -> torch.Tensor:
         """Compute distance between 2 points on the manifold that is the shortest path along geodesics.
@@ -174,8 +182,6 @@ class SymmetricPositiveDefinite(Manifold):
             point on the manifold
         y : torch.Tensor
             point on the manifold
-        mode : str, optional
-            choose metric to compute distance, by default defaulf_metric
         keepdim : bool, optional
             keep the last dim?, by default False
 
@@ -189,15 +195,7 @@ class SymmetricPositiveDefinite(Manifold):
         ValueError
             if `mode` isn't in `_dist_metric`
         """
-        if mode in self._dist_metric:
-            return self._dist_metric[mode](self, x, y, keepdim=keepdim)
-        else:
-            raise ValueError(
-                "Unsopported metric:'"
-                + mode
-                + "'. Please choose one from "
-                + str(tuple(self._dist_metric.keys()))
-            )
+        return self._dist_metric[self.default_metric](self, x, y, keepdim=keepdim)
 
     def inner(
         self,
@@ -251,7 +249,7 @@ class SymmetricPositiveDefinite(Manifold):
         return sqrt_x @ batch_linalg.sym_logm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
     def extra_repr(self) -> str:
-        return "ndim={}&dim={}".format(self.ndim, self.dim)
+        return "default_metric={}".format(self.default_metric)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
