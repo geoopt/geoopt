@@ -35,10 +35,8 @@ class SymmetricPositiveDefinite(Manifold):
 
     Parameters
     ----------
-    ndim : int
-        number of trailing dimensions treated as matrix dimensions.
-        All the operations acting on such as inner products, etc
-        will respect the :attr:`ndim`.
+    default_metric: Union[str, SPDMetric]
+        one of AIM, SM, LEM. So far only AIM is fully implemented.
     """
 
     __scaling__ = Manifold.__scaling__.copy()
