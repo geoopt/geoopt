@@ -2,11 +2,18 @@ from typing import Optional, Tuple, Union
 import torch
 from .base import Manifold
 from ..linalg import batch_linalg
+import enum
 
 __all__ = ["SymmetricPositiveDefinite"]
 
 
 EPS = {torch.float32: 1e-4, torch.float64: 1e-7}
+
+
+class SPDMetric(enum.Enum):
+    AIM = "AIM"
+    SM = "SM"
+    LEM = "LEM"
 
 
 class SymmetricPositiveDefinite(Manifold):
@@ -38,11 +45,10 @@ class SymmetricPositiveDefinite(Manifold):
     name = "SymmetricPositiveDefinite"
     ndim = 2
     reversible = False
-    default_metric: str = "AIM"
 
-    def __init__(self, default_metric: str = default_metric):
+    def __init__(self, default_metric: Union[str, SPDMetric] = "AIM"):
         super().__init__()
-        self.default_metric = default_metric
+        self.default_metric = SPDMetric(default_metric)
 
     _dist_doc = """
         Parameters
@@ -152,9 +158,9 @@ class SymmetricPositiveDefinite(Manifold):
         return x @ self.proju(x, u) @ x.transpose(-1, -2)
 
     _dist_metric = {
-        "AIM": _affine_invariant_metric,
-        "SM": _stein_metric,
-        "LEM": _log_eucliden_metric,
+        SPDMetric.AIM: _affine_invariant_metric,
+        SPDMetric.SM: _stein_metric,
+        SPDMetric.LEM: _log_eucliden_metric,
     }
 
     def dist(
