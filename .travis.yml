@@ -20,8 +20,8 @@ matrix:
 
 os:
   - linux
-  - windows
-  - osx
+#  - windows
+#  - osx
 
 before_install:
   - source ./scripts/before_install_nix_win.sh
