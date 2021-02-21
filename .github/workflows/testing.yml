@@ -38,7 +38,7 @@ jobs:
         conda develop .
     - name: Run info
       run: |
-        conda --version && python --version && pip --version && python -c 'import torch; print("torch", torch.__version__)'
+        conda --version && python3 --version && python3 -c 'import torch; print("torch", torch.__version__)'
     - name: Run Linters
       run: make lint
     - name: Run Tests
