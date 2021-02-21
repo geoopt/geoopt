@@ -26,7 +26,7 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
-        activate-environment: test
+        auto-activate-base: true
         python-version: ${{ matrix.python-version }}
     - name: Install deps with conda
       run: |
