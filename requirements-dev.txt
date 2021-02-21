@@ -1,6 +1,5 @@
 pytest
 black
-readme2tex
 pytest-cov
 coveralls
 twine
