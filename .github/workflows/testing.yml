@@ -17,7 +17,7 @@ jobs:
         python-version: [3.7]
         env:
           - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.7.1' COVERAGE='--cov geoopt'
-          - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.6.1' COVERAGE=''
+          - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.6.0' COVERAGE=''
           - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.5.1' COVERAGE=''
           - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
 
@@ -32,8 +32,8 @@ jobs:
         export ${{ matrix.env }}
         conda install --yes numpy mkl-service
         conda install --yes pytorch${PYTORCH_VERSION} cpuonly -c ${PYTORCH_CHANNEL}
-        conda install --file requirements-dev.txt
-        conda develop .
+        conda install --yes --file requirements-dev.txt
+        conda develop --yes .
     - name: Run info
       run: |
         conda --version && python --version && pip --version && python -c 'import torch; print("torch", torch.__version__)'
