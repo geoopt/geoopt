@@ -33,6 +33,7 @@ jobs:
         conda install --yes numpy mkl-service
         conda install --yes pytorch${PYTORCH_VERSION} cpuonly -c ${PYTORCH_CHANNEL}
         conda install --yes --file requirements-dev.txt
+        conda install --yes conda-build
         conda develop .
     - name: Run info
       run: |
