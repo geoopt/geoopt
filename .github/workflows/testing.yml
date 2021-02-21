@@ -1,0 +1,46 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python package
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+        env:
+          - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.7.1' COVERAGE='--cov geoopt'
+          - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.6.1' COVERAGE=''
+          - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.5.1' COVERAGE=''
+          - PYTHON_VERSION=3.6 PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
+
+    steps:
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+    - name: Install deps with conda
+      run: |
+        conda install --yes numpy mkl-service
+        conda install --yes pytorch${PYTORCH_VERSION} cpuonly -c ${PYTORCH_CHANNEL}
+        conda install --file requirements-dev.txt
+    - name: Run info
+      run: |
+        conda --version && python --version && pip --version && python -c 'import torch; print("torch", torch.__version__)'
+    - name: Run Linters
+      run: make lint
+    - name: Run Tests
+      run: |
+        pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}
+    - name: Coverage
+      run: if [[ $COVERAGE ]]; then coveralls; fi
+        
+      
+    
