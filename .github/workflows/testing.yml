@@ -39,7 +39,7 @@ jobs:
     - name: Run info
       shell: bash -l {0}
       run: |
-        conda --version && python3 --version && python3 -c 'import torch; print("torch", torch.__version__)'
+        conda --version && which python && python --version && python -c 'import torch; print("torch", torch.__version__)'
     - name: Run Linters
       shell: bash -l {0}
       run: make lint
