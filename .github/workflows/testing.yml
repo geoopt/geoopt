@@ -33,6 +33,7 @@ jobs:
         conda install --yes numpy mkl-service
         conda install --yes pytorch${PYTORCH_VERSION} cpuonly -c ${PYTORCH_CHANNEL}
         conda install --file requirements-dev.txt
+        conda develop .
     - name: Run info
       run: |
         conda --version && python --version && pip --version && python -c 'import torch; print("torch", torch.__version__)'
