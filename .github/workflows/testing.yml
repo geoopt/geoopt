@@ -31,22 +31,24 @@ jobs:
     - name: Install deps with conda
       run: |
         export ${{ matrix.env }}
-        conda init bash
-        conda activate test
         conda install --yes numpy mkl-service
         conda install --yes pytorch${PYTORCH_VERSION} cpuonly -c ${PYTORCH_CHANNEL}
         conda install --yes --file requirements-dev.txt
         conda install --yes conda-build
         conda develop .
     - name: Run info
+      shell: bash -l {0}
       run: |
         conda --version && python3 --version && python3 -c 'import torch; print("torch", torch.__version__)'
     - name: Run Linters
+      shell: bash -l {0}
       run: make lint
     - name: Run Tests
+      shell: bash -l {0}
       run: |
         pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}
     - name: Coverage
+      shell: bash -l {0}
       run: if [[ $COVERAGE ]]; then coveralls; fi
         
       
