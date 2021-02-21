@@ -31,6 +31,8 @@ jobs:
     - name: Install deps with conda
       run: |
         export ${{ matrix.env }}
+        conda init bash
+        conda activate test
         conda install --yes numpy mkl-service
         conda install --yes pytorch${PYTORCH_VERSION} cpuonly -c ${PYTORCH_CHANNEL}
         conda install --yes --file requirements-dev.txt
