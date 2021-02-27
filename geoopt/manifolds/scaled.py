@@ -41,7 +41,7 @@ def rescale(function, scaling_info):
         wrapped_results = []
         is_tuple = isinstance(results, tuple)
         results = geoopt.utils.make_tuple(results)
-        for i, (res, power) in enumerate(
+        for _, (res, power) in enumerate(
             itertools.zip_longest(results, scaling_info.results, fillvalue=0)
         ):
             wrapped_results.append(rescale_value(res, self.scale, power))

@@ -48,7 +48,7 @@ class SGRHMC(Sampler):
                 r = v / epsilon
                 H_old += 0.5 * (r * r).sum().item()
         logp = float("nan")
-        for i in range(self.n_steps + 1):
+        for _ in range(self.n_steps + 1):
             logp = closure()
             logp.backward()
             logp = logp.item()

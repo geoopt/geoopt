@@ -81,7 +81,7 @@ class RHMC(Sampler):
                     self._step(p, r, epsilon)
                     p.grad.zero_()
 
-        for i in range(1, self.n_steps):
+        for _ in range(1, self.n_steps):
             logp = closure()
             logp.backward()
             with torch.no_grad():

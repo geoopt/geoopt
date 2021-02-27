@@ -49,7 +49,7 @@ enable=import-error,
        cell-var-from-loop,
        global-variable-undefined,
        dangerous-default-value,
-       # redefined-builtin,
+       redefined-builtin,
        redefine-in-handler,
        unused-import,
        unused-wildcard-import,
@@ -60,7 +60,7 @@ enable=import-error,
        bad-open-mode,
        redundant-unittest-assert,
        boolean-datetime,
-       # unused-variable
+       unused-variable
 
 
 [REPORTS]

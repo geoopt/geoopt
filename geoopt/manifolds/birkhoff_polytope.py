@@ -202,11 +202,11 @@ class BirkhoffPolytope(Manifold):
 def proj_doubly_stochastic(
     x, max_iter: int = 300, eps: float = 1e-5, tol: float = 1e-5
 ):
-    iter = 0
+    it_num = 0
     c = 1.0 / (x.sum(dim=-2, keepdim=True) + eps)
     r = 1.0 / ((x @ c.transpose(-1, -2)) + eps)
-    while iter < max_iter:
-        iter += 1
+    while it_num < max_iter:
+        it_num += 1
         cinv = torch.matmul(r.transpose(-1, -2), x)
         if torch.max(torch.abs(cinv * c - 1)) <= tol:
             break
