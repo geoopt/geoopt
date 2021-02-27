@@ -56,5 +56,5 @@ jobs:
     steps:
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@v1.1.2
-    with:
+      with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
