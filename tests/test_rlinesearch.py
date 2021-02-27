@@ -10,6 +10,7 @@ import pytest
 @pytest.mark.parametrize("batch_size", [None, 1, 16])
 @pytest.mark.parametrize("line_search_method", ["armijo", "wolfe"])
 @pytest.mark.parametrize("cg_method", ["steepest", "fr", "pr"])
+@pytest.mark.filterwarnings("ignore:No suitable step size could be found")
 def test_rwolfe_stiefel(line_search_params, batch_size, line_search_method, cg_method):
     # Use line search to solve orthogonal procrustes
     stiefel = geoopt.manifolds.Stiefel()
