@@ -10,7 +10,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,11 +50,9 @@ jobs:
       run: |
         export ${{ matrix.env }}
         pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}
-    - name: Coverage
-      shell: bash -l {0}
-      run: |
-        export ${{ matrix.env }}
-        if [[ $COVERAGE ]]; then coveralls; fi
-        
-      
-    
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls GitHub Action
+      uses: coverallsapp/github-action@v1.1.2
