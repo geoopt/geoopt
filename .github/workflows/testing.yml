@@ -50,6 +50,12 @@ jobs:
       run: |
         export ${{ matrix.env }}
         pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        flag-name: run-${PYTORCH_CHANNEL}-${PYTORCH_VERSION}
+        parallel: true
   finish:
     needs: test
     runs-on: ubuntu-latest
@@ -58,3 +64,4 @@ jobs:
       uses: coverallsapp/github-action@v1.1.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
