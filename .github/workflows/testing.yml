@@ -16,10 +16,10 @@ jobs:
       matrix:
         python-version: [3.7]
         env:
-          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.7.1' COVERAGE='--cov geoopt'
-          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.6.0' COVERAGE=''
-          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.5.1' COVERAGE=''
-          - PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION='' COVERAGE=''
+          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.7.1'
+          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.6.0'
+          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.5.1'
+          - PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION=''
 
     steps:
     - uses: actions/checkout@v2
@@ -49,7 +49,7 @@ jobs:
       shell: bash -l {0}
       run: |
         export ${{ matrix.env }}
-        pytest -v geoopt tests --durations=0 --doctest-modules ${COVERAGE}
+        pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt
     - name: Coveralls
       uses: coverallsapp/github-action@master
       with:
