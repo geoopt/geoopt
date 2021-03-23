@@ -55,6 +55,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         flag-name: run-${PYTORCH_CHANNEL}-${PYTORCH_VERSION}
+        path-to-lcov: .coverage
         parallel: true
   finish:
     needs: test
@@ -65,3 +66,4 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
+        path-to-lcov: .coverage
