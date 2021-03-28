@@ -15,12 +15,9 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7]
-        env:
-          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.7.1'
-          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.6.0'
-          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.5.1'
-          - PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION=''
-
+        pytorch-version: ['1.8.1', '1.7.1', '1.6.0']
+      env:
+        PYTORCH_VERSION: ${{ matrix.pytorch-version }}
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
@@ -32,9 +29,8 @@ jobs:
     - name: Install deps with conda
       shell: bash -l {0}
       run: |
-        export ${{ matrix.env }}
         conda install --yes numpy mkl-service
-        conda install --yes pytorch${PYTORCH_VERSION} cpuonly -c ${PYTORCH_CHANNEL}
+        conda install --yes pytorch==${{ matrix.pytorch-version }} cpuonly -c pytorch
         conda install --yes --file requirements-dev.txt
         conda install --yes conda-build
         conda develop .
@@ -48,20 +44,9 @@ jobs:
     - name: Run Tests
       shell: bash -l {0}
       run: |
-        export ${{ matrix.env }}
-        pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt
+        pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt --cov-report=xml --cov-report term 
     - name: Coveralls
-      uses: AndreMiras/coveralls-python-action@develop
+      uses: codecov/codecov-action@v1
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        flag-name: run-${PYTORCH_CHANNEL}-${PYTORCH_VERSION}
-        parallel: true
-  finish:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - name: Coveralls GitHub Action
-      uses: AndreMiras/coveralls-python-action@develop
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
+        github-token: ${{ secrets.CODECOV_TOKEN }}
+        env_vars: PYTORCH_VERSION
