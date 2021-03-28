@@ -4,9 +4,10 @@ import operator
 import functools
 import geoopt.utils
 from geoopt.manifolds import Manifold
+from geoopt.manifolds.stereographic import Stereographic
 
 
-__all__ = ["ProductManifold"]
+__all__ = ["ProductManifold", "StereographicProductManifold"]
 
 
 def _shape2size(shape: Tuple[int]):
@@ -33,7 +34,8 @@ class ProductManifold(Manifold):
     ndim = 1
 
     def __init__(
-        self, *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]]
+        self,
+        *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]],
     ):
         if len(manifolds_with_shape) < 1:
             raise ValueError(
@@ -431,6 +433,99 @@ class ProductManifold(Manifold):
             points.append(
                 manifold.origin(
                     batch_shape + shape, dtype=dtype, device=device, seed=seed
+                )
+            )
+        tensor = self.pack_point(*points)
+        return geoopt.ManifoldTensor(tensor, manifold=self)
+
+
+class StereographicProductManifold(ProductManifold):
+    """
+    Product Manifold for Stereographic manifolds.
+
+    Examples
+    --------
+    A Torus
+
+    >>> import geoopt
+    >>> sphere = geoopt.SphereProjection()
+    >>> torus = StereographicProductManifold((sphere, 2), (sphere, 2))
+    """
+
+    def __init__(
+        self,
+        *manifolds_with_shape: Tuple[Stereographic, Union[Tuple[int, ...], int]],
+    ):
+        super().__init__(*manifolds_with_shape)
+
+    def expmap0(self, u: torch.Tensor) -> torch.Tensor:
+        target_batch_dim = _calculate_target_batch_dim(u.dim())
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            tangent = self.take_submanifold_value(u, i)
+            mapped = manifold.expmap0(tangent)
+            mapped = mapped.reshape((*mapped.shape[:target_batch_dim], -1))
+            mapped_tensors.append(mapped)
+        return self.pack_point(*mapped_tensors)
+
+    def dist2plane(
+        self,
+        x: torch.Tensor,
+        p: torch.Tensor,
+        a: torch.Tensor,
+        *,
+        keepdim=False,
+        signed=False,
+        scaled=False,
+    ) -> torch.Tensor:
+        dists = []
+        for i, manifold in enumerate(self.manifolds):
+            dists.append(
+                manifold.dist2plane(
+                    self.take_submanifold_value(x, i),
+                    self.take_submanifold_value(p, i),
+                    self.take_submanifold_value(a, i),
+                    dim=-1,
+                    keepdim=keepdim,
+                    signed=signed,
+                    scaled=scaled,
+                )
+            )
+        dists = torch.stack(dists, -1)
+        return (dists ** 2).sum(axis=-1).sqrt()
+
+    def mobius_add(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        *,
+        project=True,
+    ) -> torch.Tensor:
+        target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            y_ = self.take_submanifold_value(y, i)
+            mapped = manifold.mobius_add(x_, y_, dim=-1, project=project)
+            mapped = mapped.reshape((*mapped.shape[:target_batch_dim], -1))
+            mapped_tensors.append(mapped)
+        return self.pack_point(*mapped_tensors)
+
+    def wrapped_normal(
+        self, mean: torch.Tensor, std, size, dtype=None, device=None
+    ) -> "geoopt.ManifoldTensor":
+        shape = geoopt.utils.size2shape(*size)
+        self._assert_check_shape(shape, "x")
+        batch_shape = shape[:-1]
+        points = []
+        for i, (manifold, shape) in enumerate(zip(self.manifolds, self.shapes)):
+            points.append(
+                manifold.wrapped_normal(
+                    self.take_submanifold_value(mean, i),
+                    self.take_submanifold_value(std, i),
+                    batch_shape + shape,
+                    dtype=dtype,
+                    device=device,
                 )
             )
         tensor = self.pack_point(*points)

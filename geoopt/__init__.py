@@ -23,6 +23,7 @@ from .manifolds import (
     SphereProjection,
     SphereProjectionExact,
     ProductManifold,
+    StereographicProductManifold,
     Scaled,
     Lorentz,
     BirkhoffPolytope,
