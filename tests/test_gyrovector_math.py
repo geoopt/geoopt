@@ -431,7 +431,7 @@ def test_matvec_via_equiv_fn_apply(a, negative, manifold, strict, dtype):
     mat = a.new(3, a.shape[-1]).normal_()
     y = manifold.mobius_fn_apply(lambda x: x @ mat.transpose(-1, -2), a)
     y1 = manifold.mobius_matvec(mat, a)
-    tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
+    tolerance = {torch.float32: dict(atol=1e-5, rtol=1e-5), torch.float64: dict()}
 
     tolerant_allclose_check(y, y1, strict=strict, **tolerance[dtype])
     y.sum().backward()
@@ -448,7 +448,7 @@ def test_mobiusify(a, c, negative, strict, dtype):
 
     y = matvec(a, k=-c)
     y1 = stereographic.math.mobius_matvec(mat, a, k=-c)
-    tolerance = {torch.float32: dict(atol=1e-5), torch.float64: dict()}
+    tolerance = {torch.float32: dict(atol=1e-5, rtol=1e-5), torch.float64: dict()}
 
     tolerant_allclose_check(y, y1, strict=strict, **tolerance[dtype])
     y.sum().backward()
