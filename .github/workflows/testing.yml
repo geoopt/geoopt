@@ -51,19 +51,17 @@ jobs:
         export ${{ matrix.env }}
         pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt
     - name: Coveralls
-      uses: coverallsapp/github-action@v1.1.2
+      uses: AndreMiras/coveralls-python-action@develop
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         flag-name: run-${PYTORCH_CHANNEL}-${PYTORCH_VERSION}
-        path-to-lcov: .coverage
         parallel: true
   finish:
     needs: test
     runs-on: ubuntu-latest
     steps:
     - name: Coveralls GitHub Action
-      uses: coverallsapp/github-action@v1.1.2
+      uses: AndreMiras/coveralls-python-action@develop
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
-        path-to-lcov: .coverage
