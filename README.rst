@@ -132,8 +132,8 @@ If you find this project useful in your research, please kindly add this bibtex 
    :alt: Documentation Status
 .. |Build Status| image:: https://github.com/geoopt/geoopt/actions/workflows/testing.yml/badge.svg?branch=master
    :target: https://github.com/geoopt/geoopt/actions/workflows/testing.yml
-.. |Coverage Status| image:: https://coveralls.io/repos/github/geoopt/geoopt/badge.svg?branch=master
-   :target: https://coveralls.io/github/geoopt/geoopt?branch=master
+.. |Coverage Status| image:: https://codecov.io/gh/geoopt/geoopt/branch/master/graph/badge.svg?token=HOI5LD0VWF
+   :target: https://codecov.io/gh/geoopt/geoopt
 .. |Codestyle Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/ambv/black
 .. |Gitter| image:: https://badges.gitter.im/geoopt/community.png
