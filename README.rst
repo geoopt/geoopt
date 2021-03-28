@@ -130,8 +130,8 @@ If you find this project useful in your research, please kindly add this bibtex 
 .. |Read The Docs| image:: https://readthedocs.org/projects/geoopt/badge/?version=latest
    :target: https://geoopt.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
-.. |Build Status| image:: https://travis-ci.com/geoopt/geoopt.svg?branch=master
-   :target: https://travis-ci.com/geoopt/geoopt
+.. |Build Status| image:: https://github.com/geoopt/geoopt/actions/workflows/testing.yml/badge.svg?branch=master
+   :target: https://github.com/geoopt/geoopt/actions/workflows/testing.yml
 .. |Coverage Status| image:: https://coveralls.io/repos/github/geoopt/geoopt/badge.svg?branch=master
    :target: https://coveralls.io/github/geoopt/geoopt?branch=master
 .. |Codestyle Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
