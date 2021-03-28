@@ -16,8 +16,8 @@ jobs:
       matrix:
         python-version: [3.7]
         pytorch-version: ['1.8.1', '1.7.1', '1.6.0']
-      env:
-        PYTORCH_VERSION: ${{ matrix.pytorch-version }}
+    env:
+      PYTORCH_VERSION: ${{ matrix.pytorch-version }}
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
