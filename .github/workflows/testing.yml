@@ -16,9 +16,9 @@ jobs:
       matrix:
         python-version: [3.7]
         env:
+          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.8.1'
           - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.7.1'
           - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.6.0'
-          - PYTORCH_CHANNEL='pytorch' PYTORCH_VERSION='=1.5.1'
           - PYTORCH_CHANNEL='pytorch-nightly' PYTORCH_VERSION=''
 
     steps:
