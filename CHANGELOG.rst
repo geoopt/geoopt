@@ -5,15 +5,16 @@ geoopt (0.4.0)
 
 New Features
 ------------
-new Symmetric Positive Definite manifold (#153)
+* new Symmetric Positive Definite manifold (#153)
 
 Maintainance
 ------------
-create pull request templates (#154)
-
+* create pull request templates (#154)
+* update tests for pytorch 1.6.0-1.8.1
 
 Bug Fixes
 ---------
+* fix step increments in optimizers (#165)
 
 geoopt v0.3.0
 =============
