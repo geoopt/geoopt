@@ -74,6 +74,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                 dampening = group["dampening"]
                 nesterov = group["nesterov"]
                 learning_rate = group["lr"]
+                group["step"] += 1
                 for point in group["params"]:
                     grad = point.grad
                     if grad is None:
@@ -113,7 +114,6 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                         new_point = manifold.retr(point, -learning_rate * grad)
                         copy_or_set_(point, new_point)
 
-                    group["step"] += 1
                 if (
                     group["stabilize"] is not None
                     and group["step"] % group["stabilize"] == 0
