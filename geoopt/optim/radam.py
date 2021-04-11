@@ -57,6 +57,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 eps = group["eps"]
                 learning_rate = group["lr"]
                 amsgrad = group["amsgrad"]
+                group["step"] += 1
                 for point in group["params"]:
                     grad = point.grad
                     if grad is None:
@@ -75,7 +76,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
 
                     # State initialization
                     if len(state) == 0:
-                        state["step"] = 0
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(point)
                         # Exponential moving average of squared gradient values
@@ -101,7 +101,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                         denom = max_exp_avg_sq.sqrt().add_(eps)
                     else:
                         denom = exp_avg_sq.sqrt().add_(eps)
-                    group["step"] += 1
                     bias_correction1 = 1 - betas[0] ** group["step"]
                     bias_correction2 = 1 - betas[1] ** group["step"]
                     step_size = (
@@ -119,7 +118,6 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     copy_or_set_(point, new_point)
                     exp_avg.set_(exp_avg_new)
 
-                    group["step"] += 1
                 if (
                     group["stabilize"] is not None
                     and group["step"] % group["stabilize"] == 0

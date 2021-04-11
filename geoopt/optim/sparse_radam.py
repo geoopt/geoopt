@@ -74,6 +74,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                 eps = group["eps"]
                 learning_rate = group["lr"]
                 amsgrad = group["amsgrad"]
+                group["step"] += 1
                 for point in group["params"]:
                     grad = point.grad
                     if grad is None:
@@ -92,7 +93,6 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
 
                     # State initialization
                     if len(state) == 0:
-                        state["step"] = 0
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(point)
                         # Exponential moving average of squared gradient values
@@ -124,7 +124,6 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         state["max_exp_avg_sq"][rows] = max_exp_avg_sq
                     else:
                         denom = exp_avg_sq.sqrt().add_(eps)
-                    group["step"] += 1
                     bias_correction1 = 1 - betas[0] ** group["step"]
                     bias_correction2 = 1 - betas[1] ** group["step"]
                     step_size = (
@@ -143,7 +142,6 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     state["exp_avg"][rows] = exp_avg_new
                     state["exp_avg_sq"][rows] = exp_avg_sq
 
-                    group["step"] += 1
                 if (
                     group["stabilize"] is not None
                     and group["step"] % group["stabilize"] == 0

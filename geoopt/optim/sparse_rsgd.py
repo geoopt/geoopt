@@ -70,6 +70,7 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                 dampening = group["dampening"]
                 nesterov = group["nesterov"]
                 learning_rate = group["lr"]
+                group["step"] += 1
                 for point in group["params"]:
                     grad = point.grad
                     if grad is None:
@@ -115,7 +116,6 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         new_point = manifold.retr(point, -learning_rate * grad)
                         full_point[rows] = new_point
 
-                    group["step"] += 1
                 if (
                     group["stabilize"] is not None
                     and group["step"] % group["stabilize"] == 0
