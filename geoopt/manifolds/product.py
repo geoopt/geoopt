@@ -3,8 +3,9 @@ from typing import Tuple, Union, Optional
 import operator
 import functools
 import geoopt.utils
-from geoopt.manifolds import Manifold
-from geoopt.manifolds.stereographic import Stereographic
+from ..utils import size2shape
+from .base import Manifold, ScalingInfo
+from .stereographic import Stereographic
 
 
 __all__ = ["ProductManifold", "StereographicProductManifold"]
@@ -451,6 +452,7 @@ class StereographicProductManifold(ProductManifold):
     >>> sphere = geoopt.SphereProjection()
     >>> torus = StereographicProductManifold((sphere, 2), (sphere, 2))
     """
+
     __scaling__ = Stereographic.__scaling__.copy()
 
     def __init__(
@@ -462,6 +464,7 @@ class StereographicProductManifold(ProductManifold):
             if not geoopt.utils.ismanifold(man, Stereographic):
                 raise TypeError("Every submanifold has to be Stereographic manifold")
 
+    @__scaling__(ScalingInfo(u=-1))
     def expmap0(self, u: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(u.dim())
         mapped_tensors = []
@@ -472,6 +475,7 @@ class StereographicProductManifold(ProductManifold):
             mapped_tensors.append(mapped)
         return self.pack_point(*mapped_tensors)
 
+    @__scaling__(ScalingInfo(1))
     def dist2plane(
         self,
         x: torch.Tensor,
@@ -515,19 +519,27 @@ class StereographicProductManifold(ProductManifold):
             mapped_tensors.append(mapped)
         return self.pack_point(*mapped_tensors)
 
+    @__scaling__(ScalingInfo(std=-1))
     def wrapped_normal(
-        self, mean: torch.Tensor, std, size, dtype=None, device=None
+        self,
+        size,
+        mean: torch.Tensor,
+        std: Union[torch.Tensor, int, float] = 1,
+        dtype=None,
+        device=None,
     ) -> "geoopt.ManifoldTensor":
-        shape = geoopt.utils.size2shape(*size)
+        shape = size2shape(*size)
         self._assert_check_shape(shape, "x")
         batch_shape = shape[:-1]
+        if type(std) == int or type(std) == float:
+            std = torch.zeros(mean.shape[-1]).type_as(mean) * std
         points = []
         for i, (manifold, shape) in enumerate(zip(self.manifolds, self.shapes)):
             points.append(
                 manifold.wrapped_normal(
+                    batch_shape + shape,
                     self.take_submanifold_value(mean, i),
                     self.take_submanifold_value(std, i),
-                    batch_shape + shape,
                     dtype=dtype,
                     device=device,
                 )
