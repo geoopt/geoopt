@@ -451,12 +451,16 @@ class StereographicProductManifold(ProductManifold):
     >>> sphere = geoopt.SphereProjection()
     >>> torus = StereographicProductManifold((sphere, 2), (sphere, 2))
     """
+    __scaling__ = Stereographic.__scaling__.copy()
 
     def __init__(
         self,
         *manifolds_with_shape: Tuple[Stereographic, Union[Tuple[int, ...], int]],
     ):
         super().__init__(*manifolds_with_shape)
+        for man in self.manifolds:
+            if not geoopt.utils.ismanifold(man, Stereographic):
+                raise TypeError("Every submanifold has to be Stereographic manifold")
 
     def expmap0(self, u: torch.Tensor) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(u.dim())

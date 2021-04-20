@@ -449,8 +449,9 @@ class Stereographic(Manifold):
 
     random = random_normal
 
+    @__scaling__(ScalingInfo(std=-1))
     def wrapped_normal(
-        self, mean: torch.Tensor, std, size, dtype=None, device=None
+        self, *size, mean: torch.Tensor, std=1, dtype=None, device=None
     ) -> "geoopt.ManifoldTensor":
         """
         Create a point on the manifold, measure is induced by Normal distribution on the tangent space of mean.
