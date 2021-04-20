@@ -522,7 +522,7 @@ class StereographicProductManifold(ProductManifold):
     @__scaling__(ScalingInfo(std=-1))
     def wrapped_normal(
         self,
-        size,
+        *size,
         mean: torch.Tensor,
         std: Union[torch.Tensor, int, float] = 1,
         dtype=None,
@@ -537,9 +537,9 @@ class StereographicProductManifold(ProductManifold):
         for i, (manifold, shape) in enumerate(zip(self.manifolds, self.shapes)):
             points.append(
                 manifold.wrapped_normal(
-                    batch_shape + shape,
-                    self.take_submanifold_value(mean, i),
-                    self.take_submanifold_value(std, i),
+                    *(batch_shape + shape),
+                    mean=self.take_submanifold_value(mean, i),
+                    std=self.take_submanifold_value(std, i),
                     dtype=dtype,
                     device=device,
                 )
