@@ -1,9 +1,9 @@
 from typing import Optional, Tuple, Union
-import torch
-from .base import Manifold
-from ..linalg import batch_linalg
 import enum
 import warnings
+import torch
+from .base import Manifold
+from .. import linalg
 
 __all__ = ["SymmetricPositiveDefinite"]
 
@@ -84,9 +84,9 @@ class SymmetricPositiveDefinite(Manifold):
         """.format(
             self._dist_doc
         )
-        inv_sqrt_x = batch_linalg.sym_inv_sqrtm1(x)
+        inv_sqrt_x = linalg.sym_inv_sqrtm1(x)
         return torch.norm(
-            batch_linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x),
+            linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x),
             dim=[-1, -2],
             keepdim=keepdim,
         )
@@ -127,7 +127,7 @@ class SymmetricPositiveDefinite(Manifold):
             self._dist_doc
         )
         return torch.norm(
-            batch_linalg.sym_logm(x) - batch_linalg.sym_logm(y),
+            linalg.sym_logm(x) - linalg.sym_logm(y),
             dim=[-1, -2],
             keepdim=keepdim,
         )
@@ -153,11 +153,11 @@ class SymmetricPositiveDefinite(Manifold):
         return True, None
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
-        symx = batch_linalg.sym(x)
-        return batch_linalg.sym_funcm(symx, torch.abs)
+        symx = linalg.sym(x)
+        return linalg.sym_funcm(symx, torch.abs)
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return batch_linalg.sym(u)
+        return linalg.sym(u)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return x @ self.proju(x, u) @ x.transpose(-1, -2)
@@ -230,44 +230,42 @@ class SymmetricPositiveDefinite(Manifold):
         """
         if v is None:
             v = u
-        inv_x = batch_linalg.sym_invm(x)
-        ret = batch_linalg.trace(inv_x @ u @ inv_x @ v)
+        inv_x = linalg.sym_invm(x)
+        ret = linalg.trace(inv_x @ u @ inv_x @ v)
         if keepdim:
             return torch.unsqueeze(torch.unsqueeze(ret, -1), -1)
         return ret
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_x = batch_linalg.sym_invm(x)
-        return batch_linalg.sym(x + u + 0.5 * u @ inv_x @ u)
+        inv_x = linalg.sym_invm(x)
+        return linalg.sym(x + u + 0.5 * u @ inv_x @ u)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
-        return sqrt_x @ batch_linalg.sym_expm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
+        inv_sqrt_x, sqrt_x = linalg.sym_inv_sqrtm2(x)
+        return sqrt_x @ linalg.sym_expm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
     def logmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
-        return sqrt_x @ batch_linalg.sym_logm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
+        inv_sqrt_x, sqrt_x = linalg.sym_inv_sqrtm2(x)
+        return sqrt_x @ linalg.sym_logm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
 
     def extra_repr(self) -> str:
         return "default_metric={}".format(self.default_metric)
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
-        inv_sqrt_x, sqrt_x = batch_linalg.sym_inv_sqrtm2(x)
-        exp_x_y = batch_linalg.sym_expm(
-            0.5 * batch_linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x)
-        )
+        inv_sqrt_x, sqrt_x = linalg.sym_inv_sqrtm2(x)
+        exp_x_y = linalg.sym_expm(0.5 * linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x))
         return (
             sqrt_x
             @ exp_x_y
-            @ batch_linalg.sym(inv_sqrt_x @ v @ inv_sqrt_x)
+            @ linalg.sym(inv_sqrt_x @ v @ inv_sqrt_x)
             @ exp_x_y
             @ sqrt_x
         )
 
     def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
         tens = 0.5 * torch.randn(*size, dtype=dtype, device=device)
-        tens = batch_linalg.sym(tens)
-        tens = batch_linalg.sym_funcm(tens, torch.exp)
+        tens = linalg.sym(tens)
+        tens = linalg.sym_funcm(tens, torch.exp)
         return tens
 
     def origin(

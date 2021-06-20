@@ -83,7 +83,7 @@ class Stiefel(Manifold):
         return True, None
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
-        U, _, V = linalg.batch_linalg.svd(x, full_matrices=False)
+        U, _, V = linalg.svd(x, full_matrices=False)
         return torch.einsum("...ik,...kj->...ij", U, V)
 
     def random_naive(self, *size, dtype=None, device=None) -> torch.Tensor:
@@ -224,7 +224,7 @@ class EuclideanStiefel(Stiefel):
     reversible = False
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return u - x @ linalg.batch_linalg.sym(x.transpose(-1, -2) @ u)
+        return u - x @ linalg.sym(x.transpose(-1, -2) @ u)
 
     egrad2rgrad = proju
 
@@ -239,8 +239,8 @@ class EuclideanStiefel(Stiefel):
         return (u * v).sum([-1, -2], keepdim=keepdim)
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        q, r = linalg.batch_linalg.qr(x + u)
-        unflip = linalg.batch_linalg.extract_diag(r).sign().add(0.5).sign()
+        q, r = linalg.qr(x + u)
+        unflip = linalg.extract_diag(r).sign().add(0.5).sign()
         q *= unflip[..., None, :]
         return q
 

@@ -10,6 +10,7 @@ __all__ = [
     "extract_diag",
     "matrix_rank",
     "expm",
+    "trace",
     "block_matrix",
     "sym_funcm",
     "sym_expm",

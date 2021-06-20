@@ -5,6 +5,7 @@ from .batch_linalg import (
     extract_diag,
     matrix_rank,
     expm,
+    trace,
     block_matrix,
     sym_funcm,
     sym_expm,
