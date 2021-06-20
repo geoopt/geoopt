@@ -65,7 +65,7 @@ def trace(x: torch.Tensor) -> torch.Tensor:
     return torch.diagonal(x, dim1=-2, dim2=-1).sum(-1)
 
 
-@lru_cache
+@lru_cache(None)
 def _sym_funcm_impl(func, **kwargs):
     func = partial(func, **kwargs)
 
