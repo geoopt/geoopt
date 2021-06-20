@@ -73,6 +73,6 @@ def expm_one(A):  # pragma: no cover
     P = U + V
     Q = -U + V
 
-    R, _ = torch.solve(P, Q)  # solve P = Q*R
+    R = torch.linalg.solve(Q, P)  # solve P = Q*R
     expmA = matrix_2_power(R, n_squarings)
     return expmA

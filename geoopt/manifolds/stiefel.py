@@ -83,8 +83,8 @@ class Stiefel(Manifold):
         return True, None
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
-        U, _, V = linalg.batch_linalg.svd(x)
-        return torch.einsum("...ik,...jk->...ij", U, V)
+        U, _, V = linalg.batch_linalg.svd(x, full_matrices=False)
+        return torch.einsum("...ik,...kj->...ij", U, V)
 
     def random_naive(self, *size, dtype=None, device=None) -> torch.Tensor:
         """
@@ -179,7 +179,7 @@ class CanonicalStiefel(Stiefel):
         rhs = v + 1 / 2 * a @ v
         lhs = -1 / 2 * a
         lhs[..., torch.arange(a.shape[-2]), torch.arange(x.shape[-2])] += 1
-        qv, _ = torch.solve(rhs, lhs)
+        qv = torch.linalg.solve(lhs, rhs)
         return qv
 
     def transp_follow_retr(

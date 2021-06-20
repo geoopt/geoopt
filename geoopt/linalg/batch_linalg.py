@@ -37,29 +37,31 @@ def extract_diag(x: torch.Tensor):  # pragma: no cover
     return x[:, idx, idx].view(batch + (k,))
 
 
-@torch.jit.script
-def matrix_rank(x: torch.Tensor):  # pragma: no cover
-    # inspired by
-    # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
-    # prolonged here:
-    if x.dim() == 2:
-        result = torch.matrix_rank(x)
-    else:
-        batches = x.shape[:-2]
-        other = x.shape[-2:]
-        flat = x.view((-1,) + other)
-        slices = flat.unbind(0)
-        ranks = []
-        # I wish I had a parallel_for
-        for i in range(flat.shape[0]):
-            r = torch.matrix_rank(slices[i])
-            # interesting,
-            # ranks.append(r)
-            # does not work on pytorch 1.0.0
-            # but the below code does
-            ranks += [r]
-        result = torch.stack(ranks).view(batches)
-    return result
+# @torch.jit.script
+# def matrix_rank(x: torch.Tensor):  # pragma: no cover
+#     # inspired by
+#     # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
+#     # prolonged here:
+#     if x.dim() == 2:
+#         result = torch.matrix_rank(x)
+#     else:
+#         batches = x.shape[:-2]
+#         other = x.shape[-2:]
+#         flat = x.view((-1,) + other)
+#         slices = flat.unbind(0)
+#         ranks = []
+#         # I wish I had a parallel_for
+#         for i in range(flat.shape[0]):
+#             r = torch.matrix_rank(slices[i])
+#             # interesting,
+#             # ranks.append(r)
+#             # does not work on pytorch 1.0.0
+#             # but the below code does
+#             ranks += [r]
+#         result = torch.stack(ranks).view(batches)
+#     return result
+
+matrix_rank = torch.linalg.matrix_rank
 
 
 @torch.jit.script
@@ -127,7 +129,7 @@ def sym_funcm(
     torch.Tensor
         symmetric matrix with function applied to
     """
-    e, v = torch.symeig(x, eigenvectors=True)
+    e, v = torch.linalg.eigh(x, "U")
     return v @ torch.diag_embed(func(e)) @ v.transpose(-1, -2)
 
 
@@ -229,7 +231,7 @@ def sym_inv_sqrtm2(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     Tuple[torch.Tensor, torch.Tensor]
         :math:`x^{-1/2}`, :math:`x^{1/2}`
     """
-    e, v = torch.symeig(x, eigenvectors=True)
+    e, v = torch.linalg.eigh(x, "U")
     sqrt_e = torch.sqrt(e)
     inv_sqrt_e = torch.reciprocal(sqrt_e)
     return (
@@ -239,6 +241,6 @@ def sym_inv_sqrtm2(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
 
 # left here for convenience
-qr = torch.qr
+qr = torch.linalg.qr
 
-svd = torch.svd
+svd = torch.linalg.svd
