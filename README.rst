@@ -10,7 +10,7 @@ Methods”`_ ICLR2019 and more.
 
 Installation
 ------------
-Make sure you have pytorch>=1.6.0 installed
+Make sure you have pytorch>=1.8.1 installed
 
 There are two ways to install geoopt:
 
@@ -33,9 +33,9 @@ Now, pypi is behind master as we actively develop and implement new features.
 
 PyTorch Support
 ~~~~~~~~~~~~~~~
-Geoopt officially supports 2 latest stable versions of pytorch upstream or the latest major release.
-We also test against the nightly build, but do not be 100% sure about compatibility.
-As for older pytorch versions, you may use it on your own risk.
+Geoopt officially supports **2 latest stable versions** (1.9.0, 1.8.1) of pytorch upstream or the latest major release.
+We also test (TODO: there were complications with github workflows, need help) against the nightly build, but do not be 100% sure about compatibility.
+As for older pytorch versions, you may use it on your own risk (do not forget to run tests).
 
 What is done so far
 -------------------
