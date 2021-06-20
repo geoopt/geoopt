@@ -1,1 +1,16 @@
-from .batch_linalg import svd, qr, sym, extract_diag, matrix_rank, expm, block_matrix
+from .batch_linalg import (
+    svd,
+    qr,
+    sym,
+    extract_diag,
+    matrix_rank,
+    expm,
+    block_matrix,
+    sym_funcm,
+    sym_expm,
+    sym_logm,
+    sym_sqrtm,
+    sym_invm,
+    sym_inv_sqrtm1,
+    sym_inv_sqrtm2,
+)
