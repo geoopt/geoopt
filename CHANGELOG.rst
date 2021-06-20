@@ -10,7 +10,7 @@ New Features
 Maintainance
 ------------
 * create pull request templates (#154)
-* update tests for pytorch 1.6.0-1.8.1
+* update tests for pytorch 1.9.0
 
 Bug Fixes
 ---------

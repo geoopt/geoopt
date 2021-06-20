@@ -3,7 +3,7 @@ from typing import Optional, Union, Tuple
 from .base import Manifold
 from ..tensor import ManifoldTensor
 from ..utils import size2shape, broadcast_shapes
-import geoopt.linalg.batch_linalg
+from .. import linalg
 
 __all__ = ["Sphere", "SphereExact"]
 
@@ -57,7 +57,7 @@ class Sphere(Manifold):
             self._configure_manifold_no_constraints()
         if (
             self.projector is not None
-            and (geoopt.linalg.batch_linalg.matrix_rank(self.projector) == 1).any()
+            and (linalg.matrix_rank(self.projector) == 1).any()
         ):
             raise ValueError(
                 "Manifold only consists of isolated points when "
@@ -162,13 +162,13 @@ class Sphere(Manifold):
     egrad2rgrad = proju
 
     def _configure_manifold_complement(self, complement: torch.Tensor):
-        Q, _ = geoopt.linalg.batch_linalg.qr(complement)
+        Q, _ = linalg.qr(complement)
         P = -Q @ Q.transpose(-1, -2)
         P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
         self.register_buffer("projector", P)
 
     def _configure_manifold_intersection(self, intersection: torch.Tensor):
-        Q, _ = geoopt.linalg.batch_linalg.qr(intersection)
+        Q, _ = linalg.qr(intersection)
         self.register_buffer("projector", Q @ Q.transpose(-1, -2))
 
     def _configure_manifold_no_constraints(self):

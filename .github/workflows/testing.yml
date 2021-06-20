@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7]
-        pytorch-version: ['1.8.1', '1.7.1', '1.6.0']
+        pytorch-version: ['1.9.0']
     env:
       PYTORCH_VERSION: ${{ matrix.pytorch-version }}
     steps:
