@@ -79,6 +79,47 @@ def test_rsgd_spd(params):
     optim.step(closure)
 
 
+@pytest.mark.parametrize(
+    "params",
+    [
+        dict(lr=1e-3),
+        dict(lr=1e-3, momentum=0.9),
+        dict(momentum=0.9, nesterov=True, lr=1e-3),
+        dict(momentum=0.9, dampening=0.1, lr=1e-3),
+    ],
+)
+def test_rsgd_upper_half(params):
+    manifold = geoopt.manifolds.UpperHalf()
+    torch.manual_seed(42)
+    with torch.no_grad():
+        X = geoopt.ManifoldParameter(manifold.random(2, 2), manifold=manifold).proj_()
+    Xstar = manifold.random(2, 2)
+
+    def closure():
+        optim.zero_grad()
+        loss = manifold.dist(X, Xstar).pow(2).sum()
+        loss.backward()
+        return loss.item()
+
+    optim = geoopt.optim.RiemannianSGD([X], **params)
+    assert manifold.dist(X, Xstar) > 1e-1
+    for i in range(10000):
+        distance = manifold.dist(X, Xstar)
+        if distance < 1e-4:
+            break
+        try:
+            optim.step(closure)
+        except UserWarning:
+            # On the first pass it raises a UserWarning due to discarding part of the
+            # complex variable in a casting
+            pass
+        print(i, distance)
+    distance = manifold.dist(X, Xstar)
+    np.testing.assert_equal(distance < 1e-4, torch.tensor(True))
+    optim.load_state_dict(optim.state_dict())
+    optim.step(closure)
+
+
 def test_init_manifold():
     torch.manual_seed(42)
     stiefel = geoopt.manifolds.Stiefel()

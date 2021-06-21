@@ -5,6 +5,8 @@ EPS = {torch.float32: 4e-3, torch.float64: 1e-5}
 
 to_complex = torch.complex
 inverse = torch.linalg.inv
+eigh = torch.linalg.eigh
+eigvalsh = torch.linalg.eigvalsh
 
 
 def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -39,9 +41,9 @@ def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.Tensor
         Complex eigenvectors of z
     """
-    compound_z = to_compound_symmetric(z)  # Z = A + iB, then compound_z = [(A, B),(B, -A)] of 2n x 2n
+    compound_z = to_compound_symmetric(z)  # Z = A + iB, then compound_z = [(A, B),(B, -A)]
 
-    evalues, q = torch.linalg.eigh(compound_z)  # b x n in ascending order, b x 2n x 2n
+    evalues, q = eigh(compound_z)  # evalues in ascending order
 
     # I can think of Q as 4 n x n matrices.
     # Q = [(X,  Re(U)),
@@ -50,7 +52,11 @@ def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     real_u, minus_imag_u = torch.chunk(real_u_on_top_of_minus_imag_u, 2, dim=-2)
     u = to_complex(real_u, -minus_imag_u)
 
-    sing_values = evalues[:, z.shape[-1]:]
+    index = torch.arange(start=z.shape[-1],
+                         end=2 * z.shape[-1],
+                         device=evalues.device,
+                         dtype=torch.long)
+    sing_values = evalues.index_select(dim=-1, index=index)
     return sing_values, u
 
 
@@ -84,9 +90,13 @@ def takagi_eigvals(z: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         eigenvalues of z
     """
-    compound_z = to_compound_symmetric(z)  # Z = A + iB, then compound_z = [(A, B),(B, -A)] of 2n x 2n
-    evalues = torch.linalg.eigvalsh(compound_z)  # b x 2n in ascending order
-    sing_values = evalues[:, z.shape[-1]:]
+    compound_z = to_compound_symmetric(z)  # Z = A + iB, then compound_z = [(A, B),(B, -A)]
+    evalues = eigvalsh(compound_z)  # evalues in ascending order
+    index = torch.arange(start=z.shape[-1],
+                         end=2 * z.shape[-1],
+                         device=evalues.device,
+                         dtype=torch.long)
+    sing_values = evalues.index_select(dim=-1, index=index)
     return sing_values
 
 
@@ -129,7 +139,7 @@ def inverse_cayley_transform(z: torch.Tensor) -> torch.Tensor:
     .. math::
 
         \operatorname{cayley}^{-1}(X): \mathcal{S}_n \to \mathcal{B}_n \\
-        \operatorname{cayley}^{-1}(X) = (X - i Id) (Z + i Id)^{-1}
+        \operatorname{cayley}^{-1}(X) = (X - i Id) (X + i Id)^{-1}
 
     References
     ----------
@@ -146,20 +156,20 @@ def inverse_cayley_transform(z: torch.Tensor) -> torch.Tensor:
         Point in the Bounded Domain model
     """
     identity = identity_like(z)
-    i_identity = to_complex(identity.imag, identity.real)
+    i_identity = multiply_by_i(identity)
 
     z_minus_id = z - i_identity
     inv_z_plus_id = inverse(z + i_identity)
     return z_minus_id @ inv_z_plus_id
 
 
-def is_complex_symmetric(x: torch.Tensor, atol=1e-05, rtol=1e-5):
+def is_complex_symmetric(z: torch.Tensor, atol=1e-05, rtol=1e-5):
     """
     Returns whether the complex symmetric matrices are symmetric or not
 
     Parameters
     ----------
-    x : tensor
+    z : tensor
         Complex symmetric matrix
     atol : float
         absolute tolerance for allclose
@@ -171,9 +181,9 @@ def is_complex_symmetric(x: torch.Tensor, atol=1e-05, rtol=1e-5):
     boolean
         whether the points in x are complex symmetric or not
     """
-    real_x, imag_x = x.real, x.imag
-    return torch.allclose(real_x, real_x.transpose(-1, -2), atol=atol, rtol=rtol) and \
-           torch.allclose(imag_x, imag_x.transpose(-1, -2), atol=atol, rtol=rtol)
+    real_z, imag_z = z.real, z.imag
+    return torch.allclose(real_z, real_z.transpose(-1, -2), atol=atol, rtol=rtol) and \
+           torch.allclose(imag_z, imag_z.transpose(-1, -2), atol=atol, rtol=rtol)
 
 
 def to_compound_symmetric(z: torch.Tensor) -> torch.Tensor:
@@ -233,3 +243,29 @@ def multiply_by_i(z: torch.Tensor):
         Complex matrix
     """
     return to_complex(-z.imag, z.real)
+
+
+def positive_conjugate_projection(y: torch.Tensor) -> torch.Tensor:
+    """
+    Steps to project: Y = Symmetric Matrix
+    1) Y = SDS^-1
+    2) D_tilde = clamp(D, min=epsilon)
+    3) Y_tilde = S D_tilde S^-1
+
+
+    Parameters
+    ----------
+    y : torch.Tensor
+         symmetric matrices
+    """
+    evalues, s = eigh(y)
+    evalues_tilde = torch.clamp(evalues, min=EPS[y.dtype])
+    d_tilde = torch.diag_embed(evalues_tilde)
+    y_tilde = s @ d_tilde @ s.transpose(-1, -2)
+
+    # we do this so no operation is applied on the matrices that are already positive definite
+    # This prevents modifying values due to numerical instabilities/floating point ops
+    batch_wise_mask = torch.all(evalues > EPS[y.dtype], dim=-1, keepdim=True)
+    mask = batch_wise_mask.unsqueeze(-1).expand_as(y)
+
+    return torch.where(mask, y, y_tilde)

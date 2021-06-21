@@ -4,6 +4,9 @@ from .stiefel import Stiefel, EuclideanStiefel, CanonicalStiefel, EuclideanStief
 from .sphere import Sphere, SphereExact
 from .birkhoff_polytope import BirkhoffPolytope
 from .symmetric_positive_definite import SymmetricPositiveDefinite
+from .siegel import (
+    UpperHalf
+)
 from .stereographic import (
     PoincareBall,
     PoincareBallExact,

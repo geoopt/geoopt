@@ -2,14 +2,14 @@ from abc import ABC
 from typing import Union, Tuple, Optional
 import torch
 from ..base import Manifold
-from ...linalg import batch_linalg as lalg
+from geoopt import linalg as lalg
 from ..siegel import csym_math as sm
 from .vvd_metrics import SiegelMetric, SiegelMetricType
 
 
 class SiegelManifold(Manifold, ABC):
     """
-    Manifold to work on Siegel spaces.
+    Abstract Manifold to work on Siegel spaces.
     The implementation is aimed to work with realization of the Siegel space as
     spaces of complex symmetric matrices.
 
@@ -59,8 +59,7 @@ class SiegelManifold(Manifold, ABC):
         """
         # with Z1 = X + iY, define Z3 = sqrt(Y)^-1 (Z2 - X) sqrt(Y)^-1
         x, y = z1.real, z1.imag
-        inv_sqrt_y = lalg.sym_inv_sqrtm1(y)
-        inv_sqrt_y = sm.to_complex(inv_sqrt_y, torch.zeros_like(inv_sqrt_y))
+        inv_sqrt_y = lalg.sym_inv_sqrtm1(y).type_as(z1)
         z2_minus_x = z2 - x
         z3 = inv_sqrt_y @ z2_minus_x @ inv_sqrt_y
 
@@ -84,18 +83,6 @@ class SiegelManifold(Manifold, ABC):
         approx = x + u
         return self.projx(approx)
 
-    def _check_shape(self, shape: Tuple[int], name: str) -> Union[Tuple[bool, Optional[str]], bool]:
-        reason = None
-        if self.dims is not None:
-            ok = shape[-1] == self.dims and shape[-2] == self.dims
-            if not ok:
-                reason = "'{}' on the {} requires more than {} dim".format(name, self, self.dims)
-        else:
-            ok = shape[-1] == shape[-2]
-            if not ok:
-                reason = "'{}' on the {} should be a squared matrix".format(name, self)
-        return ok, reason
-
     def _check_matrices_are_symmetric(self, x: torch.Tensor, *, atol: float = 1e-5, rtol: float = 1e-5):
         """
         Parameters
@@ -112,7 +99,7 @@ class SiegelManifold(Manifold, ABC):
         boolean
             whether the points in x are complex symmetric or not
         """
-        return sm.is_complex_symmetric(x.unsqueeze(0), atol, rtol)
+        return sm.is_complex_symmetric(x, atol, rtol)
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
         return lalg.sym(x)
@@ -124,17 +111,18 @@ class SiegelManifold(Manifold, ABC):
         return v
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        # We might not need it
-        pass
+        raise NotImplementedError
 
     def logmap(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        # We might not need it
-        pass
+        raise NotImplementedError
 
     def _check_vector_on_tangent(
         self, x: torch.Tensor, u: torch.Tensor, *, atol=1e-5, rtol=1e-5
     ) -> Union[Tuple[bool, Optional[str]], bool]:
-        pass
+        ok = torch.allclose(u, u.transpose(-1, -2), atol=atol, rtol=rtol)
+        if not ok:
+            return False, "u is not symmetric (u != u.transpose) with atol={}, rtol={}".format(atol, rtol)
+        return True, None
 
     def extra_repr(self) -> str:
         return f"metric={type(self.metric).__name__}"

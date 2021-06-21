@@ -53,6 +53,12 @@ def test_random_Poincare():
     assert point.manifold is manifold
 
 
+def test_random_Upper_half():
+    manifold = geoopt.UpperHalf()
+    point = manifold.origin(10, 10)
+    manifold.assert_check_point_on_manifold(point)
+
+
 def test_fails_Euclidean():
     with pytest.raises(ValueError):
         manifold = geoopt.Euclidean(ndim=1)

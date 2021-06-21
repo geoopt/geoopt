@@ -32,6 +32,7 @@ manifold_shapes = {
     geoopt.manifolds.SphereExact: (10,),
     geoopt.manifolds.ProductManifold: (10 + 3 + 6 + 1,),
     geoopt.manifolds.SymmetricPositiveDefinite: (2, 2),
+    geoopt.manifolds.UpperHalf: (2, 2),
 }
 
 
@@ -287,6 +288,31 @@ def spd_case():
     yield case
 
 
+def upper_half_case():
+    # x in Spa, is the result of projecting ex
+    # ev is in the tangent space
+    # v is the result of projecting ev at x
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.UpperHalf]
+    ex = torch.randn(*shape, dtype=torch.complex128)
+    ex = geoopt.linalg.batch_linalg.sym(ex)
+    x = ex.clone()
+    x.imag = geoopt.manifolds.siegel.csym_math.positive_conjugate_projection(x.imag)
+
+    ev = torch.randn(*shape, dtype=torch.complex128) / 10
+    ev = geoopt.linalg.batch_linalg.sym(ev)
+
+    real_ev, imag_ev = ev.real, ev.imag
+    real_v = x.imag @ real_ev @ x.imag
+    imag_v = x.imag @ imag_ev @ x.imag
+    v = torch.complex(real_v, imag_v)
+
+    manifold = geoopt.UpperHalf("riem")
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
 def product_case():
     torch.manual_seed(42)
     ex = [torch.randn(10), torch.randn(3) / 10, torch.randn(3, 2), torch.randn(())]
@@ -358,6 +384,7 @@ def scaled(request):
         product_case(),
         birkhoff_case(),
         spd_case(),
+        upper_half_case()
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )
@@ -500,8 +527,8 @@ def test_dist(unary_case):
     tangent = unary_case.v
     point = unary_case.x
     tangent_norm = unary_case.manifold.norm(point, tangent)
-    new_point = unary_case.manifold.expmap(point, tangent)
     try:
+        new_point = unary_case.manifold.expmap(point, tangent)
         dist = unary_case.manifold.dist(point, new_point)
         np.testing.assert_allclose(dist.detach(), tangent_norm.detach())
     except NotImplementedError:

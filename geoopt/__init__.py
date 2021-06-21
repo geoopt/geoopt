@@ -27,6 +27,7 @@ from .manifolds import (
     Lorentz,
     BirkhoffPolytope,
     SymmetricPositiveDefinite,
+    UpperHalf
 )
 
 __version__ = "0.3.1"
