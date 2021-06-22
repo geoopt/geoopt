@@ -4,7 +4,7 @@ import torch
 
 
 class SiegelMetricType(Enum):
-    """Allowed types of metrics that Siegel manifolds support"""
+    """Supported metric types for Siegel Spaces"""
     RIEMANNIAN = "riem"
     FINSLER_ONE = "fone"
     FINSLER_INFINITY = "finf"
@@ -22,9 +22,9 @@ class SiegelMetric(ABC):
     Based on the vector-valued distance computed on Siegel spaces, different metric functions
     can be taken, which give raise to different distances that can be computed in the space.
 
-    The vector-valued distance is given by :math:`v_i = log((1 + d_i) / (1 - d_i)), i = 1, ..., n`,
-    with :math:`d_i` the eigenvalues of the crossratio matrix sorted in ascending order
-    (d1 < d2 < ... < dn), and :math:`n = rank`.
+    The vector-valued distance is given by :math:`v_i = log((1 + e_i) / (1 - e_i)), i = 1, ..., n`,
+    with :math:`e_i` the eigenvalues of the crossratio matrix sorted in ascending order
+    (:math:`e_1 < e_2 < ... < e_n`), and :math:`n = rank`.
 
     Parameters
     ----------
@@ -155,7 +155,7 @@ class FinslerWeightedSumMetric(SiegelMetric, torch.nn.Module):
         torch.nn.Module.__init__(self)
         SiegelMetric.__init__(self, rank)
         if rank is None or rank < 2:
-            raise ValueError("Parameter rank has to be >= 2")
+            raise ValueError("'rank' has to be >= 2")
         self.weights = torch.nn.parameter.Parameter(torch.ones((1, rank)))
 
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:

@@ -46,7 +46,7 @@ def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
     evalues, q = eigh(compound_z)  # evalues in ascending order
 
-    # I can think of Q as 4 n x n matrices.
+    # Think of Q as 4 block matrices.
     # Q = [(X,  Re(U)),
     #      (Y, -Im(U))]     where X, Y are irrelevant and I need to build U
     real_u_on_top_of_minus_imag_u = torch.chunk(q, 2, dim=-1)[-1]
@@ -257,9 +257,8 @@ def positive_conjugate_projection(y: torch.Tensor) -> torch.Tensor:
          symmetric matrices
     """
     evalues, s = eigh(y)
-    evalues_tilde = torch.clamp(evalues, min=EPS[y.dtype])
-    d_tilde = torch.diag_embed(evalues_tilde)
-    y_tilde = s @ d_tilde @ s.transpose(-1, -2)
+    evalues = torch.clamp(evalues, min=EPS[y.dtype])
+    y_tilde = s @ torch.diag_embed(evalues) @ s.transpose(-1, -2)
 
     # we do this so no operation is applied on the matrices that are already positive definite
     # This prevents modifying values due to numerical instabilities/floating point ops

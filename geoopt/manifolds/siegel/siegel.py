@@ -22,7 +22,7 @@ class SiegelManifold(Manifold, ABC):
     ----------
     metric: str
         one of "riem" (Riemannian), "fone": Finsler One, "finf": Finsler Infinity,
-        "fmin": Finsler metric of minimum entropy, "wsum": Weighted sum.
+        "fmin": Finsler metric of minimum entropy, "wsum": learnable weighted sum.
     rank: int
         Rank of the space. Only mandatory for "fmin" and "wsum" metrics.
     """
@@ -37,7 +37,8 @@ class SiegelManifold(Manifold, ABC):
         self.metric = SiegelMetric.get(metric, rank)
 
     def dist(self, z1: torch.Tensor, z2: torch.Tensor, *, keepdim=False) -> torch.Tensor:
-        """Compute distance between two points on the manifold according to the specified metric
+        """
+        Compute distance between two points on the manifold according to the specified metric
         Calculates the distance for the Upper Half Space Manifold (UHSM)
 
         It is implemented here since the way to calculate distances in the Bounded Domain Manifold
@@ -60,20 +61,18 @@ class SiegelManifold(Manifold, ABC):
         # with Z1 = X + iY, define Z3 = sqrt(Y)^-1 (Z2 - X) sqrt(Y)^-1
         x, y = z1.real, z1.imag
         inv_sqrt_y = lalg.sym_inv_sqrtm1(y).type_as(z1)
-        z2_minus_x = z2 - x
-        z3 = inv_sqrt_y @ z2_minus_x @ inv_sqrt_y
+        z3 = inv_sqrt_y @ (z2 - x) @ inv_sqrt_y
 
         w = sm.inverse_cayley_transform(z3)
+        evalues = sm.takagi_eigvals(w)      # evalues are in ascending order e1 < e2 < en
 
-        eigvalues = sm.takagi_eigvals(w)      # eigenvalues are in ascending order v1 < v2 < vn
+        # assert 0 <= evalues <= 1
+        eps = sm.EPS[evalues.dtype]
+        assert torch.all(evalues >= 0 - eps), f"Eigenvalues: {evalues}"
+        assert torch.all(evalues <= 1.01), f"Eigenvalues: {evalues}"
 
-        # assert 1 >= eigvalues >= 0
-        eps = sm.EPS[eigvalues.dtype]
-        assert torch.all(eigvalues >= 0 - eps), f"Eigenvalues: {eigvalues}"
-        assert torch.all(eigvalues <= 1.01), f"Eigenvalues: {eigvalues}"
-
-        # Vector-valued distance: vi = (1 + di) / (1 - di)
-        vvd = (1 + eigvalues) / (1 - eigvalues).clamp(min=eps)
+        # Vector-valued distance: v_i = log((1 + e_i) / (1 - e_i))
+        vvd = (1 + evalues) / (1 - evalues).clamp(min=eps)
         vvd = torch.log(vvd)
         res = self.metric.compute_metric(vvd)
         return res

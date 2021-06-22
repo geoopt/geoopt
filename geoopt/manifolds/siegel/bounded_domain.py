@@ -23,7 +23,7 @@ class BoundedDomain(SiegelManifold):
     ----------
     metric: str
         one of "riem" (Riemannian), "fone": Finsler One, "finf": Finsler Infinity,
-        "fmin": Finsler metric of minimum entropy, "wsum": Weighted sum.
+        "fmin": Finsler metric of minimum entropy, "wsum": learnable weighted sum.
     rank: int
         Rank of the space. Only mandatory for "fmin" and "wsum" metrics.
     """

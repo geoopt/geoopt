@@ -23,7 +23,7 @@ class UpperHalf(SiegelManifold):
     ----------
     metric: str
         one of "riem" (Riemannian), "fone": Finsler One, "finf": Finsler Infinity,
-        "fmin": Finsler metric of minimum entropy, "wsum": Weighted sum.
+        "fmin": Finsler metric of minimum entropy, "wsum": learnable weighted sum.
     rank: int
         Rank of the space. Only mandatory for "fmin" and "wsum" metrics.
     """
@@ -81,11 +81,8 @@ class UpperHalf(SiegelManifold):
             Projected points
         """
         z = super().projx(z)
-
-        y = z.imag
-        y_tilde = sm.positive_conjugate_projection(y)
-
-        return sm.to_complex(z.real, y_tilde)
+        y = sm.positive_conjugate_projection(z.imag)
+        return sm.to_complex(z.real, y)
 
     def inner(self, z: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False) -> torch.Tensor:
         r"""
