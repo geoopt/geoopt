@@ -6,8 +6,7 @@ from .birkhoff_polytope import BirkhoffPolytope
 from .symmetric_positive_definite import SymmetricPositiveDefinite
 from .siegel import (
     UpperHalf,
-    BoundedDomain,
-    csym_math
+    BoundedDomain
 )
 from .stereographic import (
     PoincareBall,
