@@ -1,5 +1,6 @@
 import torch
 from typing import Tuple
+from geoopt.linalg import block_matrix
 
 EPS = {torch.float32: 4e-3, torch.float64: 1e-5}
 
@@ -108,7 +109,7 @@ def cayley_transform(z: torch.Tensor) -> torch.Tensor:
     .. math::
 
         \operatorname{cayley}(Z): \mathcal{B}_n \to \mathcal{S}_n \\
-        \operatorname{cayley}(Z) = i(Z + Id) (Z - Id)^{-1}
+        \operatorname{cayley}(Z) = i(Id + Z) (Id - Z)^{-1}
 
     References
     ----------
@@ -117,17 +118,17 @@ def cayley_transform(z: torch.Tensor) -> torch.Tensor:
     Parameters
     ----------
     z : torch.Tensor
-         Point in the Upper Half Space model
+         Point in the Bounded Domain model
 
     Returns
     -------
     torch.Tensor
-        Point in the Bounded Domain model
+        Point in the Upper Half Space model
     """
     identity = identity_like(z)
 
-    i_z_plus_id = multiply_by_i(z + identity)
-    inv_z_minus_id = inverse(z - identity)
+    i_z_plus_id = multiply_by_i(identity + z)
+    inv_z_minus_id = inverse(identity - z)
 
     return i_z_plus_id @ inv_z_minus_id
 
@@ -205,10 +206,7 @@ def to_compound_symmetric(z: torch.Tensor) -> torch.Tensor:
         Real symmetric matrix of rank 2n
     """
     a, b = z.real, z.imag
-    a_and_b = torch.cat((a, b), dim=-1)
-    b_and_minus_a = torch.cat((b, -a), dim=-1)
-    m = torch.cat((a_and_b, b_and_minus_a), dim=-2)
-    return m
+    return block_matrix([[a, b], [b, -a]])
 
 
 def identity_like(z: torch.Tensor) -> torch.Tensor:

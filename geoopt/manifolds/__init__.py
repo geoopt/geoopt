@@ -5,7 +5,9 @@ from .sphere import Sphere, SphereExact
 from .birkhoff_polytope import BirkhoffPolytope
 from .symmetric_positive_definite import SymmetricPositiveDefinite
 from .siegel import (
-    UpperHalf
+    UpperHalf,
+    BoundedDomain,
+    csym_math
 )
 from .stereographic import (
     PoincareBall,

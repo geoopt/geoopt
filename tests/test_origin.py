@@ -55,7 +55,13 @@ def test_random_Poincare():
 
 def test_random_Upper_half():
     manifold = geoopt.UpperHalf()
-    point = manifold.origin(10, 10)
+    point = manifold.origin(10, 10, 10)
+    manifold.assert_check_point_on_manifold(point)
+
+
+def test_random_Bounded_domain():
+    manifold = geoopt.BoundedDomain()
+    point = manifold.origin(10, 10, 10)
     manifold.assert_check_point_on_manifold(point)
 
 

@@ -49,20 +49,22 @@ def block_matrix(blocks: List[List[torch.Tensor]], dim0: int = -2, dim1: int = -
 
 
 @torch.jit.script
-def trace(x: torch.Tensor) -> torch.Tensor:
+def trace(x: torch.Tensor, keepdim: bool = False) -> torch.Tensor:
     r"""self-implemented matrix trace, since `torch.trace` only support 2-d input.
 
     Parameters
     ----------
     x : torch.Tensor
         input matrix
+    keepdim : bool
+            keep the last dim?
 
     Returns
     -------
     torch.Tensor
         :math:`\operatorname{Tr}(x)`
     """
-    return torch.diagonal(x, dim1=-2, dim2=-1).sum(-1)
+    return torch.diagonal(x, dim1=-2, dim2=-1).sum(-1, keepdim=keepdim)
 
 
 @lru_cache(None)

@@ -59,6 +59,12 @@ def test_random_Upper_Half():
     manifold.assert_check_point_on_manifold(point)
 
 
+def test_random_Bounded_domain():
+    manifold = geoopt.BoundedDomain()
+    point = manifold.random(3, 10, 10)
+    manifold.assert_check_point_on_manifold(point)
+
+
 def test_fails_Euclidean():
     with pytest.raises(ValueError):
         manifold = geoopt.Euclidean(ndim=1)

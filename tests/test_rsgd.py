@@ -1,6 +1,7 @@
 import geoopt
 import torch
 import numpy as np
+from itertools import product
 import pytest
 
 
@@ -79,6 +80,18 @@ def test_rsgd_spd(params):
     optim.step(closure)
 
 
+@pytest.fixture(
+    scope="module",
+    params=product(
+        [geoopt.manifolds.UpperHalf, geoopt.manifolds.BoundedDomain],
+        ["riem", "fone", "finf", "fmin", "wsum"]
+    )
+)
+def complex_manifold(request):
+    manifold_class, metric = request.param
+    return manifold_class(metric=metric, rank=2)
+
+
 @pytest.mark.parametrize(
     "params",
     [
@@ -88,8 +101,8 @@ def test_rsgd_spd(params):
         dict(momentum=0.9, dampening=0.1, lr=1e-3),
     ],
 )
-def test_rsgd_upper_half(params):
-    manifold = geoopt.manifolds.UpperHalf()
+def test_rsgd_complex_manifold(params, complex_manifold):
+    manifold = complex_manifold
     torch.manual_seed(42)
     with torch.no_grad():
         X = geoopt.ManifoldParameter(manifold.random(2, 2), manifold=manifold).proj_()

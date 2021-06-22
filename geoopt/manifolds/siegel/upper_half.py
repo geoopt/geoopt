@@ -11,11 +11,12 @@ __all__ = ["UpperHalf"]
 class UpperHalf(SiegelManifold):
     r"""
     Upper Half Space Manifold.
+    This model generalizes the upper half plane model of the hyperbolic plane.
     Points in the space are complex symmetric matrices.
 
     .. math::
 
-        \mathcal{S} = \{Z = X + iY \in \operatorname{Sym](n, \mathbb{C}) | Y >> 0 \}.
+        \mathcal{S}_n = \{Z = X + iY \in \operatorname{Sym}(n, \mathbb{C}) | Y >> 0 \}.
 
 
     Parameters
@@ -34,7 +35,7 @@ class UpperHalf(SiegelManifold):
 
     def egrad2rgrad(self, z: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         r"""
-        Transform gradient computed using autodiff to the correct Riemannian gradient for the point :math:`x`.
+        Transform gradient computed using autodiff to the correct Riemannian gradient for the point :math:`Z`.
 
         For a function :math:`f(Z)` on :math:`\mathcal{S}_n`, the gradient is:
         :math:`\operatorname{grad}(f(Z)) = Y \cdot \operatorname{grad}_E(f(Z)) \cdot Y`,
@@ -56,11 +57,11 @@ class UpperHalf(SiegelManifold):
         y = z.imag
         real_grad = y @ real_grad @ y
         imag_grad = y @ imag_grad @ y
-        return sm.to_complex(real_grad, imag_grad)
+        return lalg.sym(sm.to_complex(real_grad, imag_grad))    # impose symmetry due to numerical instabilities
 
     def projx(self, z: torch.Tensor) -> torch.Tensor:
         """
-        Project point :math:`z` on the manifold.
+        Project point :math:`Z` on the manifold.
 
         In this space, we need to ensure that :math:`Y = Im(Z)` is positive definite.
         Since the matrix Y is symmetric, it is possible to diagonalize it.
@@ -88,12 +89,12 @@ class UpperHalf(SiegelManifold):
 
     def inner(self, z: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False) -> torch.Tensor:
         r"""
-        Inner product for tangent vectors at point :math:`z`.
+        Inner product for tangent vectors at point :math:`Z`.
         The inner product at point :math:`Z = X + iY` of the vectors :math:`U, V` is:
 
         .. math::
 
-            g_{Z}(U, V) = \operatorname{tr}[ Y^-1 U Y^-1 \overline{V} ]
+            g_{Z}(U, V) = \operatorname{Tr}[ Y^-1 U Y^-1 \overline{V} ]
 
         Parameters
         ----------
@@ -116,17 +117,14 @@ class UpperHalf(SiegelManifold):
         inv_y = sm.inverse(z.imag).type_as(z)
 
         res = inv_y @ u @ inv_y @ v.conj()
-        res = lalg.trace(res)
-        if keepdim:
-            return torch.unsqueeze(res, -1)
-        return res
+        return lalg.trace(res, keepdim=keepdim)
 
     def _check_point_on_manifold(self, z: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         if not self._check_matrices_are_symmetric(z, atol=atol, rtol=rtol):
             return False, "Matrices are not symmetric"
 
         # Im(Z) should be positive definite.
-        ok = torch.all(torch.det(z.imag) > 0)
+        ok = torch.all(sm.eigvalsh(z.imag) > 0)
         if not ok:
             reason = "Imaginary part of Z is not positive definite"
         else:
@@ -154,4 +152,3 @@ class UpperHalf(SiegelManifold):
         if imag.dtype in {torch.complex32, torch.complex64, torch.complex128}:
             imag = imag.real
         return torch.complex(torch.zeros_like(imag), imag)
-
