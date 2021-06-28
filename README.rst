@@ -84,6 +84,8 @@ Manifolds
 -  ``geoopt.ProductManifold`` - Product manifold constructor
 -  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``
 -  ``geoopt.SymmetricPositiveDefinite`` - SPD matrix manifold
+-  ``geoopt.UpperHalf`` - Siegel Upper half manifold. Supports Riemannian and Finsler metrics, as in `Symmetric Spaces for Graph Embeddings: A Finsler-Riemannian Approach <https://arxiv.org/abs/2106.04941>`_.
+-  ``geoopt.BoundedDomain`` - Siegel Bounded domain manifold. Supports Riemannian and Finsler metrics.
 
 All manifolds implement methods necessary to manipulate tensors on manifolds and
 tangent vectors to be used in general purpose. See more in `documentation`_.

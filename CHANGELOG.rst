@@ -6,6 +6,8 @@ geoopt (0.4.0)
 New Features
 ------------
 * new Symmetric Positive Definite manifold (#153)
+* new Siegel manifolds: Upper half model and Bounded domain model,
+with support for Riemannian and Finsler metrics (#179)
 
 Maintainance
 ------------

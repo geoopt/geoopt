@@ -28,7 +28,7 @@ from .manifolds import (
     BirkhoffPolytope,
     SymmetricPositiveDefinite,
     UpperHalf,
-    BoundedDomain
+    BoundedDomain,
 )
 
 __version__ = "0.3.1"

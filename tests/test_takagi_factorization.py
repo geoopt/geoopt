@@ -34,14 +34,18 @@ def get_random_complex_symmetric_matrices(points: int, dims: int, dtype: torch.d
 def assert_sds_equals_a(s, eigenvalues, a, atol=1e-5, rtol=1e-5):
     diagonal = torch.diag_embed(eigenvalues)
     diagonal = sm.to_complex(diagonal, torch.zeros_like(diagonal))
-    np.testing.assert_allclose(a, s.conj() @ diagonal @ s.conj().transpose(-1, -2), atol=atol, rtol=rtol)
+    np.testing.assert_allclose(
+        a, s.conj() @ diagonal @ s.conj().transpose(-1, -2), atol=atol, rtol=rtol
+    )
 
 
 def test_takagi_factorization_idem_takagi_fact():
-    real_a = torch.Tensor([[[0.222662581850819, 0.986442232151068],
-                            [0.986442232151068, 0.279075835428948]]])
-    imag_a = torch.Tensor([[[0.204990135642257, 1.28603437847092],
-                            [1.28603437847092, 1.18098457998164]]])
+    real_a = torch.Tensor(
+        [[[0.222662581850819, 0.98644223215106], [0.98644223215106, 0.27907583542894]]]
+    )
+    imag_a = torch.Tensor(
+        [[[0.204990135642257, 1.28603437847092], [1.28603437847092, 1.18098457998164]]]
+    )
     a = sm.to_complex(real_a, imag_a)
 
     eigenvalues, s = sm.takagi_eig(a)
@@ -115,7 +119,9 @@ def test_takagi_factorization_real_identity(rank, dtype):
 
     assert_sds_equals_a(s, eigenvalues, a)
     np.testing.assert_allclose(a, s, atol=1e-5, rtol=1e-5)
-    np.testing.assert_allclose(torch.ones_like(eigenvalues), eigenvalues, atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(
+        torch.ones_like(eigenvalues), eigenvalues, atol=1e-5, rtol=1e-5
+    )
 
 
 def test_takagi_factorization_imag_identity(rank, dtype):
@@ -136,7 +142,9 @@ def test_takagi_factorization_real_diagonal(rank, dtype):
     assert_sds_equals_a(s, eigenvalues, a)
     # real part of eigenvectors is made of vectors with one 1 and all zeros
     real_part = torch.sum(torch.abs(s.real), dim=-1)
-    np.testing.assert_allclose(torch.ones_like(real_part), real_part, atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(
+        torch.ones_like(real_part), real_part, atol=1e-5, rtol=1e-5
+    )
     # imaginary part of eigenvectors is all zeros
     np.testing.assert_allclose(torch.zeros(1), torch.sum(s.imag), atol=1e-5, rtol=1e-5)
 

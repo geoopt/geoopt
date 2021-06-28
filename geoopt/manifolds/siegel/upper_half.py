@@ -30,7 +30,7 @@ class UpperHalf(SiegelManifold):
 
     name = "Upper Half Space"
 
-    def __init__(self, metric: str = SiegelMetricType.RIEMANNIAN.value, rank: int = None):
+    def __init__(self, metric: str = SiegelMetricType.RIEMANNIAN, rank: int = None):
         super().__init__(metric=metric, rank=rank)
 
     def egrad2rgrad(self, z: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
@@ -57,7 +57,9 @@ class UpperHalf(SiegelManifold):
         y = z.imag
         real_grad = y @ real_grad @ y
         imag_grad = y @ imag_grad @ y
-        return lalg.sym(sm.to_complex(real_grad, imag_grad))    # impose symmetry due to numerical instabilities
+        return lalg.sym(
+            sm.to_complex(real_grad, imag_grad)
+        )  # impose symmetry due to numerical instabilities
 
     def projx(self, z: torch.Tensor) -> torch.Tensor:
         """
@@ -84,7 +86,9 @@ class UpperHalf(SiegelManifold):
         y = sm.positive_conjugate_projection(z.imag)
         return sm.to_complex(z.real, y)
 
-    def inner(self, z: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False) -> torch.Tensor:
+    def inner(
+        self, z: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False
+    ) -> torch.Tensor:
         r"""
         Inner product for tangent vectors at point :math:`Z`.
         The inner product at point :math:`Z = X + iY` of the vectors :math:`U, V` is:
@@ -130,7 +134,9 @@ class UpperHalf(SiegelManifold):
 
     def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
         if dtype and dtype not in {torch.complex32, torch.complex64, torch.complex128}:
-            raise ValueError("dtype must be one of {torch.complex32, torch.complex64, torch.complex128}")
+            raise ValueError(
+                "dtype must be one of {torch.complex32, torch.complex64, torch.complex128}"
+            )
         if dtype is None:
             dtype = torch.complex128
         tens = 0.5 * torch.randn(*size, dtype=dtype, device=device)

@@ -30,10 +30,12 @@ class BoundedDomain(SiegelManifold):
 
     name = "Bounded Domain"
 
-    def __init__(self, metric: str = SiegelMetricType.RIEMANNIAN.value, rank: int = None):
+    def __init__(self, metric: str = SiegelMetricType.RIEMANNIAN, rank: int = None):
         super().__init__(metric=metric, rank=rank)
 
-    def dist(self, z1: torch.Tensor, z2: torch.Tensor, *, keepdim=False) -> torch.Tensor:
+    def dist(
+        self, z1: torch.Tensor, z2: torch.Tensor, *, keepdim=False
+    ) -> torch.Tensor:
         """
         To compute distances in the Bounded Domain Model we need to map the elements to the
         Upper Half Space Model by means of the Cayley Transform, and then compute distances
@@ -117,7 +119,9 @@ class BoundedDomain(SiegelManifold):
         already_in_space_mask = batch_wise_mask.unsqueeze(-1).expand_as(z)
         return torch.where(already_in_space_mask, z, z_tilde)
 
-    def inner(self, z: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False) -> torch.Tensor:
+    def inner(
+        self, z: torch.Tensor, u: torch.Tensor, v=None, *, keepdim=False
+    ) -> torch.Tensor:
         r"""
         Inner product for tangent vectors at point :math:`Z`.
         The inner product at point :math:`Z = X + iY` of the vectors :math:`U, V` is:
@@ -175,7 +179,9 @@ class BoundedDomain(SiegelManifold):
         seed: Optional[int] = 42
     ) -> torch.Tensor:
         if dtype and dtype not in {torch.complex32, torch.complex64, torch.complex128}:
-            raise ValueError("dtype must be one of {torch.complex32, torch.complex64, torch.complex128}")
+            raise ValueError(
+                "dtype must be one of {torch.complex32, torch.complex64, torch.complex128}"
+            )
         if dtype is None:
             dtype = torch.complex128
         return torch.zeros(*size, dtype=dtype, device=device)

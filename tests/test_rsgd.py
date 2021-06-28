@@ -1,4 +1,5 @@
 import geoopt
+from geoopt.manifolds.siegel.vvd_metrics import SiegelMetricType
 import torch
 import numpy as np
 from itertools import product
@@ -84,8 +85,14 @@ def test_rsgd_spd(params):
     scope="module",
     params=product(
         [geoopt.manifolds.UpperHalf, geoopt.manifolds.BoundedDomain],
-        ["riem", "fone", "finf", "fmin", "wsum"]
-    )
+        [
+            SiegelMetricType.RIEMANNIAN,
+            SiegelMetricType.FINSLER_ONE,
+            SiegelMetricType.FINSLER_INFINITY,
+            SiegelMetricType.FINSLER_MINIMUM,
+            SiegelMetricType.WEIGHTED_SUM,
+        ],
+    ),
 )
 def complex_manifold(request):
     manifold_class, metric = request.param

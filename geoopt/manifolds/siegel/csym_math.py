@@ -42,7 +42,9 @@ def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.Tensor
         Complex eigenvectors of z
     """
-    compound_z = to_compound_symmetric(z)  # Z = A + iB, then compound_z = [(A, B),(B, -A)]
+    compound_z = to_compound_symmetric(
+        z
+    )  # Z = A + iB, then compound_z = [(A, B),(B, -A)]
 
     evalues, q = eigh(compound_z)  # evalues in ascending order
 
@@ -53,10 +55,9 @@ def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     real_u, minus_imag_u = torch.chunk(real_u_on_top_of_minus_imag_u, 2, dim=-2)
     u = to_complex(real_u, -minus_imag_u)
 
-    index = torch.arange(start=z.shape[-1],
-                         end=2 * z.shape[-1],
-                         device=evalues.device,
-                         dtype=torch.long)
+    index = torch.arange(
+        start=z.shape[-1], end=2 * z.shape[-1], device=evalues.device, dtype=torch.long
+    )
     sing_values = evalues.index_select(dim=-1, index=index)
     return sing_values, u
 
@@ -91,12 +92,13 @@ def takagi_eigvals(z: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         eigenvalues of z
     """
-    compound_z = to_compound_symmetric(z)  # Z = A + iB, then compound_z = [(A, B),(B, -A)]
+    compound_z = to_compound_symmetric(
+        z
+    )  # Z = A + iB, then compound_z = [(A, B),(B, -A)]
     evalues = eigvalsh(compound_z)  # evalues in ascending order
-    index = torch.arange(start=z.shape[-1],
-                         end=2 * z.shape[-1],
-                         device=evalues.device,
-                         dtype=torch.long)
+    index = torch.arange(
+        start=z.shape[-1], end=2 * z.shape[-1], device=evalues.device, dtype=torch.long
+    )
     sing_values = evalues.index_select(dim=-1, index=index)
     return sing_values
 
@@ -183,8 +185,9 @@ def is_complex_symmetric(z: torch.Tensor, atol=1e-05, rtol=1e-5):
         whether the points in x are complex symmetric or not
     """
     real_z, imag_z = z.real, z.imag
-    return torch.allclose(real_z, real_z.transpose(-1, -2), atol=atol, rtol=rtol) and \
-           torch.allclose(imag_z, imag_z.transpose(-1, -2), atol=atol, rtol=rtol)
+    return torch.allclose(
+        real_z, real_z.transpose(-1, -2), atol=atol, rtol=rtol
+    ) and torch.allclose(imag_z, imag_z.transpose(-1, -2), atol=atol, rtol=rtol)
 
 
 def to_compound_symmetric(z: torch.Tensor) -> torch.Tensor:

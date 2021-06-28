@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from itertools import product
 from geoopt import UpperHalf, BoundedDomain
+from geoopt.manifolds.siegel.vvd_metrics import SiegelMetricType
 from geoopt.manifolds.siegel.csym_math import EPS
 
 
@@ -37,8 +38,14 @@ def rank(request):
     scope="module",
     params=product(
         [UpperHalf, BoundedDomain],
-        ["riem", "fone", "finf", "fmin", "wsum"]
-    )
+        [
+            SiegelMetricType.RIEMANNIAN,
+            SiegelMetricType.FINSLER_ONE,
+            SiegelMetricType.FINSLER_INFINITY,
+            SiegelMetricType.FINSLER_MINIMUM,
+            SiegelMetricType.WEIGHTED_SUM,
+        ],
+    ),
 )
 def manifold(request, rank):
     manifold_class, metric = request.param
@@ -82,8 +89,12 @@ def test_distance_to_same_point_in_some_cases_is_zero(manifold, rank, dtype, eps
     dist_xy = manifold.dist(x, y).detach()
     dist_yx = manifold.dist(y, x).detach()
 
-    np.testing.assert_allclose(dist_xy[5:], torch.zeros_like(dist_xy[5:]), atol=eps, rtol=eps)
-    np.testing.assert_allclose(dist_yx[5:], torch.zeros_like(dist_yx[5:]), atol=eps, rtol=eps)
+    np.testing.assert_allclose(
+        dist_xy[5:], torch.zeros_like(dist_xy[5:]), atol=eps, rtol=eps
+    )
+    np.testing.assert_allclose(
+        dist_yx[5:], torch.zeros_like(dist_yx[5:]), atol=eps, rtol=eps
+    )
     np.testing.assert_equal(torch.all(dist_xy[5:] != 0), torch.tensor(True))
     np.testing.assert_equal(torch.all(dist_yx[5:] != 0), torch.tensor(True))
 
@@ -94,11 +105,11 @@ def test_distance_is_symmetric_with_diagonal_matrices(manifold, rank, dtype, eps
     id = torch.eye(rank).unsqueeze(0).repeat(10, 1, 1).bool()
     x = torch.complex(
         torch.where(id, x.real, torch.zeros_like(x.real)),
-        torch.where(id, x.imag, torch.zeros_like(x.imag))
+        torch.where(id, x.imag, torch.zeros_like(x.imag)),
     )
     y = torch.complex(
         torch.where(id, y.real, torch.zeros_like(y.real)),
-        torch.where(id, y.imag, torch.zeros_like(y.imag))
+        torch.where(id, y.imag, torch.zeros_like(y.imag)),
     )
 
     dist_xy = manifold.dist(x, y).detach()

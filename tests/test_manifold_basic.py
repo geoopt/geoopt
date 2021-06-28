@@ -309,7 +309,7 @@ def upper_half_case():
     imag_v = x.imag @ imag_ev @ x.imag
     v = torch.complex(real_v, imag_v)
 
-    manifold = geoopt.UpperHalf("riem")
+    manifold = geoopt.UpperHalf()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
@@ -336,7 +336,7 @@ def bounded_domain_case():
     a = identity - (x.conj() @ x)
     v = geoopt.linalg.batch_linalg.sym(a @ ev @ a)
 
-    manifold = geoopt.BoundedDomain("riem")
+    manifold = geoopt.BoundedDomain()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
@@ -414,7 +414,7 @@ def scaled(request):
         birkhoff_case(),
         spd_case(),
         upper_half_case(),
-        bounded_domain_case()
+        bounded_domain_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )

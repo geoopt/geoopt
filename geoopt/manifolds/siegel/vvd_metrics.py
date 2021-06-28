@@ -5,16 +5,12 @@ import torch
 
 class SiegelMetricType(Enum):
     """Supported metric types for Siegel Spaces"""
+
     RIEMANNIAN = "riem"
     FINSLER_ONE = "fone"
     FINSLER_INFINITY = "finf"
     FINSLER_MINIMUM = "fmin"
     WEIGHTED_SUM = "wsum"
-
-    @staticmethod
-    def from_str(label):
-        types = {t.value: t for t in list(SiegelMetricType)}
-        return types[label]
 
 
 class SiegelMetric(ABC):
@@ -39,21 +35,8 @@ class SiegelMetric(ABC):
     def compute_metric(self, v: torch.Tensor, keepdim=False) -> torch.Tensor:
         raise NotImplementedError
 
-    @classmethod
-    def get(cls, type_str: str, rank: int):
-        metrics_map = {
-            SiegelMetricType.RIEMANNIAN.value: RiemannianMetric,
-            SiegelMetricType.FINSLER_ONE.value: FinslerOneMetric,
-            SiegelMetricType.FINSLER_INFINITY.value: FinslerInfinityMetric,
-            SiegelMetricType.FINSLER_MINIMUM.value: FinslerMinimumEntropyMetric,
-            SiegelMetricType.WEIGHTED_SUM.value: FinslerWeightedSumMetric,
-        }
-
-        return metrics_map[type_str](rank)
-
 
 class RiemannianMetric(SiegelMetric):
-
     def compute_metric(self, v: torch.Tensor, keepdim=False) -> torch.Tensor:
         r"""
         Riemannian distance: :math:`d(Z_1, Z_2) = \sqrt{\sum_{i=1}^n v_i^2}`
@@ -75,7 +58,6 @@ class RiemannianMetric(SiegelMetric):
 
 
 class FinslerOneMetric(SiegelMetric):
-
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:
         r"""
         Finsler One distance: :math:`d(Z_1, Z_2) = \sum_{i=1}^n v_i`
@@ -97,7 +79,6 @@ class FinslerOneMetric(SiegelMetric):
 
 
 class FinslerInfinityMetric(SiegelMetric):
-
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:
         r"""
         Finsler Infinity distance: :math:`d(Z_1, Z_2) = \max \{v_i\}=v_n`
@@ -121,13 +102,14 @@ class FinslerInfinityMetric(SiegelMetric):
 
 
 class FinslerMinimumEntropyMetric(SiegelMetric):
-
     def __init__(self, rank: int):
         super().__init__(rank)
         if rank is None or rank < 2:
             raise ValueError("Parameter rank has to be >= 2")
         factor = 2
-        self.weights = factor * (rank + 1 - torch.arange(start=rank + 1, end=1, step=-1).unsqueeze(0))
+        self.weights = factor * (
+            rank + 1 - torch.arange(start=rank + 1, end=1, step=-1).unsqueeze(0)
+        )
 
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:
         r"""
@@ -150,7 +132,6 @@ class FinslerMinimumEntropyMetric(SiegelMetric):
 
 
 class FinslerWeightedSumMetric(SiegelMetric, torch.nn.Module):
-
     def __init__(self, rank):
         torch.nn.Module.__init__(self)
         SiegelMetric.__init__(self, rank)
@@ -175,7 +156,22 @@ class FinslerWeightedSumMetric(SiegelMetric, torch.nn.Module):
         torch.Tensor
             Weighted sum of vector-valued distance between the points
         """
-        weights = torch.relu(self.weights)    # 1 x n
+        weights = torch.relu(self.weights)  # 1 x n
         res = weights * v
         res = torch.sum(res, dim=-1, keepdim=keepdim)
         return res
+
+
+class SiegelMetricFactory:
+
+    metrics_map = {
+        SiegelMetricType.RIEMANNIAN: RiemannianMetric,
+        SiegelMetricType.FINSLER_ONE: FinslerOneMetric,
+        SiegelMetricType.FINSLER_INFINITY: FinslerInfinityMetric,
+        SiegelMetricType.FINSLER_MINIMUM: FinslerMinimumEntropyMetric,
+        SiegelMetricType.WEIGHTED_SUM: FinslerWeightedSumMetric,
+    }
+
+    @classmethod
+    def get(cls, metric_type: SiegelMetricType, rank: int):
+        return cls.metrics_map[metric_type](rank)

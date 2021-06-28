@@ -4,7 +4,7 @@ import torch
 from ..base import Manifold
 from geoopt import linalg as lalg
 from ..siegel import csym_math as sm
-from .vvd_metrics import SiegelMetric, SiegelMetricType
+from .vvd_metrics import SiegelMetric, SiegelMetricType, SiegelMetricFactory
 
 
 class SiegelManifold(Manifold, ABC):
@@ -32,11 +32,15 @@ class SiegelManifold(Manifold, ABC):
     ndim = 2
     reversible = False
 
-    def __init__(self, metric: str = SiegelMetricType.RIEMANNIAN.value, rank: int = None):
+    def __init__(
+        self, metric: SiegelMetricType = SiegelMetricType.RIEMANNIAN, rank: int = None
+    ):
         super().__init__()
-        self.metric = SiegelMetric.get(metric, rank)
+        self.metric = SiegelMetricFactory.get(metric, rank)
 
-    def dist(self, z1: torch.Tensor, z2: torch.Tensor, *, keepdim=False) -> torch.Tensor:
+    def dist(
+        self, z1: torch.Tensor, z2: torch.Tensor, *, keepdim=False
+    ) -> torch.Tensor:
         """
         Compute distance between two points on the manifold according to the specified metric
         Calculates the distance for the Upper Half Space Manifold (UHSM)
@@ -64,7 +68,7 @@ class SiegelManifold(Manifold, ABC):
         z3 = inv_sqrt_y @ (z2 - x) @ inv_sqrt_y
 
         w = sm.inverse_cayley_transform(z3)
-        evalues = sm.takagi_eigvals(w)      # evalues are in ascending order e1 < e2 < en
+        evalues = sm.takagi_eigvals(w)  # evalues are in ascending order e1 < e2 < en
 
         # assert 0 <= evalues <= 1
         eps = sm.EPS[evalues.dtype]
@@ -82,7 +86,9 @@ class SiegelManifold(Manifold, ABC):
         approx = x + u
         return self.projx(approx)
 
-    def _check_matrices_are_symmetric(self, x: torch.Tensor, *, atol: float = 1e-5, rtol: float = 1e-5):
+    def _check_matrices_are_symmetric(
+        self, x: torch.Tensor, *, atol: float = 1e-5, rtol: float = 1e-5
+    ):
         """
         Parameters
         ----------
@@ -120,7 +126,12 @@ class SiegelManifold(Manifold, ABC):
     ) -> Union[Tuple[bool, Optional[str]], bool]:
         ok = torch.allclose(u, u.transpose(-1, -2), atol=atol, rtol=rtol)
         if not ok:
-            return False, "u is not symmetric (u != u.transpose) with atol={}, rtol={}".format(atol, rtol)
+            return (
+                False,
+                "u is not symmetric (u != u.transpose) with atol={}, rtol={}".format(
+                    atol, rtol
+                ),
+            )
         return True, None
 
     def extra_repr(self) -> str:
