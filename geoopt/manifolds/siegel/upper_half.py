@@ -11,6 +11,7 @@ __all__ = ["UpperHalf"]
 class UpperHalf(SiegelManifold):
     r"""
     Upper Half Space Manifold.
+
     This model generalizes the upper half plane model of the hyperbolic plane.
     Points in the space are complex symmetric matrices.
 
@@ -21,16 +22,17 @@ class UpperHalf(SiegelManifold):
 
     Parameters
     ----------
-    metric: str
-        one of "riem" (Riemannian), "fone": Finsler One, "finf": Finsler Infinity,
-        "fmin": Finsler metric of minimum entropy, "wsum": learnable weighted sum.
+    metric: SiegelMetricType
+        one of Riemannian, Finsler One, Finsler Infinity, Finsler metric of minimum entropy, or learnable weighted sum.
     rank: int
         Rank of the space. Only mandatory for "fmin" and "wsum" metrics.
     """
 
     name = "Upper Half Space"
 
-    def __init__(self, metric: str = SiegelMetricType.RIEMANNIAN, rank: int = None):
+    def __init__(
+        self, metric: SiegelMetricType = SiegelMetricType.RIEMANNIAN, rank: int = None
+    ):
         super().__init__(metric=metric, rank=rank)
 
     def egrad2rgrad(self, z: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
@@ -38,7 +40,11 @@ class UpperHalf(SiegelManifold):
         Transform gradient computed using autodiff to the correct Riemannian gradient for the point :math:`Z`.
 
         For a function :math:`f(Z)` on :math:`\mathcal{S}_n`, the gradient is:
-        :math:`\operatorname{grad}(f(Z)) = Y \cdot \operatorname{grad}_E(f(Z)) \cdot Y`,
+
+        .. math::
+
+            \operatorname{grad}_{R}(f(Z)) = Y \cdot \operatorname{grad}_E(f(Z)) \cdot Y
+
         where :math:`Y` is the imaginary part of :math:`Z`.
 
         Parameters
@@ -91,11 +97,12 @@ class UpperHalf(SiegelManifold):
     ) -> torch.Tensor:
         r"""
         Inner product for tangent vectors at point :math:`Z`.
+
         The inner product at point :math:`Z = X + iY` of the vectors :math:`U, V` is:
 
         .. math::
 
-            g_{Z}(U, V) = \operatorname{Tr}[ Y^-1 U Y^-1 \overline{V} ]
+            g_{Z}(U, V) = \operatorname{Tr}[ Y^{-1} U Y^{-1} \overline{V} ]
 
         Parameters
         ----------
@@ -151,6 +158,28 @@ class UpperHalf(SiegelManifold):
         device=None,
         seed: Optional[int] = 42
     ) -> torch.Tensor:
+        """
+        Create points at the origin of the manifold in a deterministic way.
+
+        For the Upper half model, the origin is the imaginary identity.
+        This is, a matrix whose real part is all zeros, and the identity as the imaginary part.
+
+        Parameters
+        ----------
+        size : Union[int, Tuple[int]]
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : Optional[int]
+            A parameter controlling deterministic randomness for manifolds that do not provide ``.origin``,
+            but provide ``.random``. (default: 42)
+
+        Returns
+        -------
+        torch.Tensor
+        """
         imag = torch.eye(*size[:-1], dtype=dtype, device=device)
         if imag.dtype in {torch.complex32, torch.complex64, torch.complex128}:
             imag = imag.real

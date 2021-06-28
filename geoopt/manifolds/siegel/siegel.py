@@ -4,12 +4,12 @@ import torch
 from ..base import Manifold
 from geoopt import linalg as lalg
 from ..siegel import csym_math as sm
-from .vvd_metrics import SiegelMetric, SiegelMetricType, SiegelMetricFactory
+from .vvd_metrics import SiegelMetricType, SiegelMetricFactory
 
 
 class SiegelManifold(Manifold, ABC):
-    """
-    Abstract Manifold to work on Siegel spaces.
+    """Abstract Manifold to work on Siegel spaces.
+
     The implementation is aimed to work with realization of the Siegel space as
     spaces of complex symmetric matrices.
 
@@ -20,9 +20,8 @@ class SiegelManifold(Manifold, ABC):
 
     Parameters
     ----------
-    metric: str
-        one of "riem" (Riemannian), "fone": Finsler One, "finf": Finsler Infinity,
-        "fmin": Finsler metric of minimum entropy, "wsum": learnable weighted sum.
+    metric: SiegelMetricType
+        one of Riemannian, Finsler One, Finsler Infinity, Finsler metric of minimum entropy, or learnable weighted sum.
     rank: int
         Rank of the space. Only mandatory for "fmin" and "wsum" metrics.
     """
@@ -42,9 +41,9 @@ class SiegelManifold(Manifold, ABC):
         self, z1: torch.Tensor, z2: torch.Tensor, *, keepdim=False
     ) -> torch.Tensor:
         """
-        Compute distance between two points on the manifold according to the specified metric
-        Calculates the distance for the Upper Half Space Manifold (UHSM)
+        Compute distance between two points on the manifold according to the specified metric.
 
+        Calculates the distance for the Upper Half Space Manifold (UHSM)
         It is implemented here since the way to calculate distances in the Bounded Domain Manifold
         requires mapping the points to the UHSM, and then applying this formula.
 
@@ -89,7 +88,8 @@ class SiegelManifold(Manifold, ABC):
     def _check_matrices_are_symmetric(
         self, x: torch.Tensor, *, atol: float = 1e-5, rtol: float = 1e-5
     ):
-        """
+        """Check that matrices are symmetric.
+
         Parameters
         ----------
         x : torch.Tensor

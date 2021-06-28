@@ -4,7 +4,7 @@ import torch
 
 
 class SiegelMetricType(Enum):
-    """Supported metric types for Siegel Spaces"""
+    """Supported metric types for Siegel Spaces."""
 
     RIEMANNIAN = "riem"
     FINSLER_ONE = "fone"
@@ -15,6 +15,8 @@ class SiegelMetricType(Enum):
 
 class SiegelMetric(ABC):
     """
+    Abstract implementation for Siegel metrics.
+
     Based on the vector-valued distance computed on Siegel spaces, different metric functions
     can be taken, which give raise to different distances that can be computed in the space.
 
@@ -38,8 +40,7 @@ class SiegelMetric(ABC):
 
 class RiemannianMetric(SiegelMetric):
     def compute_metric(self, v: torch.Tensor, keepdim=False) -> torch.Tensor:
-        r"""
-        Riemannian distance: :math:`d(Z_1, Z_2) = \sqrt{\sum_{i=1}^n v_i^2}`
+        r"""Riemannian distance: :math:`d(Z_1, Z_2) = \sqrt{\sum_{i=1}^n v_i^2}`.
 
         Parameters
         ----------
@@ -59,8 +60,7 @@ class RiemannianMetric(SiegelMetric):
 
 class FinslerOneMetric(SiegelMetric):
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:
-        r"""
-        Finsler One distance: :math:`d(Z_1, Z_2) = \sum_{i=1}^n v_i`
+        r"""Finsler One distance: :math:`d(Z_1, Z_2) = \sum_{i=1}^n v_i`.
 
         Parameters
         ----------
@@ -80,8 +80,7 @@ class FinslerOneMetric(SiegelMetric):
 
 class FinslerInfinityMetric(SiegelMetric):
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:
-        r"""
-        Finsler Infinity distance: :math:`d(Z_1, Z_2) = \max \{v_i\}=v_n`
+        r"""Finsler Infinity distance: :math:`d(Z_1, Z_2) = \max \{v_i\}=v_n`.
 
         Parameters
         ----------
@@ -112,8 +111,7 @@ class FinslerMinimumEntropyMetric(SiegelMetric):
         )
 
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:
-        r"""
-        Finsler distance of minimum entropy: :math:`d(Z_1, Z_2) = \sum_{i=1}^n 2 * (n + 1 - i) * v_i`
+        r"""Finsler distance of minimum entropy: :math:`d(Z_1, Z_2) = \sum_{i=1}^n 2 * (n + 1 - i) * v_i`.
 
         Parameters
         ----------
@@ -140,9 +138,9 @@ class FinslerWeightedSumMetric(SiegelMetric, torch.nn.Module):
         self.weights = torch.nn.parameter.Parameter(torch.ones((1, rank)))
 
     def compute_metric(self, v: torch.Tensor, keepdim=True) -> torch.Tensor:
-        r"""
-        Weighted sum of vector-valued distance: :math:`d(Z_1, Z_2) = \sum_{i=1}^n w_i * v_i`
-        where :math:`w_i` is a learnable parameter
+        r"""Weighted sum of vector-valued distance: :math:`d(Z_1, Z_2) = \sum_{i=1}^n w_i * v_i`.
+
+        :math:`w_i` is a learnable parameter.
 
         Parameters
         ----------

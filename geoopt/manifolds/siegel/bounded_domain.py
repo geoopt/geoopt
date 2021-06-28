@@ -12,6 +12,7 @@ __all__ = ["BoundedDomain"]
 class BoundedDomain(SiegelManifold):
     r"""
     Bounded domain Manifold.
+
     This model generalizes the Poincare ball model.
     Points in the space are complex symmetric matrices.
 
@@ -21,22 +22,25 @@ class BoundedDomain(SiegelManifold):
 
     Parameters
     ----------
-    metric: str
-        one of "riem" (Riemannian), "fone": Finsler One, "finf": Finsler Infinity,
-        "fmin": Finsler metric of minimum entropy, "wsum": learnable weighted sum.
+    metric: SiegelMetricType
+        one of Riemannian, Finsler One, Finsler Infinity, Finsler metric of minimum entropy, or learnable weighted sum.
     rank: int
         Rank of the space. Only mandatory for "fmin" and "wsum" metrics.
     """
 
     name = "Bounded Domain"
 
-    def __init__(self, metric: str = SiegelMetricType.RIEMANNIAN, rank: int = None):
+    def __init__(
+        self, metric: SiegelMetricType = SiegelMetricType.RIEMANNIAN, rank: int = None
+    ):
         super().__init__(metric=metric, rank=rank)
 
     def dist(
         self, z1: torch.Tensor, z2: torch.Tensor, *, keepdim=False
     ) -> torch.Tensor:
         """
+        Compute distance in the Bounded domain model.
+
         To compute distances in the Bounded Domain Model we need to map the elements to the
         Upper Half Space Model by means of the Cayley Transform, and then compute distances
         in that domain.
@@ -63,8 +67,12 @@ class BoundedDomain(SiegelManifold):
         r"""
         Transform gradient computed using autodiff to the correct Riemannian gradient for the point :math:`Z`.
 
-        For a :math:`f(Z)` on :math:`\mathcal{B}_n`, the gradient is:
-        :math:`\operatorname{grad}(f(Z)) = A \cdot \operatorname{grad}_E(f(Z)) \cdot A`
+        For a function :math:`f(Z)` on :math:`\mathcal{B}_n`, the gradient is:
+
+        .. math::
+
+            \operatorname{grad}_{R}(f(Z)) = A \cdot \operatorname{grad}_E(f(Z)) \cdot A
+
         where :math:`A = Id - \overline{Z}Z`
 
         Parameters
@@ -124,11 +132,12 @@ class BoundedDomain(SiegelManifold):
     ) -> torch.Tensor:
         r"""
         Inner product for tangent vectors at point :math:`Z`.
+
         The inner product at point :math:`Z = X + iY` of the vectors :math:`U, V` is:
 
         .. math::
 
-            g_{Z}(U, V) = \operatorname{Tr}[(Id - \overline{Z}Z)^-1 U (Id - Z\overline{Z})^-1 \overline{V}]
+            g_{Z}(U, V) = \operatorname{Tr}[(Id - \overline{Z}Z)^{-1} U (Id - Z\overline{Z})^{-1} \overline{V}]
 
         Parameters
         ----------
@@ -178,6 +187,28 @@ class BoundedDomain(SiegelManifold):
         device=None,
         seed: Optional[int] = 42
     ) -> torch.Tensor:
+        """
+        Create points at the origin of the manifold in a deterministic way.
+
+        For the Bounded domain model, the origin is the zero matrix.
+        This is, a matrix whose real and imaginary parts are all zeros.
+
+        Parameters
+        ----------
+        size : Union[int, Tuple[int]]
+            the desired shape
+        device : torch.device
+            the desired device
+        dtype : torch.dtype
+            the desired dtype
+        seed : Optional[int]
+            A parameter controlling deterministic randomness for manifolds that do not provide ``.origin``,
+            but provide ``.random``. (default: 42)
+
+        Returns
+        -------
+        torch.Tensor
+        """
         if dtype and dtype not in {torch.complex32, torch.complex64, torch.complex128}:
             raise ValueError(
                 "dtype must be one of {torch.complex32, torch.complex64, torch.complex128}"
@@ -188,8 +219,5 @@ class BoundedDomain(SiegelManifold):
 
 
 def get_id_minus_conjugate_z_times_z(z: torch.Tensor):
-    r"""
-    Given a complex symmetric matrix :math:`Z`,
-    it returns an Hermitian matrix :math:`Id - \overline{Z}Z`
-    """
+    r"""Given a complex symmetric matrix :math:`Z`, it returns an Hermitian matrix :math:`Id - \overline{Z}Z`."""
     return sm.identity_like(z) - (z.conj() @ z)

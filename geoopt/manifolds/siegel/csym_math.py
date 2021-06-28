@@ -12,6 +12,8 @@ eigvalsh = torch.linalg.eigvalsh
 
 def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
+    Compute the Takagi Factorization to obtain eigenvalues and eigenvectors.
+
     Given a complex symmetric matrix A, the Takagi factorization is an algorithm that
     computes a real diagonal matrix D and a complex unitary matrix S such that:
 
@@ -64,6 +66,8 @@ def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
 def takagi_eigvals(z: torch.Tensor) -> torch.Tensor:
     r"""
+    Compute the Takagi Factorization to obtain eigenvalues and eigenvectors.
+
     Given a complex symmetric matrix A, the Takagi factorization is an algorithm that
     computes a real diagonal matrix D and a complex unitary matrix S such that:
 
@@ -105,8 +109,7 @@ def takagi_eigvals(z: torch.Tensor) -> torch.Tensor:
 
 def cayley_transform(z: torch.Tensor) -> torch.Tensor:
     r"""
-    The Cayley transform is used to map elements from the Bounded Domain Model
-    to the Upper Half Space Model.
+    Map elements from the Bounded Domain Model to the Upper Half Space Model.
 
     .. math::
 
@@ -137,7 +140,7 @@ def cayley_transform(z: torch.Tensor) -> torch.Tensor:
 
 def inverse_cayley_transform(z: torch.Tensor) -> torch.Tensor:
     r"""
-    Cayley transform is used to map elements from the Upper Half Space Model to the Bounded Domain Model.
+    Map elements from the Upper Half Space Model to the Bounded Domain Model.
 
     .. math::
 
@@ -168,7 +171,7 @@ def inverse_cayley_transform(z: torch.Tensor) -> torch.Tensor:
 
 def is_complex_symmetric(z: torch.Tensor, atol=1e-05, rtol=1e-5):
     """
-    Returns whether the complex symmetric matrices are symmetric or not
+    Return whether the complex symmetric matrices are symmetric or not.
 
     Parameters
     ----------
@@ -192,6 +195,8 @@ def is_complex_symmetric(z: torch.Tensor, atol=1e-05, rtol=1e-5):
 
 def to_compound_symmetric(z: torch.Tensor) -> torch.Tensor:
     """
+    Build a real matrix out of the real and imaginary parts of a complex symmetric matrix.
+
     Let Z = A + iB be a matrix with complex entries, where A, B are n x n matrices with real entries.
     We build a 2n x 2n matrix in the following form:
         M = [(A, B),
@@ -231,7 +236,7 @@ def identity_like(z: torch.Tensor) -> torch.Tensor:
 
 def multiply_by_i(z: torch.Tensor):
     """
-    For Z = X + iY, calculates the operation i Z = i (X + iY) = -Y + iX
+    For Z = X + iY, calculates the operation i Z = i (X + iY) = -Y + iX.
 
     Parameters
     ----------
@@ -248,11 +253,12 @@ def multiply_by_i(z: torch.Tensor):
 
 def positive_conjugate_projection(y: torch.Tensor) -> torch.Tensor:
     """
+    Apply a positive conjugate projection to a real symmetric matrix.
+
     Steps to project: Y = Symmetric Matrix
     1) Y = SDS^-1
     2) D_tilde = clamp(D, min=epsilon)
     3) Y_tilde = S D_tilde S^-1
-
 
     Parameters
     ----------
