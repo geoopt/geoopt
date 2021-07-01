@@ -117,11 +117,13 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     bias_correction1 = 1 - betas[0] ** group["step"]
                     bias_correction2 = 1 - betas[1] ** group["step"]
                     if amsgrad:
-                        max_exp_avg_sq = state["max_exp_avg_sq"]
+                        max_exp_avg_sq = state["max_exp_avg_sq"][rows]
                         # Maintains the maximum of all 2nd moment running avg. till now
                         torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
+                        max_exp_avg_sq.div_(bias_correction2).sqrt_()
+                        state["max_exp_avg_sq"][rows] = max_exp_avg_sq
                         # Use the max. for normalizing running avg. of gradient
-                        denom = max_exp_avg_sq.div(bias_correction2).sqrt_()
+                        denom = max_exp_avg_sq
                     else:
                         denom = exp_avg_sq.div(bias_correction2).sqrt_()
                     # copy the state, we need it for retraction
