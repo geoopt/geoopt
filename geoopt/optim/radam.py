@@ -2,7 +2,6 @@ import torch.optim
 
 from .mixin import OptimMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
-from ..utils import copy_or_set_
 
 
 __all__ = ["RiemannianAdam"]
@@ -115,8 +114,8 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                         point, -step_size * direction, exp_avg
                     )
                     # use copy only for user facing point
-                    copy_or_set_(point, new_point)
-                    exp_avg.set_(exp_avg_new)
+                    point.copy_(new_point)
+                    exp_avg.copy_(exp_avg_new)
 
                 if (
                     group["stabilize"] is not None
@@ -135,5 +134,5 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                 continue
             manifold = p.manifold
             exp_avg = state["exp_avg"]
-            copy_or_set_(p, manifold.projx(p))
-            exp_avg.set_(manifold.proju(p, exp_avg))
+            p.copy_(manifold.projx(p))
+            exp_avg.copy_(manifold.proju(p, exp_avg))
