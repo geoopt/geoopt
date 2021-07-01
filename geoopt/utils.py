@@ -23,7 +23,6 @@ __all__ = [
 ]
 
 
-
 def strip_tuple(tup: Tuple) -> Union[Tuple, Any]:
     if len(tup) == 1:
         return tup[0]
