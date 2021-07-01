@@ -92,26 +92,22 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     exp_avg_sq.mul_(betas[1]).add_(
                         manifold.component_inner(point, grad), alpha=1 - betas[1]
                     )
+                    bias_correction1 = 1 - betas[0] ** group["step"]
+                    bias_correction2 = 1 - betas[1] ** group["step"]
                     if amsgrad:
                         max_exp_avg_sq = state["max_exp_avg_sq"]
                         # Maintains the maximum of all 2nd moment running avg. till now
                         torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                         # Use the max. for normalizing running avg. of gradient
-                        denom = max_exp_avg_sq.sqrt().add_(eps)
+                        denom = max_exp_avg_sq.div(bias_correction2).sqrt_()
                     else:
-                        denom = exp_avg_sq.sqrt().add_(eps)
-                    bias_correction1 = 1 - betas[0] ** group["step"]
-                    bias_correction2 = 1 - betas[1] ** group["step"]
-                    step_size = (
-                        learning_rate * bias_correction2 ** 0.5 / bias_correction1
-                    )
-
+                        denom = exp_avg_sq.div(bias_correction2).sqrt_()
                     # copy the state, we need it for retraction
                     # get the direction for ascend
-                    direction = exp_avg / denom
+                    direction = exp_avg.div(bias_correction1) / denom.add_(eps)
                     # transport the exponential averaging to the new point
                     new_point, exp_avg_new = manifold.retr_transp(
-                        point, -step_size * direction, exp_avg
+                        point, -learning_rate * direction, exp_avg
                     )
                     # use copy only for user facing point
                     point.copy_(new_point)
