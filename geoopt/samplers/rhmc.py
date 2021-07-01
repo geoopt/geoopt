@@ -5,7 +5,6 @@ import torch
 
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
 from geoopt.samplers.base import Sampler
-from ..utils import copy_or_set_
 
 __all__ = ["RHMC"]
 
@@ -40,8 +39,8 @@ class RHMC(Sampler):
 
         r.add_(epsilon * egrad2rgrad(p, p.grad))
         p_, r_ = retr_transp(p, r * epsilon, r)
-        copy_or_set_(p, p_)
-        r.set_(r_)
+        p.copy_(p_)
+        r.copy_(r_)
 
     def step(self, closure):
         logp = closure()
@@ -146,8 +145,8 @@ class RHMC(Sampler):
         for p in group["params"]:
             if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
                 continue
-            copy_or_set_(p, p.manifold.projx(p))
+            p.copy_(p.manifold.projx(p))
             state = self.state[p]
             if not state:  # due to None grads
                 continue
-            copy_or_set_(state["old_p"], p.manifold.projx(state["old_p"]))
+            state["old_p"].copy_(p.manifold.projx(state["old_p"]))

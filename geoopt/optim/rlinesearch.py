@@ -10,7 +10,6 @@ import torch
 from .mixin import OptimMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
 from ..manifolds import Euclidean
-from ..utils import copy_or_set_
 
 
 __all__ = ["RiemannianLineSearch"]
@@ -543,7 +542,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             if not state:  # due to None grads
                 continue
             manifold = p.manifold
-            copy_or_set_(p, manifold.projx(p))
+            p.copy_(manifold.projx(p))
 
 
 #################################################################################

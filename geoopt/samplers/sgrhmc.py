@@ -4,7 +4,6 @@ import torch
 
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
 from geoopt.samplers.base import Sampler
-from ..utils import copy_or_set_
 
 __all__ = ["SGRHMC"]
 
@@ -68,8 +67,8 @@ class SGRHMC(Sampler):
                         v = self.state[p]["v"]
 
                         p_, v_ = retr_transp(p, v, v)
-                        copy_or_set_(p, p_)
-                        v.set_(v_)
+                        p.copy_(p_)
+                        v.copy_(v_)
 
                         n = egrad2rgrad(p, torch.randn_like(v))
                         v.mul_(1 - alpha).add_(epsilon * p.grad).add_(
@@ -91,9 +90,9 @@ class SGRHMC(Sampler):
                 continue
 
             manifold = p.manifold
-            copy_or_set_(p, manifold.projx(p))
+            p.copy_(manifold.projx(p))
             # proj here is ok
             state = self.state[p]
             if not state:
                 continue
-            state["v"].set_(manifold.proju(p, state["v"]))
+            state["v"].copy_(manifold.proju(p, state["v"]))

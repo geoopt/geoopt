@@ -2,7 +2,6 @@ import torch.optim
 
 from .mixin import OptimMixin, SparseMixin
 from ..tensor import ManifoldParameter, ManifoldTensor
-from ..utils import copy_or_set_
 
 
 __all__ = ["SparseRiemannianAdam"]
@@ -159,5 +158,5 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                 continue
             manifold = p.manifold
             exp_avg = state["exp_avg"]
-            copy_or_set_(p, manifold.projx(p))
-            exp_avg.set_(manifold.proju(p, exp_avg))
+            p.copy_(manifold.projx(p))
+            exp_avg.copy_(manifold.proju(p, exp_avg))

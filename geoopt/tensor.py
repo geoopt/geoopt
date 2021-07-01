@@ -3,7 +3,6 @@ from .manifolds import Euclidean, Manifold
 from .docutils import insert_docs
 import functools
 from typing import Union, Tuple
-from .utils import copy_or_set_
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
 
@@ -52,7 +51,7 @@ class ManifoldTensor(torch.Tensor):
         tensor
             same instance
         """
-        return copy_or_set_(self, self.manifold.projx(self))
+        return self.copy_(self.manifold.projx(self))
 
     @insert_docs(Manifold.retr.__doc__, r"\s+x : .+\n.+", "")
     def retr(self, u: torch.Tensor, **kwargs) -> torch.Tensor:
