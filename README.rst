@@ -33,7 +33,7 @@ Now, pypi is behind master as we actively develop and implement new features.
 
 PyTorch Support
 ~~~~~~~~~~~~~~~
-Geoopt officially supports **2 latest stable versions** (1.9.0 so far) of pytorch upstream or the latest major release.
+Geoopt officially supports **2 latest stable versions** of pytorch upstream or the latest major release.
 We also test (TODO: there were complications with github workflows, need help) against the nightly build, but do not be 100% sure about compatibility.
 As for older pytorch versions, you may use it on your own risk (do not forget to run tests).
 
