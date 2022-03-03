@@ -88,13 +88,13 @@ class Euclidean(Manifold):
         if self.ndim > 0:
             return (x - y).norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
         else:
-            return (x - y).abs()
+            return torch.sqrt(torch.sum((x - y).pow(2), dim=(x.dim() - 1)))
 
     def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         if self.ndim > 0:
             return (x - y).pow(2).sum(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
         else:
-            return (x - y).pow(2)
+            return torch.sum((x - y).pow(2), dim=(x.dim() - 1))
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
