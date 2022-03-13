@@ -44,34 +44,34 @@ change in future releases.
 Tensors
 ~~~~~~~
 
--  ``geoopt.ManifoldTensor`` – just as torch.Tensor with additional
+-  ``geoopt.ManifoldTensor`` - just as torch.Tensor with additional
    ``manifold`` keyword argument.
--  ``geoopt.ManifoldParameter`` – same as above, recognized in
+-  ``geoopt.ManifoldParameter`` - same as above, recognized in
    ``torch.nn.Module.parameters`` as correctly subclassed.
 
 All above containers have special methods to work with them as with
 points on a certain manifold
 
--  ``.proj_()`` – inplace projection on the manifold.
--  ``.proju(u)`` – project vector ``u`` on the tangent space. You need
+-  ``.proj_()`` - inplace projection on the manifold.
+-  ``.proju(u)`` - project vector ``u`` on the tangent space. You need
    to project all vectors for all methods below.
--  ``.egrad2rgrad(u)`` – project gradient ``u`` on Riemannian manifold
--  ``.inner(u, v=None)`` – inner product at this point for two
+-  ``.egrad2rgrad(u)`` - project gradient ``u`` on Riemannian manifold
+-  ``.inner(u, v=None)`` - inner product at this point for two
    **tangent** vectors at this point. The passed vectors are not
    projected, they are assumed to be already projected.
--  ``.retr(u)`` – retraction map following vector ``u``
--  ``.expmap(u)`` – exponential map following vector ``u`` (if expmap is not available in closed form, best approximation is used)
--  ``.transp(v, u)`` – transport vector ``v``  with direction ``u``
--  ``.retr_transp(v, u)`` – transport ``self``, vector ``v``
+-  ``.retr(u)`` - retraction map following vector ``u``
+-  ``.expmap(u)`` - exponential map following vector ``u`` (if expmap is not available in closed form, best approximation is used)
+-  ``.transp(v, u)`` - transport vector ``v``  with direction ``u``
+-  ``.retr_transp(v, u)`` - transport ``self``, vector ``v``
    (and possibly more vectors) with direction ``u``
    (returns are plain tensors)
 
 Manifolds
 ~~~~~~~~~
 
--  ``geoopt.Euclidean`` – unconstrained manifold in ``R`` with
+-  ``geoopt.Euclidean`` - unconstrained manifold in ``R`` with
    Euclidean metric
--  ``geoopt.Stiefel`` – Stiefel manifold on matrices
+-  ``geoopt.Stiefel`` - Stiefel manifold on matrices
    ``A in R^{n x p} : A^t A=I``, ``n >= p``
 -  ``geoopt.Sphere`` - Sphere manifold ``||x||=1``
 -  ``geoopt.BirkhoffPolytope`` - manifold of Doubly Stochastic matrices
@@ -91,17 +91,17 @@ tangent vectors to be used in general purpose. See more in `documentation`_.
 Optimizers
 ~~~~~~~~~~
 
--  ``geoopt.optim.RiemannianSGD`` – a subclass of ``torch.optim.SGD``
+-  ``geoopt.optim.RiemannianSGD`` - a subclass of ``torch.optim.SGD``
    with the same API
--  ``geoopt.optim.RiemannianAdam`` – a subclass of ``torch.optim.Adam``
+-  ``geoopt.optim.RiemannianAdam`` - a subclass of ``torch.optim.Adam``
 
 Samplers
 ~~~~~~~~
 
--  ``geoopt.samplers.RSGLD`` – Riemannian Stochastic Gradient Langevin
+-  ``geoopt.samplers.RSGLD`` - Riemannian Stochastic Gradient Langevin
    Dynamics
--  ``geoopt.samplers.RHMC`` – Riemannian Hamiltonian Monte-Carlo
--  ``geoopt.samplers.SGRHMC`` – Stochastic Gradient Riemannian
+-  ``geoopt.samplers.RHMC`` - Riemannian Hamiltonian Monte-Carlo
+-  ``geoopt.samplers.SGRHMC`` - Stochastic Gradient Riemannian
    Hamiltonian Monte-Carlo
 
 
