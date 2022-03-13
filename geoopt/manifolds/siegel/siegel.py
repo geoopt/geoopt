@@ -86,7 +86,7 @@ class SiegelManifold(Manifold, ABC):
         return self.projx(approx)
 
     def _check_matrices_are_symmetric(
-        self, x: torch.Tensor, *, atol: float = 1e-5, rtol: float = 1e-5
+        self, x: torch.Tensor, *, atol: float = 1e-4, rtol: float = 1e-5
     ):
         """Check that matrices are symmetric.
 

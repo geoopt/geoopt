@@ -22,6 +22,10 @@ __all__ = [
     "sabs",
 ]
 
+COMPLEX_DTYPES = {torch.complex64, torch.complex128}
+if hasattr(torch, "complex32"):
+    COMPLEX_DTYPES.add(torch.complex32)
+
 
 def strip_tuple(tup: Tuple) -> Union[Tuple, Any]:
     if len(tup) == 1:

@@ -169,7 +169,7 @@ def inverse_cayley_transform(z: torch.Tensor) -> torch.Tensor:
     return z_minus_id @ inv_z_plus_id
 
 
-def is_complex_symmetric(z: torch.Tensor, atol=1e-05, rtol=1e-5):
+def is_complex_symmetric(z: torch.Tensor, atol=1e-5, rtol=1e-5):
     """
     Return whether the complex symmetric matrices are symmetric or not.
 

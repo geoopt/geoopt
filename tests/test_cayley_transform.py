@@ -63,8 +63,8 @@ def test_cayley_transform_with_projx(bounded, upper, rank, dtype, eps):
     result = sm.inverse_cayley_transform(tran_x)
 
     np.testing.assert_allclose(x, result, atol=eps, rtol=eps)
-    bounded.assert_check_point_on_manifold(result)
-    upper.assert_check_point_on_manifold(tran_x)
+    bounded.assert_check_point_on_manifold(result, atol=eps)
+    upper.assert_check_point_on_manifold(tran_x, atol=eps)
 
 
 def test_inverse_cayley_transform(bounded, upper, rank, dtype, eps):

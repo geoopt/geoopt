@@ -1,6 +1,7 @@
 from typing import Optional, Tuple, Union
 import torch
 from geoopt import linalg as lalg
+from geoopt.utils import COMPLEX_DTYPES
 from .siegel import SiegelManifold
 from .upper_half import UpperHalf
 from .vvd_metrics import SiegelMetricType
@@ -166,7 +167,7 @@ class BoundedDomain(SiegelManifold):
         res = inv_id_minus_conjz_z @ u @ inv_id_minus_z_conjz @ v.conj()
         return lalg.trace(res, keepdim=keepdim)
 
-    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5):
+    def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-4, rtol=1e-5):
         if not self._check_matrices_are_symmetric(x, atol=atol, rtol=rtol):
             return False, "Matrices are not symmetric"
 
@@ -185,7 +186,7 @@ class BoundedDomain(SiegelManifold):
         *size: Union[int, Tuple[int]],
         dtype=None,
         device=None,
-        seed: Optional[int] = 42
+        seed: Optional[int] = 42,
     ) -> torch.Tensor:
         """
         Create points at the origin of the manifold in a deterministic way.
@@ -209,10 +210,8 @@ class BoundedDomain(SiegelManifold):
         -------
         torch.Tensor
         """
-        if dtype and dtype not in {torch.complex32, torch.complex64, torch.complex128}:
-            raise ValueError(
-                "dtype must be one of {torch.complex32, torch.complex64, torch.complex128}"
-            )
+        if dtype and dtype not in COMPLEX_DTYPES:
+            raise ValueError(f"dtype must be one of {COMPLEX_DTYPES}")
         if dtype is None:
             dtype = torch.complex128
         return torch.zeros(*size, dtype=dtype, device=device)
