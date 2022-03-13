@@ -56,31 +56,31 @@ def tan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == -1 or order == 5:
         return (
             x
-            + 1 / 3 * k * x ** 3
-            + 2 / 15 * k ** 2 * x ** 5
-            + 17 / 315 * k ** 3 * x ** 7
-            + 62 / 2835 * k ** 4 * x ** 9
-            + 1382 / 155925 * k ** 5 * x ** 11
+            + 1 / 3 * k * x**3
+            + 2 / 15 * k**2 * x**5
+            + 17 / 315 * k**3 * x**7
+            + 62 / 2835 * k**4 * x**9
+            + 1382 / 155925 * k**5 * x**11
             # + o(k**6)
         )
     elif order == 1:
-        return x + 1 / 3 * k * x ** 3
+        return x + 1 / 3 * k * x**3
     elif order == 2:
-        return x + 1 / 3 * k * x ** 3 + 2 / 15 * k ** 2 * x ** 5
+        return x + 1 / 3 * k * x**3 + 2 / 15 * k**2 * x**5
     elif order == 3:
         return (
             x
-            + 1 / 3 * k * x ** 3
-            + 2 / 15 * k ** 2 * x ** 5
-            + 17 / 315 * k ** 3 * x ** 7
+            + 1 / 3 * k * x**3
+            + 2 / 15 * k**2 * x**5
+            + 17 / 315 * k**3 * x**7
         )
     elif order == 4:
         return (
             x
-            + 1 / 3 * k * x ** 3
-            + 2 / 15 * k ** 2 * x ** 5
-            + 17 / 315 * k ** 3 * x ** 7
-            + 62 / 2835 * k ** 4 * x ** 9
+            + 1 / 3 * k * x**3
+            + 2 / 15 * k**2 * x**5
+            + 17 / 315 * k**3 * x**7
+            + 62 / 2835 * k**4 * x**9
         )
     else:
         raise RuntimeError("order not in [-1, 5]")
@@ -94,28 +94,28 @@ def artan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == -1 or order == 5:
         return (
             x
-            - 1 / 3 * k * x ** 3
-            + 1 / 5 * k ** 2 * x ** 5
-            - 1 / 7 * k ** 3 * x ** 7
-            + 1 / 9 * k ** 4 * x ** 9
-            - 1 / 11 * k ** 5 * x ** 11
+            - 1 / 3 * k * x**3
+            + 1 / 5 * k**2 * x**5
+            - 1 / 7 * k**3 * x**7
+            + 1 / 9 * k**4 * x**9
+            - 1 / 11 * k**5 * x**11
             # + o(k**6)
         )
     elif order == 1:
-        return x - 1 / 3 * k * x ** 3
+        return x - 1 / 3 * k * x**3
     elif order == 2:
-        return x - 1 / 3 * k * x ** 3 + 1 / 5 * k ** 2 * x ** 5
+        return x - 1 / 3 * k * x**3 + 1 / 5 * k**2 * x**5
     elif order == 3:
         return (
-            x - 1 / 3 * k * x ** 3 + 1 / 5 * k ** 2 * x ** 5 - 1 / 7 * k ** 3 * x ** 7
+            x - 1 / 3 * k * x**3 + 1 / 5 * k**2 * x**5 - 1 / 7 * k**3 * x**7
         )
     elif order == 4:
         return (
             x
-            - 1 / 3 * k * x ** 3
-            + 1 / 5 * k ** 2 * x ** 5
-            - 1 / 7 * k ** 3 * x ** 7
-            + 1 / 9 * k ** 4 * x ** 9
+            - 1 / 3 * k * x**3
+            + 1 / 5 * k**2 * x**5
+            - 1 / 7 * k**3 * x**7
+            + 1 / 9 * k**4 * x**9
         )
     else:
         raise RuntimeError("order not in [-1, 5]")
@@ -129,26 +129,26 @@ def arsin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == -1 or order == 5:
         return (
             x
-            + k * x ** 3 / 6
-            + 3 / 40 * k ** 2 * x ** 5
-            + 5 / 112 * k ** 3 * x ** 7
-            + 35 / 1152 * k ** 4 * x ** 9
-            + 63 / 2816 * k ** 5 * x ** 11
+            + k * x**3 / 6
+            + 3 / 40 * k**2 * x**5
+            + 5 / 112 * k**3 * x**7
+            + 35 / 1152 * k**4 * x**9
+            + 63 / 2816 * k**5 * x**11
             # + o(k**6)
         )
     elif order == 1:
-        return x + k * x ** 3 / 6
+        return x + k * x**3 / 6
     elif order == 2:
-        return x + k * x ** 3 / 6 + 3 / 40 * k ** 2 * x ** 5
+        return x + k * x**3 / 6 + 3 / 40 * k**2 * x**5
     elif order == 3:
-        return x + k * x ** 3 / 6 + 3 / 40 * k ** 2 * x ** 5 + 5 / 112 * k ** 3 * x ** 7
+        return x + k * x**3 / 6 + 3 / 40 * k**2 * x**5 + 5 / 112 * k**3 * x**7
     elif order == 4:
         return (
             x
-            + k * x ** 3 / 6
-            + 3 / 40 * k ** 2 * x ** 5
-            + 5 / 112 * k ** 3 * x ** 7
-            + 35 / 1152 * k ** 4 * x ** 9
+            + k * x**3 / 6
+            + 3 / 40 * k**2 * x**5
+            + 5 / 112 * k**3 * x**7
+            + 35 / 1152 * k**4 * x**9
         )
     else:
         raise RuntimeError("order not in [-1, 5]")
@@ -162,26 +162,26 @@ def sin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == -1 or order == 5:
         return (
             x
-            - k * x ** 3 / 6
-            + k ** 2 * x ** 5 / 120
-            - k ** 3 * x ** 7 / 5040
-            + k ** 4 * x ** 9 / 362880
-            - k ** 5 * x ** 11 / 39916800
+            - k * x**3 / 6
+            + k**2 * x**5 / 120
+            - k**3 * x**7 / 5040
+            + k**4 * x**9 / 362880
+            - k**5 * x**11 / 39916800
             # + o(k**6)
         )
     elif order == 1:
-        return x - k * x ** 3 / 6
+        return x - k * x**3 / 6
     elif order == 2:
-        return x - k * x ** 3 / 6 + k ** 2 * x ** 5 / 120
+        return x - k * x**3 / 6 + k**2 * x**5 / 120
     elif order == 3:
-        return x - k * x ** 3 / 6 + k ** 2 * x ** 5 / 120 - k ** 3 * x ** 7 / 5040
+        return x - k * x**3 / 6 + k**2 * x**5 / 120 - k**3 * x**7 / 5040
     elif order == 4:
         return (
             x
-            - k * x ** 3 / 6
-            + k ** 2 * x ** 5 / 120
-            - k ** 3 * x ** 7 / 5040
-            + k ** 4 * x ** 9 / 362880
+            - k * x**3 / 6
+            + k**2 * x**5 / 120
+            - k**3 * x**7 / 5040
+            + k**4 * x**9 / 362880
         )
     else:
         raise RuntimeError("order not in [-1, 5]")
@@ -512,7 +512,7 @@ def _mobius_add(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1
     y2 = y.pow(2).sum(dim=dim, keepdim=True)
     xy = (x * y).sum(dim=dim, keepdim=True)
     num = (1 - 2 * k * xy - k * y2) * x + (1 + k * x2) * y
-    denom = 1 - 2 * k * xy + k ** 2 * x2 * y2
+    denom = 1 - 2 * k * xy + k**2 * x2 * y2
     # minimize denom (omit K to simplify th notation)
     # 1)
     # {d(denom)/d(x) = 2 y + 2x * <y, y> = 0
@@ -641,7 +641,7 @@ def _gyration(
     uv = (u * v).sum(dim=dim, keepdim=True)
     uw = (u * w).sum(dim=dim, keepdim=True)
     vw = (v * w).sum(dim=dim, keepdim=True)
-    K2 = k ** 2
+    K2 = k**2
     a = -K2 * uw * v2 - k * vw + 2 * K2 * uv * vw
     b = -K2 * vw * u2 + k * uw
     d = 1 - 2 * k * uv + K2 * u2 * v2
