@@ -1,6 +1,7 @@
 from typing import Optional, Tuple, Union
 import torch
 from geoopt import linalg as lalg
+from geoopt.utils import COMPLEX_DTYPES
 from .siegel import SiegelManifold
 from .vvd_metrics import SiegelMetricType
 from ..siegel import csym_math as sm
@@ -140,10 +141,8 @@ class UpperHalf(SiegelManifold):
         return ok, reason
 
     def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
-        if dtype and dtype not in {torch.complex32, torch.complex64, torch.complex128}:
-            raise ValueError(
-                "dtype must be one of {torch.complex32, torch.complex64, torch.complex128}"
-            )
+        if dtype and dtype not in COMPLEX_DTYPES:
+            raise ValueError(f"dtype must be one of {COMPLEX_DTYPES}")
         if dtype is None:
             dtype = torch.complex128
         tens = 0.5 * torch.randn(*size, dtype=dtype, device=device)
@@ -156,7 +155,7 @@ class UpperHalf(SiegelManifold):
         *size: Union[int, Tuple[int]],
         dtype=None,
         device=None,
-        seed: Optional[int] = 42
+        seed: Optional[int] = 42,
     ) -> torch.Tensor:
         """
         Create points at the origin of the manifold in a deterministic way.
@@ -181,6 +180,6 @@ class UpperHalf(SiegelManifold):
         torch.Tensor
         """
         imag = torch.eye(*size[:-1], dtype=dtype, device=device)
-        if imag.dtype in {torch.complex32, torch.complex64, torch.complex128}:
+        if imag.dtype in COMPLEX_DTYPES:
             imag = imag.real
         return torch.complex(torch.zeros_like(imag), imag)

@@ -45,7 +45,7 @@ class Lorentz(Manifold):
         self, x: torch.Tensor, *, atol=1e-5, rtol=1e-5, dim=-1
     ) -> Tuple[bool, Optional[str]]:
         dn = x.size(dim) - 1
-        x = x ** 2
+        x = x**2
         quad_form = -x.narrow(dim, 0, 1) + x.narrow(dim, 1, dn).sum(
             dim=dim, keepdim=True
         )
