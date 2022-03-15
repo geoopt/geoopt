@@ -36,17 +36,17 @@ def test_no_type_promotion():
 
 def test_copy():
     t = geoopt.ManifoldTensor()
-    copy.copy(t)
+    t = copy.copy(t)
     assert isinstance(t, geoopt.ManifoldTensor)
     p = geoopt.ManifoldParameter()
-    copy.copy(p)
+    p = copy.copy(p)
     assert isinstance(p, geoopt.ManifoldParameter)
 
 
 def test_deepcopy():
     t = geoopt.ManifoldTensor()
-    copy.deepcopy(t)
+    t = copy.deepcopy(t)
     assert isinstance(t, geoopt.ManifoldTensor)
     p = geoopt.ManifoldParameter()
-    copy.deepcopy(p)
+    p = copy.deepcopy(p)
     assert isinstance(p, geoopt.ManifoldParameter)
