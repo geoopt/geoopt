@@ -120,6 +120,10 @@ If you find this project useful in your research, please kindly add this bibtex 
         primaryClass={cs.CG}
     }
 
+Donations
+~~~~~~~~~
+ETH: 0x008319973D4017414FdF5B3beF1369bA78275C6A
+   
 
 .. _“Riemannian Adaptive Optimization Methods”: https://openreview.net/forum?id=r1eiqi09K7
 .. _documentation: https://geoopt.readthedocs.io/en/latest/manifolds.html
@@ -138,3 +142,5 @@ If you find this project useful in your research, please kindly add this bibtex 
    :target: https://github.com/ambv/black
 .. |Gitter| image:: https://badges.gitter.im/geoopt/community.png
    :target: https://gitter.im/geoopt/community
+   
+   
