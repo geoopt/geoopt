@@ -3,6 +3,7 @@ from .manifolds import Euclidean, Manifold
 from .docutils import insert_docs
 import functools
 from typing import Union, Tuple
+import copy
 
 __all__ = ["ManifoldTensor", "ManifoldParameter"]
 
@@ -136,6 +137,18 @@ class ManifoldTensor(torch.Tensor):
     @insert_docs(Manifold.unpack_tensor.__doc__, r"\s+tensor : .+\n.+", "")
     def unpack_tensor(self) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
         return self.manifold.unpack_tensor(self)
+
+    def __deepcopy__(self, memo):
+        if id(self) in memo:
+            return memo[id(self)]
+        else:
+            result = type(self)(
+                self.data.clone(memory_format=torch.preserve_format),
+                manifold=copy.deepcopy(self.manifold, memo=memo),
+                requires_grad=self.requires_grad,
+            )
+            memo[id(self)] = result
+            return result
 
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
