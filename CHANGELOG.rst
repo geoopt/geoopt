@@ -6,6 +6,7 @@ geoopt (0.4.1)
 Maintainance
 ------------
 * Upgrade to pytorch 1.10.2 and 1.11.0
+* fix deepcopy bug (#189)
 
 geoopt (0.4.0)
 ==============
