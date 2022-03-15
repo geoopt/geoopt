@@ -1,4 +1,3 @@
-from numpy import isin
 import geoopt
 import torch
 import pytest
