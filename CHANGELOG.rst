@@ -1,19 +1,29 @@
 This file tracks important changes in PRs
 
-geoopt (0.4.0)
-=====================
-
-New Features
-------------
-new Symmetric Positive Definite manifold (#153)
+geoopt (0.4.1)
+==============
 
 Maintainance
 ------------
-create pull request templates (#154)
+* Upgrade to pytorch 1.10.2 and 1.11.0
+* fix deepcopy bug (#189)
 
+geoopt (0.4.0)
+==============
+
+New Features
+------------
+* new Symmetric Positive Definite manifold (#153)
+* new Siegel manifolds: Upper half model and Bounded domain model, with support for Riemannian and Finsler metrics (#179)
+
+Maintainance
+------------
+* create pull request templates (#154)
+* update tests for pytorch 1.9.0
 
 Bug Fixes
 ---------
+* fix step increments in optimizers (#165)
 
 geoopt v0.3.0
 =============

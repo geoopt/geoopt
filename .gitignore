@@ -113,3 +113,4 @@ notebooks/
 testing-report.html
 test-output.xml
 *.el
+.vscode/

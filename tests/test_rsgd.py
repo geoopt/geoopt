@@ -1,6 +1,8 @@
 import geoopt
+from geoopt.manifolds.siegel.vvd_metrics import SiegelMetricType
 import torch
 import numpy as np
+from itertools import product
 import pytest
 
 
@@ -75,6 +77,65 @@ def test_rsgd_spd(params):
         print(i, cond)
     assert X.is_contiguous()
     np.testing.assert_allclose(X.data, Xstar, atol=1e-5)
+    optim.load_state_dict(optim.state_dict())
+    optim.step(closure)
+
+
+@pytest.fixture(
+    scope="module",
+    params=product(
+        [geoopt.manifolds.UpperHalf, geoopt.manifolds.BoundedDomain],
+        [
+            SiegelMetricType.RIEMANNIAN,
+            SiegelMetricType.FINSLER_ONE,
+            SiegelMetricType.FINSLER_INFINITY,
+            SiegelMetricType.FINSLER_MINIMUM,
+            SiegelMetricType.WEIGHTED_SUM,
+        ],
+    ),
+)
+def complex_manifold(request):
+    manifold_class, metric = request.param
+    return manifold_class(metric=metric, rank=2)
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        dict(lr=1e-3),
+        dict(lr=1e-3, momentum=0.9),
+        dict(momentum=0.9, nesterov=True, lr=1e-3),
+        dict(momentum=0.9, dampening=0.1, lr=1e-3),
+    ],
+)
+def test_rsgd_complex_manifold(params, complex_manifold):
+    manifold = complex_manifold
+    torch.manual_seed(42)
+    with torch.no_grad():
+        X = geoopt.ManifoldParameter(manifold.random(2, 2), manifold=manifold).proj_()
+    Xstar = manifold.random(2, 2)
+
+    def closure():
+        optim.zero_grad()
+        loss = manifold.dist(X, Xstar).pow(2).sum()
+        loss.backward()
+        return loss.item()
+
+    optim = geoopt.optim.RiemannianSGD([X], **params)
+    assert manifold.dist(X, Xstar) > 1e-1
+    for i in range(10000):
+        distance = manifold.dist(X, Xstar)
+        if distance < 1e-4:
+            break
+        try:
+            optim.step(closure)
+        except UserWarning:
+            # On the first pass it raises a UserWarning due to discarding part of the
+            # complex variable in a casting
+            pass
+        print(i, distance)
+    distance = manifold.dist(X, Xstar)
+    np.testing.assert_equal(distance < 1e-4, torch.tensor(True))
     optim.load_state_dict(optim.state_dict())
     optim.step(closure)
 

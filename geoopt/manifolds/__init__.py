@@ -9,6 +9,7 @@ from .stiefel import (
 from .sphere import Sphere, SphereExact
 from .birkhoff_polytope import BirkhoffPolytope
 from .symmetric_positive_definite import SymmetricPositiveDefinite
+from .siegel import UpperHalf, BoundedDomain
 from .stereographic import (
     PoincareBall,
     PoincareBallExact,

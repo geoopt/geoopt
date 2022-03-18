@@ -11,7 +11,7 @@ __all__ = ["Scaled"]
 
 
 def rescale_value(value, scaling, power):
-    return value * scaling ** power if power != 0 else value
+    return value * scaling**power if power != 0 else value
 
 
 def rescale(function, scaling_info):

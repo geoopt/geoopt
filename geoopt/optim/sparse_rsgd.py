@@ -1,7 +1,6 @@
 import torch.optim.optimizer
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin, SparseMixin
-from ..utils import copy_or_set_
 
 __all__ = ["SparseRiemannianSGD"]
 
@@ -70,6 +69,7 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                 dampening = group["dampening"]
                 nesterov = group["nesterov"]
                 learning_rate = group["lr"]
+                group["step"] += 1
                 for point in group["params"]:
                     grad = point.grad
                     if grad is None:
@@ -115,7 +115,6 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         new_point = manifold.retr(point, -learning_rate * grad)
                         full_point[rows] = new_point
 
-                    group["step"] += 1
                 if (
                     group["stabilize"] is not None
                     and group["step"] % group["stabilize"] == 0
@@ -130,11 +129,11 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                 continue
             manifold = p.manifold
             momentum = group["momentum"]
-            copy_or_set_(p, manifold.projx(p))
+            p.copy_(manifold.projx(p))
             if momentum > 0:
                 param_state = self.state[p]
                 if not param_state:  # due to None grads
                     continue
                 if "momentum_buffer" in param_state:
                     buf = param_state["momentum_buffer"]
-                    buf.set_(manifold.proju(p, buf))
+                    buf.copy_(manifold.proju(p, buf))

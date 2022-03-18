@@ -32,6 +32,8 @@ manifold_shapes = {
     geoopt.manifolds.SphereExact: (10,),
     geoopt.manifolds.ProductManifold: (10 + 3 + 6 + 1,),
     geoopt.manifolds.SymmetricPositiveDefinite: (2, 2),
+    geoopt.manifolds.UpperHalf: (3, 3),
+    geoopt.manifolds.BoundedDomain: (3, 3),
 }
 
 
@@ -43,8 +45,8 @@ def canonical_stiefel_case():
     shape = manifold_shapes[geoopt.manifolds.CanonicalStiefel]
     ex = torch.randn(*shape)
     ev = torch.randn(*shape)
-    u, _, v = torch.svd(ex)
-    x = u @ v.t()
+    u, _, v = torch.linalg.svd(ex, full_matrices=False)
+    x = torch.einsum("...ik,...kj->...ij", u, v)
     v = ev - x @ ev.t() @ x
     manifold = geoopt.manifolds.CanonicalStiefel()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
@@ -57,8 +59,8 @@ def euclidean_stiefel_case():
     shape = manifold_shapes[geoopt.manifolds.EuclideanStiefel]
     ex = torch.randn(*shape, dtype=torch.float64)
     ev = torch.randn(*shape, dtype=torch.float64)
-    u, _, v = torch.svd(ex)
-    x = u @ v.t()
+    u, _, v = torch.linalg.svd(ex, full_matrices=False)
+    x = torch.einsum("...ik,...kj->...ij", u, v)
     nonsym = x.t() @ ev
     v = ev - x @ (nonsym + nonsym.t()) / 2
 
@@ -99,7 +101,9 @@ def proju_original(x, u):
         dim=1,
     )
 
-    zeta, _ = torch.solve(B.transpose(1, 2) @ (b - A[:, :, 0:1]), B.transpose(1, 2) @ B)
+    zeta = torch.linalg.solve(
+        B.transpose(1, 2) @ B, B.transpose(1, 2) @ (b - A[:, :, 0:1])
+    )
     alpha = torch.cat(
         [torch.ones(batch_size, 1, 1, dtype=x.dtype), zeta[:, 0 : n - 1]], dim=1
     )
@@ -209,7 +213,7 @@ def sphere_subspace_case():
     shape = manifold_shapes[geoopt.manifolds.Sphere]
     subspace = torch.rand(shape[-1], 2, dtype=torch.float64)
 
-    Q, _ = geoopt.linalg.batch_linalg.qr(subspace)
+    Q, _ = geoopt.linalg.batch_linalg.qr(subspace, "reduced")
     P = Q @ Q.t()
 
     ex = torch.randn(*shape, dtype=torch.float64)
@@ -232,7 +236,7 @@ def sphere_compliment_case():
     shape = manifold_shapes[geoopt.manifolds.Sphere]
     complement = torch.rand(shape[-1], 1, dtype=torch.float64)
 
-    Q, _ = geoopt.linalg.batch_linalg.qr(complement)
+    Q, _ = geoopt.linalg.batch_linalg.qr(complement, "reduced")
     P = -Q @ Q.transpose(-1, -2)
     P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
 
@@ -280,6 +284,59 @@ def spd_case():
     v = geoopt.linalg.batch_linalg.sym(ev)
 
     manifold = geoopt.SymmetricPositiveDefinite("AIM")
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def upper_half_case():
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.UpperHalf]
+
+    # x is the result of projecting ex
+    ex = torch.randn(*shape, dtype=torch.complex128)
+    ex = geoopt.linalg.batch_linalg.sym(ex)
+    x = ex.clone()
+    x.imag = geoopt.manifolds.siegel.csym_math.positive_conjugate_projection(x.imag)
+
+    # ev is in the tangent space
+    ev = torch.randn(*shape, dtype=torch.complex128) / 10
+    ev = geoopt.linalg.batch_linalg.sym(ev)
+
+    # v is the result of projecting ev at x
+    real_ev, imag_ev = ev.real, ev.imag
+    real_v = x.imag @ real_ev @ x.imag
+    imag_v = x.imag @ imag_ev @ x.imag
+    v = torch.complex(real_v, imag_v)
+
+    manifold = geoopt.UpperHalf()
+    x = geoopt.ManifoldTensor(x, manifold=manifold)
+    case = UnaryCase(shape, x, ex, v, ev, manifold)
+    yield case
+
+
+def bounded_domain_case():
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.BoundedDomain]
+    # x is the result of projecting ex
+    ex = torch.randn(*shape, dtype=torch.complex128)
+    ex = geoopt.linalg.batch_linalg.sym(ex)
+    x = ex.clone()
+    evalues, s = geoopt.manifolds.siegel.csym_math.takagi_eig(x)
+    evalues_tilde = torch.clamp(evalues, max=1 - 1e-5)
+    d_tilde = torch.diag_embed(evalues_tilde).type_as(x)
+    x = s.conj() @ d_tilde @ s.conj().transpose(-1, -2)
+
+    # ev is in the tangent space
+    ev = torch.randn(*shape, dtype=torch.complex128) / 10
+    ev = geoopt.linalg.batch_linalg.sym(ev)
+
+    # v is the result of projecting ev at x
+    identity = geoopt.manifolds.siegel.csym_math.identity_like(x)
+    a = identity - (x.conj() @ x)
+    v = geoopt.linalg.batch_linalg.sym(a @ ev @ a)
+
+    manifold = geoopt.BoundedDomain()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
@@ -356,6 +413,8 @@ def scaled(request):
         product_case(),
         birkhoff_case(),
         spd_case(),
+        upper_half_case(),
+        bounded_domain_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )
@@ -498,8 +557,8 @@ def test_dist(unary_case):
     tangent = unary_case.v
     point = unary_case.x
     tangent_norm = unary_case.manifold.norm(point, tangent)
-    new_point = unary_case.manifold.expmap(point, tangent)
     try:
+        new_point = unary_case.manifold.expmap(point, tangent)
         dist = unary_case.manifold.dist(point, new_point)
         np.testing.assert_allclose(dist.detach(), tangent_norm.detach())
     except NotImplementedError:

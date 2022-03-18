@@ -1,7 +1,7 @@
 from typing import List, Callable, Tuple
 import torch
 import torch.jit
-from . import _expm
+from functools import lru_cache, partial
 
 __all__ = [
     "svd",
@@ -10,6 +10,7 @@ __all__ = [
     "extract_diag",
     "matrix_rank",
     "expm",
+    "trace",
     "block_matrix",
     "sym_funcm",
     "sym_expm",
@@ -28,58 +29,12 @@ def sym(x: torch.Tensor):  # pragma: no cover
 
 @torch.jit.script
 def extract_diag(x: torch.Tensor):  # pragma: no cover
-    n, m = x.shape[-2:]
-    batch = x.shape[:-2]
-    k = n if n < m else m
-    idx = torch.arange(k, dtype=torch.long, device=x.device)
-    # torch script does not support Ellipsis indexing
-    x = x.view(-1, n, m)
-    return x[:, idx, idx].view(batch + (k,))
+    return torch.diagonal(x, 0, -1, -2)
 
 
-@torch.jit.script
-def matrix_rank(x: torch.Tensor):  # pragma: no cover
-    # inspired by
-    # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
-    # prolonged here:
-    if x.dim() == 2:
-        result = torch.matrix_rank(x)
-    else:
-        batches = x.shape[:-2]
-        other = x.shape[-2:]
-        flat = x.view((-1,) + other)
-        slices = flat.unbind(0)
-        ranks = []
-        # I wish I had a parallel_for
-        for i in range(flat.shape[0]):
-            r = torch.matrix_rank(slices[i])
-            # interesting,
-            # ranks.append(r)
-            # does not work on pytorch 1.0.0
-            # but the below code does
-            ranks += [r]
-        result = torch.stack(ranks).view(batches)
-    return result
+matrix_rank = torch.linalg.matrix_rank
 
-
-@torch.jit.script
-def expm(x: torch.Tensor):  # pragma: no cover
-    # inspired by
-    # https://discuss.pytorch.org/t/multidimensional-svd/4366/2
-    # prolonged here:
-    if x.dim() == 2:
-        result = _expm.expm_one(x)
-    else:
-        other = x.shape[-2:]
-        flat = x.view((-1,) + other)
-        slices = flat.unbind(0)
-        exp = []
-        # I wish I had a parallel_for
-        for i in range(flat.shape[0]):
-            e = _expm.expm_one(slices[i])
-            exp += [e]
-        result = torch.stack(exp).view(x.shape)
-    return result
+expm = torch.matrix_exp
 
 
 @torch.jit.script
@@ -94,20 +49,33 @@ def block_matrix(blocks: List[List[torch.Tensor]], dim0: int = -2, dim1: int = -
 
 
 @torch.jit.script
-def trace(x: torch.Tensor) -> torch.Tensor:
+def trace(x: torch.Tensor, keepdim: bool = False) -> torch.Tensor:
     r"""self-implemented matrix trace, since `torch.trace` only support 2-d input.
 
     Parameters
     ----------
     x : torch.Tensor
         input matrix
+    keepdim : bool
+            keep the last dim?
 
     Returns
     -------
     torch.Tensor
         :math:`\operatorname{Tr}(x)`
     """
-    return torch.diagonal(x, dim1=-2, dim2=-1).sum(-1)
+    return torch.diagonal(x, dim1=-2, dim2=-1).sum(-1, keepdim=keepdim)
+
+
+@lru_cache(None)
+def _sym_funcm_impl(func, **kwargs):
+    func = partial(func, **kwargs)
+
+    def _impl(x):
+        e, v = torch.linalg.eigh(x, "U")
+        return v @ torch.diag_embed(func(e)) @ v.transpose(-1, -2)
+
+    return torch.jit.script(_impl)
 
 
 def sym_funcm(
@@ -127,29 +95,27 @@ def sym_funcm(
     torch.Tensor
         symmetric matrix with function applied to
     """
-    e, v = torch.symeig(x, eigenvectors=True)
-    return v @ torch.diag_embed(func(e)) @ v.transpose(-1, -2)
+    return _sym_funcm_impl(func)(x)
 
 
-def sym_expm(x: torch.Tensor, using_native=False) -> torch.Tensor:
+def sym_expm(x: torch.Tensor) -> torch.Tensor:
     r"""Symmetric matrix exponent.
 
     Parameters
     ----------
     x : torch.Tensor
         symmetric matrix
-    using_native : bool, optional
-        if using native matrix exponent `torch.matrix_exp`, by default False
 
     Returns
     -------
     torch.Tensor
         :math:`\exp(x)`
+
+    Notes
+    -----
+    Naive implementation of `torch.matrix_exp` seems to be fast enough
     """
-    if using_native:
-        return torch.matrix_exp(x)
-    else:
-        return sym_funcm(x, torch.exp)
+    return expm(x)
 
 
 def sym_logm(x: torch.Tensor) -> torch.Tensor:
@@ -169,7 +135,7 @@ def sym_logm(x: torch.Tensor) -> torch.Tensor:
 
 
 def sym_sqrtm(x: torch.Tensor) -> torch.Tensor:
-    """Symmetric matrix square root .
+    """Symmetric matrix square root.
 
     Parameters
     ----------
@@ -196,8 +162,12 @@ def sym_invm(x: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
         :math:`x^{-1}`
+
+    Notes
+    -----
+    Naive implementation using `torch.matrix_power` seems to be fast enough
     """
-    return sym_funcm(x, torch.reciprocal)
+    return torch.matrix_power(x, -1)
 
 
 def sym_inv_sqrtm1(x: torch.Tensor) -> torch.Tensor:
@@ -213,9 +183,10 @@ def sym_inv_sqrtm1(x: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         :math:`x^{-1/2}`
     """
-    return sym_funcm(x, lambda tensor: torch.reciprocal(torch.sqrt(tensor)))
+    return _sym_funcm_impl(torch.pow, exponent=-0.5)(x)
 
 
+@torch.jit.script
 def sym_inv_sqrtm2(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Symmetric matrix inverse square root, with square root return also.
 
@@ -229,7 +200,7 @@ def sym_inv_sqrtm2(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     Tuple[torch.Tensor, torch.Tensor]
         :math:`x^{-1/2}`, :math:`x^{1/2}`
     """
-    e, v = torch.symeig(x, eigenvectors=True)
+    e, v = torch.linalg.eigh(x, "U")
     sqrt_e = torch.sqrt(e)
     inv_sqrt_e = torch.reciprocal(sqrt_e)
     return (
@@ -239,6 +210,6 @@ def sym_inv_sqrtm2(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
 
 # left here for convenience
-qr = torch.qr
+qr = torch.linalg.qr
 
-svd = torch.svd
+svd = torch.linalg.svd

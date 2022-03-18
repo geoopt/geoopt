@@ -1,7 +1,6 @@
 import torch.optim.optimizer
 from ..tensor import ManifoldParameter, ManifoldTensor
 from .mixin import OptimMixin
-from ..utils import copy_or_set_
 
 __all__ = ["RiemannianSGD"]
 
@@ -74,6 +73,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                 dampening = group["dampening"]
                 nesterov = group["nesterov"]
                 learning_rate = group["lr"]
+                group["step"] += 1
                 for point in group["params"]:
                     grad = point.grad
                     if grad is None:
@@ -106,14 +106,13 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                         new_point, new_momentum_buffer = manifold.retr_transp(
                             point, -learning_rate * grad, momentum_buffer
                         )
-                        momentum_buffer.set_(new_momentum_buffer)
+                        momentum_buffer.copy_(new_momentum_buffer)
                         # use copy only for user facing point
-                        copy_or_set_(point, new_point)
+                        point.copy_(new_point)
                     else:
                         new_point = manifold.retr(point, -learning_rate * grad)
-                        copy_or_set_(point, new_point)
+                        point.copy_(new_point)
 
-                    group["step"] += 1
                 if (
                     group["stabilize"] is not None
                     and group["step"] % group["stabilize"] == 0
@@ -128,11 +127,11 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                 continue
             manifold = p.manifold
             momentum = group["momentum"]
-            copy_or_set_(p, manifold.projx(p))
+            p.copy_(manifold.projx(p))
             if momentum > 0:
                 param_state = self.state[p]
                 if not param_state:  # due to None grads
                     continue
                 if "momentum_buffer" in param_state:
                     buf = param_state["momentum_buffer"]
-                    buf.set_(manifold.proju(p, buf))
+                    buf.copy_(manifold.proju(p, buf))

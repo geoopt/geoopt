@@ -15,26 +15,6 @@ def A():
     return a.clone().requires_grad_()
 
 
-def test_svd(A):
-    u, d, v = geoopt.linalg.svd(A)
-    with torch.no_grad():
-        for i, a in enumerate(A):
-            ut, dt, vt = torch.svd(a)
-            np.testing.assert_allclose(u.detach()[i], ut.detach())
-            np.testing.assert_allclose(d.detach()[i], dt.detach())
-            np.testing.assert_allclose(v.detach()[i], vt.detach())
-    u.sum().backward()  # this should work
-
-
-def test_qr(A):
-    q, r = geoopt.linalg.qr(A)
-    with torch.no_grad():
-        for i, a in enumerate(A):
-            qt, rt = torch.qr(a)
-            np.testing.assert_allclose(q.detach()[i], qt.detach())
-            np.testing.assert_allclose(r.detach()[i], rt.detach())
-
-
 def test_expm(A):
     from scipy.linalg import expm
     import numpy as np
