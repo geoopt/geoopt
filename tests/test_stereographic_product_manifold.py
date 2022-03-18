@@ -61,3 +61,25 @@ def test_dist2plane():
         dists.append(manifold.dist2plane(x_, p_, a_))
     dists = torch.tensor(dists) ** 2
     assert torch.isclose(dists.sum().sqrt(), dist).all()
+
+
+def test_geodesic_unit():
+    manifolds = (
+        (PoincareBall(), 2),
+        (SphereProjection(), 2),
+        (Stereographic(), 2),
+    )
+    pman = StereographicProductManifold(*manifolds)
+    x = pman.random(4, 6)
+    u = torch.randn(4, 6)
+    t = torch.randn(4, 1)
+
+    geodesic = pman.geodesic_unit(t, x, u)
+    geodesics = []
+    for i, (manifold, _) in enumerate(manifolds):
+        x_ = pman.take_submanifold_value(x, i)
+        u_ = pman.take_submanifold_value(u, i)
+
+        geodesics.append(manifold.geodesic_unit(t, x_, u_))
+    geodesics = torch.cat(geodesics, dim=-1)
+    assert torch.isclose(geodesics, geodesic).all()

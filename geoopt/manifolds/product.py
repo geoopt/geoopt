@@ -35,8 +35,7 @@ class ProductManifold(Manifold):
     ndim = 1
 
     def __init__(
-        self,
-        *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]],
+        self, *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]],
     ):
         if len(manifolds_with_shape) < 1:
             raise ValueError(
@@ -456,8 +455,7 @@ class StereographicProductManifold(ProductManifold):
     __scaling__ = Stereographic.__scaling__.copy()
 
     def __init__(
-        self,
-        *manifolds_with_shape: Tuple[Stereographic, Union[Tuple[int, ...], int]],
+        self, *manifolds_with_shape: Tuple[Stereographic, Union[Tuple[int, ...], int]],
     ):
         super().__init__(*manifolds_with_shape)
         for man in self.manifolds:
@@ -503,11 +501,7 @@ class StereographicProductManifold(ProductManifold):
         return (dists ** 2).sum(axis=-1).sqrt()
 
     def mobius_add(
-        self,
-        x: torch.Tensor,
-        y: torch.Tensor,
-        *,
-        project=True,
+        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
     ) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())
         mapped_tensors = []
@@ -546,3 +540,21 @@ class StereographicProductManifold(ProductManifold):
             )
         tensor = self.pack_point(*points)
         return geoopt.ManifoldTensor(tensor, manifold=self)
+
+    @__scaling__(ScalingInfo(t=-1))
+    def geodesic_unit(
+        self,
+        t: torch.Tensor,
+        x: torch.Tensor,
+        u: torch.Tensor,
+        *,
+        dim=-1,
+        project=True,
+    ) -> torch.Tensor:
+        res_list = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            u_ = self.take_submanifold_value(u, i)
+            res = manifold.geodesic_unit(t, x_, u_, dim=dim, project=project)
+            res_list.append(res)
+        return self.pack_point(*res_list)
