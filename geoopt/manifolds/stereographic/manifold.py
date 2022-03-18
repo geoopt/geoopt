@@ -443,9 +443,9 @@ class Stereographic(Manifold):
         Create a point on the manifold, measure is induced by Normal distribution on the tangent space of mean.
 
         Definition is taken from
-        [1] Mathieu, Emile et. al. "Continuous Hierarchical Representations
-               with Poincaré Variational Auto-Encoders." arXiv preprint
-               arxiv:1901.06033 (2019)
+        [1] Mathieu, Emile et. al. "Continuous Hierarchical Representations with
+        Poincaré Variational Auto-Encoders." arXiv preprint
+        arxiv:1901.06033 (2019).
 
         Parameters
         ----------
