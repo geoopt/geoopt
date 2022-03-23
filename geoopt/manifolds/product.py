@@ -616,7 +616,6 @@ class StereographicProductManifold(ProductManifold):
             res_list.append(res)
         return self.pack_point(*res_list)
 
-    @__scaling__(ScalingInfo(t=-1))
     def geodesic_unit(
         self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, project=True,
     ) -> torch.Tensor:
