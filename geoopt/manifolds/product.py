@@ -644,7 +644,6 @@ class StereographicProductManifold(ProductManifold):
             res.append(manifold.expmap0(u_, dim=-1, project=project))
         return self.pack_point(*res)
 
-    @__scaling__(ScalingInfo(1))
     def logmap0(self, x: torch.Tensor, *, project=True) -> torch.Tensor:
         res = []
         for i, manifold in enumerate(self.manifolds):
