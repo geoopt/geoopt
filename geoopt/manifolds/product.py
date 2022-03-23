@@ -689,8 +689,6 @@ class StereographicProductManifold(ProductManifold):
             res.append(manifold.antipode(x_, dim=-1))
         return self.pack_point(*res)
 
-    # this does not yet work with scaling
-    @__scaling__(ScalingInfo.NotCompatible)
     def mobius_fn_apply(
         self, fn: callable, x: torch.Tensor, *args, project=True, **kwargs
     ) -> torch.Tensor:
