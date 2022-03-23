@@ -628,7 +628,6 @@ class StereographicProductManifold(ProductManifold):
             res_list.append(res)
         return self.pack_point(*res_list)
 
-    @__scaling__(ScalingInfo(1))
     def dist0(self, x: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         res = []
         for i, manifold in enumerate(self.manifolds):
