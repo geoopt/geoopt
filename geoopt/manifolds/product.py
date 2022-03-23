@@ -704,8 +704,6 @@ class StereographicProductManifold(ProductManifold):
             )
         return self.pack_point(*res)
 
-    # this does not yet work with scaling
-    @__scaling__(ScalingInfo.NotCompatible)
     def mobius_fn_apply_chain(
         self, x: torch.Tensor, *fns: callable, project=True,
     ) -> torch.Tensor:
