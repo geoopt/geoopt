@@ -637,7 +637,6 @@ class StereographicProductManifold(ProductManifold):
             res = torch.unsqueeze(res, -1)
         return res
 
-    @__scaling__(ScalingInfo(u=-1))
     def expmap0(self, u: torch.Tensor, *, project=True) -> torch.Tensor:
         res = []
         for i, manifold in enumerate(self.manifolds):
