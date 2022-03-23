@@ -462,7 +462,6 @@ class StereographicProductManifold(ProductManifold):
             if not geoopt.utils.ismanifold(man, Stereographic):
                 raise TypeError("Every submanifold has to be Stereographic manifold")
 
-    @__scaling__(ScalingInfo(1))
     def dist2plane(
         self,
         x: torch.Tensor,
