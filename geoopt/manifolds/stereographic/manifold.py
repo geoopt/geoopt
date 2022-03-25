@@ -100,7 +100,8 @@ class Stereographic(Manifold):
     :class:`SphereProjection`
     :class:`SphereProjectionExact`
     """.format(
-        _stereographic_doc, _references,
+        _stereographic_doc,
+        _references,
     )
 
     ndim = 1
@@ -361,13 +362,26 @@ class Stereographic(Manifold):
         scaled=False,
     ) -> torch.Tensor:
         return math.dist2plane(
-            x, p, a, dim=dim, k=self.k, keepdim=keepdim, signed=signed, scaled=scaled,
+            x,
+            p,
+            a,
+            dim=dim,
+            k=self.k,
+            keepdim=keepdim,
+            signed=signed,
+            scaled=scaled,
         )
 
     # this does not yet work with scaling
     @__scaling__(ScalingInfo.NotCompatible)
     def mobius_fn_apply(
-        self, fn: callable, x: torch.Tensor, *args, dim=-1, project=True, **kwargs,
+        self,
+        fn: callable,
+        x: torch.Tensor,
+        *args,
+        dim=-1,
+        project=True,
+        **kwargs,
     ) -> torch.Tensor:
         res = math.mobius_fn_apply(fn, x, *args, k=self.k, dim=dim, **kwargs)
         if project:

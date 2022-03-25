@@ -35,7 +35,8 @@ class ProductManifold(Manifold):
     ndim = 1
 
     def __init__(
-        self, *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]],
+        self,
+        *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]],
     ):
         if len(manifolds_with_shape) < 1:
             raise ValueError(
@@ -455,7 +456,8 @@ class StereographicProductManifold(ProductManifold):
     __scaling__ = Stereographic.__scaling__.copy()
 
     def __init__(
-        self, *manifolds_with_shape: Tuple[Stereographic, Union[Tuple[int, ...], int]],
+        self,
+        *manifolds_with_shape: Tuple[Stereographic, Union[Tuple[int, ...], int]],
     ):
         super().__init__(*manifolds_with_shape)
         for man in self.manifolds:
@@ -486,30 +488,51 @@ class StereographicProductManifold(ProductManifold):
                 )
             )
         dists = torch.stack(dists, -1)
-        return (dists ** 2).sum(axis=-1).sqrt()
+        return (dists**2).sum(axis=-1).sqrt()
 
     def mobius_add(
-        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         return self._mobius_2_manifold_args(x, y, "mobius_add", project=project)
 
     def mobius_coadd(
-        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         return self._mobius_2_manifold_args(x, y, "mobius_coadd", project=project)
 
     def mobius_sub(
-        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         return self._mobius_2_manifold_args(x, y, "mobius_sub", project=project)
 
     def mobius_cosub(
-        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         return self._mobius_2_manifold_args(x, y, "mobius_cosub", project=project)
 
     def _mobius_2_manifold_args(
-        self, x: torch.Tensor, y: torch.Tensor, kind, *, project=True,
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        kind,
+        *,
+        project=True,
     ) -> torch.Tensor:
         target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())
         mapped_tensors = []
@@ -522,7 +545,11 @@ class StereographicProductManifold(ProductManifold):
         return self.pack_point(*mapped_tensors)
 
     def mobius_scalar_mul(
-        self, r: torch.Tensor, x: torch.Tensor, *, project=True,
+        self,
+        r: torch.Tensor,
+        x: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         mapped_tensors = []
         for i, manifold in enumerate(self.manifolds):
@@ -531,7 +558,11 @@ class StereographicProductManifold(ProductManifold):
         return self.pack_point(*mapped_tensors)
 
     def mobius_pointwise_mul(
-        self, w: torch.Tensor, x: torch.Tensor, *, project=True,
+        self,
+        w: torch.Tensor,
+        x: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         mapped_tensors = []
         for i, manifold in enumerate(self.manifolds):
@@ -568,7 +599,11 @@ class StereographicProductManifold(ProductManifold):
         return part
 
     def mobius_matvec(
-        self, m: torch.Tensor, x: torch.Tensor, *, project=True,
+        self,
+        m: torch.Tensor,
+        x: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         mapped_tensors = []
         for i, manifold in enumerate(self.manifolds):
@@ -606,7 +641,12 @@ class StereographicProductManifold(ProductManifold):
         return geoopt.ManifoldTensor(tensor, manifold=self)
 
     def geodesic(
-        self, t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, dim=-1,
+        self,
+        t: torch.Tensor,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        *,
+        dim=-1,
     ) -> torch.Tensor:
         res_list = []
         for i, manifold in enumerate(self.manifolds):
@@ -617,7 +657,12 @@ class StereographicProductManifold(ProductManifold):
         return self.pack_point(*res_list)
 
     def geodesic_unit(
-        self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, project=True,
+        self,
+        t: torch.Tensor,
+        x: torch.Tensor,
+        u: torch.Tensor,
+        *,
+        project=True,
     ) -> torch.Tensor:
         res_list = []
         for i, manifold in enumerate(self.manifolds):
@@ -699,12 +744,20 @@ class StereographicProductManifold(ProductManifold):
         return self.pack_point(*res)
 
     def mobius_fn_apply_chain(
-        self, x: torch.Tensor, *fns: callable, project=True,
+        self,
+        x: torch.Tensor,
+        *fns: callable,
+        project=True,
     ) -> torch.Tensor:
         res = []
         for i, manifold in enumerate(self.manifolds):
             x_ = self.take_submanifold_value(x, i)
             res.append(
-                manifold.mobius_fn_apply_chain(x_, *fns, dim=-1, project=project,)
+                manifold.mobius_fn_apply_chain(
+                    x_,
+                    *fns,
+                    dim=-1,
+                    project=project,
+                )
             )
         return self.pack_point(*res)
