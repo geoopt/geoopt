@@ -1,6 +1,11 @@
 from .base import Manifold
 from .euclidean import Euclidean
-from .stiefel import Stiefel, EuclideanStiefel, CanonicalStiefel, EuclideanStiefelExact
+from .stiefel import (
+    Stiefel,
+    EuclideanStiefel,
+    CanonicalStiefel,
+    EuclideanStiefelExact,
+)
 from .sphere import Sphere, SphereExact
 from .birkhoff_polytope import BirkhoffPolytope
 from .symmetric_positive_definite import SymmetricPositiveDefinite
@@ -13,7 +18,7 @@ from .stereographic import (
     SphereProjection,
     SphereProjectionExact,
 )
-from .product import ProductManifold
+from .product import ProductManifold, StereographicProductManifold
 from .lorentz import Lorentz
 from .scaled import Scaled
 from . import (

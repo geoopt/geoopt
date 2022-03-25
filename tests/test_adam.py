@@ -80,3 +80,27 @@ def test_adam_poincare():
     for _ in range(2000):
         optim.step(closure)
     np.testing.assert_allclose(start.data, ideal, atol=1e-5, rtol=1e-5)
+
+
+@pytest.mark.parametrize("params", [dict(lr=1e-2), dict(lr=1, amsgrad=True)])
+def test_adam_StereographicProductManifold(params):
+    torch.manual_seed(42)
+    pman = geoopt.StereographicProductManifold(
+        (geoopt.PoincareBall(), 2),
+        (geoopt.SphereProjection(), 2),
+        (geoopt.Stereographic(k=0), 2),
+    )
+    ideal = pman.random(6)
+    start = geoopt.ManifoldParameter(pman.random(6), manifold=pman)
+
+    def closure():
+        optim.zero_grad()
+        loss = pman.dist(start, ideal) ** 2
+        loss.backward()
+        return loss.item()
+
+    optim = geoopt.optim.RiemannianAdam([start], **params)
+
+    for _ in range(2000):
+        optim.step(closure)
+    np.testing.assert_allclose(start.data, ideal, atol=1e-5, rtol=1e-5)

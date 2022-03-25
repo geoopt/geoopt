@@ -3,10 +3,12 @@ from typing import Tuple, Union, Optional
 import operator
 import functools
 import geoopt.utils
-from geoopt.manifolds import Manifold
+from ..utils import size2shape
+from .base import Manifold, ScalingInfo
+from .stereographic import Stereographic
 
 
-__all__ = ["ProductManifold"]
+__all__ = ["ProductManifold", "StereographicProductManifold"]
 
 
 def _shape2size(shape: Tuple[int]):
@@ -33,7 +35,7 @@ class ProductManifold(Manifold):
     ndim = 1
 
     def __init__(
-        self, *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]]
+        self, *manifolds_with_shape: Tuple[Manifold, Union[Tuple[int, ...], int]],
     ):
         if len(manifolds_with_shape) < 1:
             raise ValueError(
@@ -435,3 +437,274 @@ class ProductManifold(Manifold):
             )
         tensor = self.pack_point(*points)
         return geoopt.ManifoldTensor(tensor, manifold=self)
+
+
+class StereographicProductManifold(ProductManifold):
+    """
+    Product Manifold for Stereographic manifolds.
+
+    Examples
+    --------
+    A Torus
+
+    >>> import geoopt
+    >>> sphere = geoopt.SphereProjection()
+    >>> torus = StereographicProductManifold((sphere, 2), (sphere, 2))
+    """
+
+    __scaling__ = Stereographic.__scaling__.copy()
+
+    def __init__(
+        self, *manifolds_with_shape: Tuple[Stereographic, Union[Tuple[int, ...], int]],
+    ):
+        super().__init__(*manifolds_with_shape)
+        for man in self.manifolds:
+            if not geoopt.utils.ismanifold(man, Stereographic):
+                raise TypeError("Every submanifold has to be Stereographic manifold")
+
+    def dist2plane(
+        self,
+        x: torch.Tensor,
+        p: torch.Tensor,
+        a: torch.Tensor,
+        *,
+        keepdim=False,
+        signed=False,
+        scaled=False,
+    ) -> torch.Tensor:
+        dists = []
+        for i, manifold in enumerate(self.manifolds):
+            dists.append(
+                manifold.dist2plane(
+                    self.take_submanifold_value(x, i),
+                    self.take_submanifold_value(p, i),
+                    self.take_submanifold_value(a, i),
+                    dim=-1,
+                    keepdim=keepdim,
+                    signed=signed,
+                    scaled=scaled,
+                )
+            )
+        dists = torch.stack(dists, -1)
+        return (dists ** 2).sum(axis=-1).sqrt()
+
+    def mobius_add(
+        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        return self._mobius_2_manifold_args(x, y, "mobius_add", project=project)
+
+    def mobius_coadd(
+        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        return self._mobius_2_manifold_args(x, y, "mobius_coadd", project=project)
+
+    def mobius_sub(
+        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        return self._mobius_2_manifold_args(x, y, "mobius_sub", project=project)
+
+    def mobius_cosub(
+        self, x: torch.Tensor, y: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        return self._mobius_2_manifold_args(x, y, "mobius_cosub", project=project)
+
+    def _mobius_2_manifold_args(
+        self, x: torch.Tensor, y: torch.Tensor, kind, *, project=True,
+    ) -> torch.Tensor:
+        target_batch_dim = _calculate_target_batch_dim(x.dim(), y.dim())
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            y_ = self.take_submanifold_value(y, i)
+            mapped = getattr(manifold, kind)(x_, y_, dim=-1, project=project)
+            mapped = mapped.reshape((*mapped.shape[:target_batch_dim], -1))
+            mapped_tensors.append(mapped)
+        return self.pack_point(*mapped_tensors)
+
+    def mobius_scalar_mul(
+        self, r: torch.Tensor, x: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            mapped_tensors.append(manifold.mobius_scalar_mul(r, x_, project=project))
+        return self.pack_point(*mapped_tensors)
+
+    def mobius_pointwise_mul(
+        self, w: torch.Tensor, x: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            w_ = self.take_submanifold_value(w, i)
+            x_ = self.take_submanifold_value(x, i)
+            mapped_tensors.append(
+                manifold.mobius_pointwise_mul(w_, x_, project=project)
+            )
+        return self.pack_point(*mapped_tensors)
+
+    def take_submanifold_matrix(
+        self, x: torch.Tensor, i: int, reshape=True
+    ) -> torch.Tensor:
+        """
+        Take i'th slice of the ambient tensor and possibly reshape.
+
+        Parameters
+        ----------
+        x : tensor
+            Ambient tensor
+        i : int
+            submanifold index
+        reshape : bool
+            reshape the slice?
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        slc = self.slices[i]
+        part = x[..., slc, slc]
+        if reshape:
+            part = part.reshape((*part.shape[:-2], *self.shapes[i], *self.shapes[i]))
+        return part
+
+    def mobius_matvec(
+        self, m: torch.Tensor, x: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        mapped_tensors = []
+        for i, manifold in enumerate(self.manifolds):
+            m_ = self.take_submanifold_matrix(m, i)
+            x_ = self.take_submanifold_value(x, i)
+            mapped_tensors.append(manifold.mobius_matvec(m_, x_, project=project))
+        return self.pack_point(*mapped_tensors)
+
+    @__scaling__(ScalingInfo(std=-1))
+    def wrapped_normal(
+        self,
+        *size,
+        mean: torch.Tensor,
+        std: Union[torch.Tensor, int, float] = 1,
+        dtype=None,
+        device=None,
+    ) -> "geoopt.ManifoldTensor":
+        shape = size2shape(*size)
+        self._assert_check_shape(shape, "x")
+        batch_shape = shape[:-1]
+        if type(std) == int or type(std) == float:
+            std = torch.zeros(mean.shape[-1]).type_as(mean) * std
+        points = []
+        for i, (manifold, shape) in enumerate(zip(self.manifolds, self.shapes)):
+            points.append(
+                manifold.wrapped_normal(
+                    *(batch_shape + shape),
+                    mean=self.take_submanifold_value(mean, i),
+                    std=self.take_submanifold_value(std, i),
+                    dtype=dtype,
+                    device=device,
+                )
+            )
+        tensor = self.pack_point(*points)
+        return geoopt.ManifoldTensor(tensor, manifold=self)
+
+    def geodesic(
+        self, t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, *, dim=-1,
+    ) -> torch.Tensor:
+        res_list = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            y_ = self.take_submanifold_value(y, i)
+            res = manifold.geodesic(t, x_, y_, dim=-1)
+            res_list.append(res)
+        return self.pack_point(*res_list)
+
+    def geodesic_unit(
+        self, t: torch.Tensor, x: torch.Tensor, u: torch.Tensor, *, project=True,
+    ) -> torch.Tensor:
+        res_list = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            u_ = self.take_submanifold_value(u, i)
+            res = manifold.geodesic_unit(t, x_, u_, dim=-1, project=project)
+            res_list.append(res)
+        return self.pack_point(*res_list)
+
+    def dist0(self, x: torch.Tensor, *, keepdim=False) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            res.append(manifold.dist0(x_) ** 2)
+        res = sum(res) ** 0.5
+        if keepdim:
+            res = torch.unsqueeze(res, -1)
+        return res
+
+    def expmap0(self, u: torch.Tensor, *, project=True) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            u_ = self.take_submanifold_value(u, i)
+            res.append(manifold.expmap0(u_, dim=-1, project=project))
+        return self.pack_point(*res)
+
+    def logmap0(self, x: torch.Tensor, *, project=True) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            res.append(manifold.logmap0(x_, dim=-1))
+        return self.pack_point(*res)
+
+    def transp0(self, y: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            y_ = self.take_submanifold_value(y, i)
+            u_ = self.take_submanifold_value(u, i)
+            res.append(manifold.transp0(y_, u_, dim=-1))
+        return self.pack_point(*res)
+
+    def transp0back(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            u_ = self.take_submanifold_value(u, i)
+            res.append(manifold.transp0back(x_, u_, dim=-1))
+        return self.pack_point(*res)
+
+    def gyration(
+        self, x: torch.Tensor, y: torch.Tensor, z: torch.Tensor, *, project=True
+    ) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            y_ = self.take_submanifold_value(y, i)
+            z_ = self.take_submanifold_value(z, i)
+            res.append(manifold.gyration(x_, y_, z_, dim=-1))
+        return self.pack_point(*res)
+
+    def antipode(self, x: torch.Tensor, *, project=True) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            res.append(manifold.antipode(x_, dim=-1))
+        return self.pack_point(*res)
+
+    def mobius_fn_apply(
+        self, fn: callable, x: torch.Tensor, *args, project=True, **kwargs
+    ) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            res.append(
+                manifold.mobius_fn_apply(
+                    fn, x_, *args, dim=-1, project=project, **kwargs
+                )
+            )
+        return self.pack_point(*res)
+
+    def mobius_fn_apply_chain(
+        self, x: torch.Tensor, *fns: callable, project=True,
+    ) -> torch.Tensor:
+        res = []
+        for i, manifold in enumerate(self.manifolds):
+            x_ = self.take_submanifold_value(x, i)
+            res.append(
+                manifold.mobius_fn_apply_chain(x_, *fns, dim=-1, project=project,)
+            )
+        return self.pack_point(*res)
