@@ -81,9 +81,9 @@ class Distance2StereographicHyperplanes(torch.nn.Module):
 
     def extra_repr(self):
         return (
-            "ndim={ndim}, "
-            "plane_shape={plane_shape}, "
-            "num_planes={num_planes}, ".format(**self.__dict__)
+            f"ndim={self.ndim}, "
+            f"plane_shape={self.plane_shape}, "
+            f"num_planes={self.num_planes}"
         )
 
     @torch.no_grad()
