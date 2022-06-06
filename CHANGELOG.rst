@@ -1,5 +1,13 @@
 This file tracks important changes in PRs
 
+geoopt (0.5.0)
+==============
+
+New Features
+------------
+* Add data generator for hyperbolic manifold (#192)
+* add geoopt.layers.Distance2StereographicHyperplanes
+
 geoopt (0.4.1)
 ==============
 
