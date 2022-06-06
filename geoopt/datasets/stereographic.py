@@ -4,9 +4,9 @@ import torch.utils.data
 
 class StereographicTreeDataset(torch.utils.data.Dataset):
     """
-    Adopted from https://github.com/emilemathieu/pvae/blob/ca5c4997a90839fc8960ec812df4cbf83da55781/pvae/datasets/datasets.py
-
     Implementation of a synthetic dataset by hierarchical diffusion.
+
+    Adopted from https://github.com/emilemathieu/pvae/blob/ca5c4997a90839fc8960ec812df4cbf83da55781/pvae/datasets/datasets.py
 
     Parameters
     ----------
@@ -47,15 +47,9 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
         self.num_classes = self.origin_labels.max().item() + 1
 
     def __len__(self):
-        """
-        this method returns the total number of samples/nodes
-        """
         return len(self.data)
 
     def __getitem__(self, idx):
-        """
-        Generates one sample
-        """
         data, labels = self.data[idx], self.labels[idx]
         return data, labels, labels.max(-1).values
 
@@ -72,20 +66,6 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
             return directions
 
     def get_children(self, parent_value, parent_label, current_depth, offspring=True):
-        """
-        Parameters
-        ----------
-        parent_value: array
-        parent_label: array
-        current_depth: int
-        offspring: bool
-            if True the parent node gives birth to numberOfChildren nodes
-            if False the parent node gives birth to numberOfsiblings noisy observations
-
-        Returns
-        -------
-        list of 2-tuples containing the value and label of each child of a parent node
-        """
         if offspring:
             numberOfChildren = self.numberOfChildren
             sigma = self.dist_children
@@ -113,9 +93,6 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
         return children
 
     def bst(self):
-        """
-        This method generates all the nodes of a level before going to the next level
-        """
         label = -torch.ones(self.depth + 1, dtype=torch.long)
         label[0] = next(self.__class_counter)
         queue = [(self.root, label, 0)]
