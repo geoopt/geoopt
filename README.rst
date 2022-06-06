@@ -105,6 +105,10 @@ Samplers
    Hamiltonian Monte-Carlo
 
 
+Layers
+~~~~~~
+Experimental ``geoopt.layers`` module allows to embed geoopt into deep learning
+
 Citing Geoopt
 ~~~~~~~~~~~~~
 If you find this project useful in your research, please kindly add this bibtex entry in references and cite.
