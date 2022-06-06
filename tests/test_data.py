@@ -17,6 +17,6 @@ def test_stereographic_data(dim, depth, numberOfChildren, numberOfSiblings, c):
         numberOfsiblings=numberOfSiblings,
     )
     for point, labels, label in dataset:
-        assert point.shape == (dim, )
-        assert labels.shape == (depth + 1, )
+        assert point.shape == (dim,)
+        assert labels.shape == (depth + 1,)
         assert label == labels.max()

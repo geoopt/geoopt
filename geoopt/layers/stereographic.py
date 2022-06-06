@@ -64,8 +64,8 @@ class Distance2StereographicHyperplanes(torch.nn.Module):
         # following best practives, a separate method to reset parameters
         self.reset_parameters()
 
-    def forward(self, input):
-        input_p = input.unsqueeze(-self.ndim - 1)
+    def forward(self, input_p):
+        input_p = input_p.unsqueeze(-self.ndim - 1)
         points = self.points.permute(1, 0)
         points = points.view(points.shape + (1,) * self.ndim)
 
