@@ -61,7 +61,6 @@ class Distance2StereographicHyperplanes(torch.nn.Module):
             torch.empty(num_planes, plane_shape), manifold=self.ball
         )
         self.init_std = init_std
-        # following best practives, a separate method to reset parameters
         self.reset_parameters()
 
     def forward(self, input_p):
