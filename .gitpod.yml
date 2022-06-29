@@ -3,13 +3,13 @@ tasks:
     init: |
       mkdir -p .vscode
       mkdir -p ~/.local/bin/
-      echo '{"python.pythonPath": "/home/gitpod/micromamba/envs/env/bin/python"}' > .vscode/settings.json
+      echo '{"python.defaultInterpreterPath": "/home/gitpod/micromamba/envs/env/bin/python"}' > .vscode/settings.json
       curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -C ~/.local/ bin/micromamba
       ~/.local/bin/micromamba shell init -s bash -p ~/micromamba
       source ~/.bashrc
-      micromamba create -n env pip -c conda-forge
+      micromamba create -yn env pip -c conda-forge
       micromamba activate env
-      micromamba install torch scipy numpy -c conda-forge
+      micromamba install -y torch scipy numpy -c conda-forge
       pip install -r requirements-dev.txt
     command: |
       micromamba activate env
