@@ -39,7 +39,7 @@ if __name__ == "__main__":
         maintainer_email="maxim.v.kochurov@gmail.com",
         long_description=LONG_DESCRIPTION,
         packages=find_packages(),
-        install_requires=["torch>=1.9.0", "numpy"],
+        install_requires=["torch>=1.9.0", "numpy", "scipy"],
         version=get_version(PROJECT_ROOT, "geoopt", "__init__.py"),
         url="https://github.com/geoopt/geoopt",
         python_requires=">=3.6.0",
