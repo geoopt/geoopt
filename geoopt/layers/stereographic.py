@@ -4,7 +4,7 @@ import geoopt
 
 class Distance2StereographicHyperplanes(torch.nn.Module):
     """Distances to Stereographic hyperplanes.
-    
+
     This layer can be used as a feature extractor in deep learning.
 
     Examples
