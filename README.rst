@@ -10,7 +10,7 @@ Methods”`_ ICLR2019 and more.
 
 Installation
 ------------
-Make sure you have pytorch>=1.10.2 installed
+Make sure you have pytorch>=1.11.0 installed
 
 There are two ways to install geoopt:
 
@@ -21,7 +21,7 @@ There are two ways to install geoopt:
     pip install git+https://github.com/geoopt/geoopt.git
 
 
-2. pypi (this might be significantly behind master branch)
+2. pypi (this might be significantly behind master branch but kept as fresh as possible)
 
 .. code-block:: bash
 
