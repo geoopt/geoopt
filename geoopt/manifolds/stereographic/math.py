@@ -26,29 +26,24 @@ from typing import List, Optional
 from ...utils import list_range, drop_dims, sign, clamp_abs, sabs
 
 
-@torch.jit.script
 def tanh(x):
     return x.clamp(-15, 15).tanh()
 
 
-@torch.jit.script
 def artanh(x: torch.Tensor):
     x = x.clamp(-1 + 1e-7, 1 - 1e-7)
     return (torch.log(1 + x).sub(torch.log(1 - x))).mul(0.5)
 
 
-@torch.jit.script
 def arsinh(x: torch.Tensor):
     return (x + torch.sqrt(1 + x.pow(2))).clamp_min(1e-15).log().to(x.dtype)
 
 
-@torch.jit.script
 def abs_zero_grad(x):
     # this op has derivative equal to 1 at zero
     return x * sign(x)
 
 
-@torch.jit.script
 def tan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
@@ -86,7 +81,6 @@ def tan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
         raise RuntimeError("order not in [-1, 5]")
 
 
-@torch.jit.script
 def artan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
@@ -121,7 +115,6 @@ def artan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
         raise RuntimeError("order not in [-1, 5]")
 
 
-@torch.jit.script
 def arsin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
@@ -154,7 +147,6 @@ def arsin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
         raise RuntimeError("order not in [-1, 5]")
 
 
-@torch.jit.script
 def sin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     if order == 0:
         return x
@@ -187,7 +179,6 @@ def sin_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
         raise RuntimeError("order not in [-1, 5]")
 
 
-@torch.jit.script
 def tan_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = k.sign()
     zero = torch.zeros((), device=k.device, dtype=k.dtype)
@@ -211,7 +202,6 @@ def tan_k(x: torch.Tensor, k: torch.Tensor):
         return torch.where(k_zero, tan_k_zero_taylor(x, k, order=1), tan_k_nonzero)
 
 
-@torch.jit.script
 def artan_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = k.sign()
     zero = torch.zeros((), device=k.device, dtype=k.dtype)
@@ -235,7 +225,6 @@ def artan_k(x: torch.Tensor, k: torch.Tensor):
         return torch.where(k_zero, artan_k_zero_taylor(x, k, order=1), artan_k_nonzero)
 
 
-@torch.jit.script
 def arsin_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = k.sign()
     zero = torch.zeros((), device=k.device, dtype=k.dtype)
@@ -263,7 +252,6 @@ def arsin_k(x: torch.Tensor, k: torch.Tensor):
         return torch.where(k_zero, arsin_k_zero_taylor(x, k, order=1), arsin_k_nonzero)
 
 
-@torch.jit.script
 def sin_k(x: torch.Tensor, k: torch.Tensor):
     k_sign = k.sign()
     zero = torch.zeros((), device=k.device, dtype=k.dtype)
@@ -310,7 +298,6 @@ def project(x: torch.Tensor, *, k: torch.Tensor, dim=-1, eps=-1):
     return _project(x, k, dim, eps)
 
 
-@torch.jit.script
 def _project(x, k, dim: int = -1, eps: float = -1.0):
     if eps < 0:
         if x.dtype == torch.float32:
@@ -351,7 +338,6 @@ def lambda_x(x: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     return _lambda_x(x, k, keepdim=keepdim, dim=dim)
 
 
-@torch.jit.script
 def _lambda_x(x: torch.Tensor, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return 2 / (1 + k * x.pow(2).sum(dim=dim, keepdim=keepdim)).clamp_min(1e-15)
 
@@ -389,7 +375,6 @@ def inner(
     return _inner(x, u, v, k, keepdim=keepdim, dim=dim)
 
 
-@torch.jit.script
 def _inner(
     x: torch.Tensor,
     u: torch.Tensor,
@@ -432,7 +417,6 @@ def norm(x: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, keepdim=False, di
     return _norm(x, u, k, keepdim=keepdim, dim=dim)
 
 
-@torch.jit.script
 def _norm(
     x: torch.Tensor,
     u: torch.Tensor,
@@ -506,7 +490,6 @@ def mobius_add(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     return _mobius_add(x, y, k, dim=dim)
 
 
-@torch.jit.script
 def _mobius_add(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
     x2 = x.pow(2).sum(dim=dim, keepdim=True)
     y2 = y.pow(2).sum(dim=dim, keepdim=True)
@@ -626,7 +609,6 @@ def gyration(
     return _gyration(a, b, u, k, dim=dim)
 
 
-@torch.jit.script
 def _gyration(
     u: torch.Tensor, v: torch.Tensor, w: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
@@ -700,7 +682,8 @@ def mobius_coadd(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
 
 
 # TODO: check numerical stability with Gregor's paper!!!
-@torch.jit.script
+
+
 def _mobius_coadd(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
     # x2 = x.pow(2).sum(dim=dim, keepdim=True)
     # y2 = y.pow(2).sum(dim=dim, keepdim=True)
@@ -742,7 +725,6 @@ def mobius_cosub(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     return _mobius_cosub(x, y, k, dim=dim)
 
 
-@torch.jit.script
 def _mobius_cosub(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
     return _mobius_coadd(x, -y, k, dim=dim)
 
@@ -817,7 +799,6 @@ def mobius_scalar_mul(r: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=
     return _mobius_scalar_mul(r, x, k, dim=dim)
 
 
-@torch.jit.script
 def _mobius_scalar_mul(
     r: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
@@ -857,7 +838,6 @@ def dist(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, keepdim=False, di
     return _dist(x, y, k, keepdim=keepdim, dim=dim)
 
 
-@torch.jit.script
 def _dist(
     x: torch.Tensor,
     y: torch.Tensor,
@@ -893,7 +873,6 @@ def dist0(x: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
     return _dist0(x, k, keepdim=keepdim, dim=dim)
 
 
-@torch.jit.script
 def _dist0(x: torch.Tensor, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return 2.0 * artan_k(x.norm(dim=dim, p=2, keepdim=keepdim), k)
 
@@ -961,7 +940,6 @@ def geodesic(
     return _geodesic(t, x, y, k, dim=dim)
 
 
-@torch.jit.script
 def _geodesic(
     t: torch.Tensor, x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
@@ -1016,7 +994,6 @@ def expmap(x: torch.Tensor, u: torch.Tensor, *, k: torch.Tensor, dim=-1):
     return _expmap(x, u, k, dim=dim)
 
 
-@torch.jit.script
 def _expmap(x: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
     lam = _lambda_x(x, k, dim=dim, keepdim=True)
@@ -1052,7 +1029,6 @@ def expmap0(u: torch.Tensor, *, k: torch.Tensor, dim=-1):
     return _expmap0(u, k, dim=dim)
 
 
-@torch.jit.script
 def _expmap0(u: torch.Tensor, k: torch.Tensor, dim: int = -1):
     u_norm = u.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
     gamma_1 = tan_k(u_norm, k) * (u / u_norm)
@@ -1094,7 +1070,6 @@ def geodesic_unit(
     return _geodesic_unit(t, x, u, k, dim=dim)
 
 
-@torch.jit.script
 def _geodesic_unit(
     t: torch.Tensor,
     x: torch.Tensor,
@@ -1145,7 +1120,6 @@ def logmap(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     return _logmap(x, y, k, dim=dim)
 
 
-@torch.jit.script
 def _logmap(x: torch.Tensor, y: torch.Tensor, k: torch.Tensor, dim: int = -1):
     sub = _mobius_add(-x, y, k, dim=dim)
     sub_norm = sub.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
@@ -1187,7 +1161,6 @@ def logmap0(y: torch.Tensor, *, k: torch.Tensor, dim=-1):
     return _logmap0(y, k, dim=dim)
 
 
-@torch.jit.script
 def _logmap0(y: torch.Tensor, k, dim: int = -1):
     y_norm = y.norm(dim=dim, p=2, keepdim=True).clamp_min(1e-15)
     return (y / y_norm) * artan_k(y_norm, k)
@@ -1227,7 +1200,6 @@ def mobius_matvec(m: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=-1):
     return _mobius_matvec(m, x, k, dim=dim)
 
 
-@torch.jit.script
 def _mobius_matvec(m: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     if m.dim() > 2 and dim != -1:
         raise RuntimeError(
@@ -1280,7 +1252,6 @@ def mobius_pointwise_mul(w: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, d
     return _mobius_pointwise_mul(w, x, k, dim=dim)
 
 
-@torch.jit.script
 def _mobius_pointwise_mul(
     w: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
@@ -1564,7 +1535,6 @@ def dist2plane(
     )
 
 
-@torch.jit.script
 def _dist2plane(
     x: torch.Tensor,
     a: torch.Tensor,
@@ -1658,7 +1628,6 @@ def parallel_transport(
     return _parallel_transport(x, y, v, k, dim=dim)
 
 
-@torch.jit.script
 def _parallel_transport(
     x: torch.Tensor, y: torch.Tensor, u: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
@@ -1695,7 +1664,6 @@ def parallel_transport0(y: torch.Tensor, v: torch.Tensor, *, k: torch.Tensor, di
     return _parallel_transport0(y, v, k, dim=dim)
 
 
-@torch.jit.script
 def _parallel_transport0(
     y: torch.Tensor, v: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
@@ -1729,7 +1697,6 @@ def parallel_transport0back(
     return _parallel_transport0back(x, v, k=k, dim=dim)
 
 
-@torch.jit.script
 def _parallel_transport0back(
     x: torch.Tensor, v: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
@@ -1763,7 +1730,6 @@ def egrad2rgrad(x: torch.Tensor, grad: torch.Tensor, *, k: torch.Tensor, dim=-1)
     return _egrad2rgrad(x, grad, k, dim=dim)
 
 
-@torch.jit.script
 def _egrad2rgrad(x: torch.Tensor, grad: torch.Tensor, k: torch.Tensor, dim: int = -1):
     return grad / _lambda_x(x, k, keepdim=True, dim=dim) ** 2
 
@@ -1789,7 +1755,6 @@ def sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
     return _sproj(x, k, dim=dim)
 
 
-@torch.jit.script
 def _sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     inv_r = torch.sqrt(sabs(k))
     factor = 1.0 / (1.0 + inv_r * x.narrow(dim, -1, 1))
@@ -1818,7 +1783,6 @@ def inv_sproj(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
     return _inv_sproj(x, k, dim=dim)
 
 
-@torch.jit.script
 def _inv_sproj(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     inv_r = torch.sqrt(sabs(k))
     lam_x = _lambda_x(x, k, keepdim=True, dim=dim)
@@ -1859,7 +1823,6 @@ def antipode(x: torch.Tensor, *, k: torch.Tensor, dim: int = -1):
     return _antipode(x, k, dim=dim)
 
 
-@torch.jit.script
 def _antipode(x: torch.Tensor, k: torch.Tensor, dim: int = -1):
     # NOTE: implementation that uses stereographic projections seems to be less accurate
     # sproj(-inv_sproj(x))
@@ -1952,7 +1915,6 @@ def weighted_midpoint(
     )
 
 
-@torch.jit.script
 def _weighted_midpoint(
     xs: torch.Tensor,
     k: torch.Tensor,
