@@ -150,6 +150,10 @@ class ManifoldTensor(torch.Tensor):
             memo[id(self)] = result
             return result
 
+    @classmethod
+    def __torch_dispatch__(cls, *args, **kwargs):
+        return super().__torch_dispatch__(*args, **kwargs)
+
 
 class ManifoldParameter(ManifoldTensor, torch.nn.Parameter):
     """Same as :class:`torch.nn.Parameter` that has information about its manifold.
