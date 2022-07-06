@@ -75,6 +75,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
 
                     # State initialization
                     if len(state) == 0:
+                        state["step"] = 0
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(point)
                         # Exponential moving average of squared gradient values
@@ -83,6 +84,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                             # Maintains max of all exp. moving avg. of sq. grad. values
                             state["max_exp_avg_sq"] = torch.zeros_like(point)
                     # make local variables for easy access
+                    state["step"] += 1
                     exp_avg = state["exp_avg"]
                     exp_avg_sq = state["exp_avg_sq"]
                     # actual step

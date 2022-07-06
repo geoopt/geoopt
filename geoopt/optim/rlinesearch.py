@@ -487,6 +487,9 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             if step_size is None or no_step:
                 continue
             state = self.state[point]
+            if "step" not in state:
+                state["step"] = 0
+            state["step"] += 1
             if "search_direction" not in state:
                 continue
             if isinstance(point, (ManifoldParameter, ManifoldTensor)):

@@ -35,7 +35,10 @@ class RSGLD(Sampler):
                         manifold = p.manifold
                     else:
                         manifold = self._default_manifold
-
+                    state = self.state[p]
+                    if "step" not in state:
+                        state["step"] = 0
+                    state["step"] += 1
                     egrad2rgrad, retr = manifold.egrad2rgrad, manifold.retr
                     epsilon = group["epsilon"]
 

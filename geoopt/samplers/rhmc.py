@@ -63,10 +63,11 @@ class RHMC(Sampler):
                     state = self.state[p]
 
                     if "r" not in state:
+                        state["step"] = 0
                         state["old_p"] = torch.zeros_like(p)
                         state["old_r"] = torch.zeros_like(p)
                         state["r"] = torch.zeros_like(p)
-
+                    state["step"] += 1
                     r = state["r"]
                     r.normal_()
                     r.set_(egrad2rgrad(p, r))

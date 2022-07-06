@@ -86,6 +86,8 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     if len(state) == 0:
                         if momentum > 0:
                             state["momentum_buffer"] = grad.to_dense().clone()
+                        state["step"] = 0
+                    state["step"] += 1
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:

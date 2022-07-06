@@ -86,8 +86,10 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
 
                     # State initialization
                     if len(state) == 0:
+                        state["step"] = 0
                         if momentum > 0:
                             state["momentum_buffer"] = grad.clone()
+                    state["step"] += 1
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:

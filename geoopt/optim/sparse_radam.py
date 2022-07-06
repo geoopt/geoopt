@@ -92,6 +92,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
 
                     # State initialization
                     if len(state) == 0:
+                        state["step"] = 0
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(point)
                         # Exponential moving average of squared gradient values
@@ -99,7 +100,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         if amsgrad:
                             # Maintains max of all exp. moving avg. of sq. grad. values
                             state["max_exp_avg_sq"] = torch.zeros_like(point)
-
+                    state["step"] += 1
                     full_point = point
                     # only nonzero rows are required to make an update
                     grad = grad.index_select(0, rows).to_dense()

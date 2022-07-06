@@ -39,7 +39,8 @@ class SGRHMC(Sampler):
 
                 if "v" not in state:
                     state["v"] = torch.zeros_like(p)
-
+                    state["step"] = 0
+                state["step"] += 1
                 epsilon = group["epsilon"]
                 v = state["v"]
                 v.normal_().mul_(epsilon)
