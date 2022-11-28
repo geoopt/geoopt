@@ -67,13 +67,11 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
             loss = closure()
         with torch.no_grad():
             for group in self.param_groups:
-                if "step" not in group:
-                    group["step"] = 0
                 betas = group["betas"]
                 eps = group["eps"]
                 learning_rate = group["lr"]
                 amsgrad = group["amsgrad"]
-                group["step"] += 1
+                stablilize = False
                 for point in group["params"]:
                     grad = point.grad
                     if grad is None:
@@ -92,6 +90,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
 
                     # State initialization
                     if len(state) == 0:
+                        state["step"] = 0
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(point)
                         # Exponential moving average of squared gradient values
@@ -99,7 +98,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         if amsgrad:
                             # Maintains max of all exp. moving avg. of sq. grad. values
                             state["max_exp_avg_sq"] = torch.zeros_like(point)
-
+                    state["step"] += 1
                     full_point = point
                     # only nonzero rows are required to make an update
                     grad = grad.index_select(0, rows).to_dense()
@@ -113,8 +112,8 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     exp_avg_sq.mul_(betas[1]).add_(
                         manifold.component_inner(point, grad), alpha=1 - betas[1]
                     )
-                    bias_correction1 = 1 - betas[0] ** group["step"]
-                    bias_correction2 = 1 - betas[1] ** group["step"]
+                    bias_correction1 = 1 - betas[0] ** state["step"]
+                    bias_correction2 = 1 - betas[1] ** state["step"]
                     if amsgrad:
                         max_exp_avg_sq = state["max_exp_avg_sq"][rows]
                         # Maintains the maximum of all 2nd moment running avg. till now
@@ -137,10 +136,12 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     state["exp_avg"][rows] = exp_avg_new
                     state["exp_avg_sq"][rows] = exp_avg_sq
 
-                if (
-                    group["stabilize"] is not None
-                    and group["step"] % group["stabilize"] == 0
-                ):
+                    if (
+                        group["stabilize"] is not None
+                        and state["step"] % group["stabilize"] == 0
+                    ):
+                        stablilize = True
+                if stablilize:
                     self.stabilize_group(group)
         return loss
 

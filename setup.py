@@ -42,7 +42,7 @@ if __name__ == "__main__":
         install_requires=["torch>=1.11.0,!=1.12.*", "numpy", "scipy"],
         version=get_version(PROJECT_ROOT, "geoopt", "__init__.py"),
         url="https://github.com/geoopt/geoopt",
-        python_requires=">=3.6.0",
+        python_requires=">=3.7.0",
         license="Apache License, Version 2.0",
         classifiers=classifiers,
     )
