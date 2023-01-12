@@ -1,0 +1,20 @@
+[tool.pydocstyle]
+convention = "numpy"
+add-ignore = [
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    "D202"
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error",
+    "default::UserWarning",
+    "default::RuntimeWarning",
+]
