@@ -1,3 +1,42 @@
+[build-system]
+requires = [
+  "setuptools>=48.0.0",
+  "versioneer[toml]==0.28",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geoopt"
+dynamic = ["version"]
+description = """Unofficial implementation for “Riemannian Adaptive Optimization Methods” ICLR2019 and more"""
+readme = "README.rst"
+requires-python = ">=3.7"
+authors = [
+    {name = "Geoopt Developers", email = "maxim.v.kochurov@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "torch>=1.11.0,!=1.12.*",
+    "numpy",
+    "scipy",
+]
+license = {file = "LICENSE"}
+
+[project.urls]
+homepage = "https://github.com/geoopt/geoopt"
+repository = "https://github.com/geoopt/geoopt"
+documentation = "https://geoopt.readthedocs.io/en/latest/"
+
 [tool.pydocstyle]
 convention = "numpy"
 add-ignore = [
