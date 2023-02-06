@@ -88,7 +88,7 @@ bad-names = ["foo", "bar", "baz", "toto", "tutu", "tata"]
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.
-name-group=
+# name-group=
 
 # Include a hint for the correct naming format with invalid-name
 include-naming-hint = true
@@ -164,7 +164,7 @@ docstring-min-length=-1
 [tool.pylint."messages control"]
 # Only show warnings with the listed confidence levels. Leave empty to show all.
 # Valid levels: HIGH, CONTROL_FLOW, INFERENCE, INFERENCE_FAILURE, UNDEFINED.
-confidence = 
+# confidence = 
 
 # Disable the message, report, category or checker with the given id(s). You can
 # either give multiple identifiers separated by comma (,) or put this option
@@ -234,7 +234,7 @@ max-nested-blocks=5
 
 [tool.pylint.format]
 # Expected format of line ending, e.g. empty (any line ending), LF or CRLF.
-expected-line-ending-format =
+# expected-line-ending-format =
 
 # Regexp for a line that is allowed to be longer than the limit.
 ignore-long-lines = "^\\s*(# )?<?https?://\\S+>?$"
@@ -286,17 +286,17 @@ min-similarity-lines = 4
 [tool.pylint.spelling]
 # Spelling dictionary name. Available dictionaries: none. To make it work,
 # install the 'python-enchant' package.
-spelling-dict =
+# spelling-dict =
 
 # List of comma separated words that should not be checked.
-spelling-ignore-words =
+# spelling-ignore-words =
 
 # A path to a file that contains the private dictionary; one word per line.
-spelling-private-dict-file =
+# spelling-private-dict-file =
 
 # Tells whether to store unknown words to the private dictionary (see the
 # --spelling-private-dict-file option) instead of raising a message.
-spelling-store-unknown-words =
+# spelling-store-unknown-words =
 
 [tool.pylint.typecheck]
 # Tells whether missing members accessed in mixin class should be ignored. A
@@ -307,17 +307,17 @@ ignore-mixin-members = true
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=
+# ignored-modules=
 
 # List of classes names for which member attributes should not be checked
 # (useful for classes with attributes dynamically set). This supports can work
 # with qualified names.
-ignored-classes=
+# ignored-classes=
 
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
 # expressions are accepted.
-generated-members =
+# generated-members =
 
 [tool.pylint.variables]
 # Tells whether we should check for unused import in __init__ files.
@@ -329,7 +329,7 @@ dummy-variables-rgx = "_$|dummy"
 
 # List of additional names supposed to be defined in builtins. Remember that you
 # should avoid defining new builtins when possible.
-additional-builtins =
+# additional-builtins =
 
 # List of strings which can identify a callback function by name. A callback name
 # must start or end with one of those strings.
@@ -393,15 +393,15 @@ deprecated-modules = ["optparse"]
 
 # Output a graph (.gv or any supported image format) of all (i.e. internal and
 # external) dependencies to the given file (report RP0402 must not be disabled).
-import-graph =
+# import-graph =
 
 # Output a graph (.gv or any supported image format) of external dependencies to
 # the given file (report RP0402 must not be disabled).
-ext-import-graph =
+# ext-import-graph =
 
 # Output a graph (.gv or any supported image format) of internal dependencies to
 # the given file (report RP0402 must not be disabled).
-int-import-graph =
+# int-import-graph =
 
 [tool.pylint.exceptions]
 # Exceptions that will emit a warning when caught.
