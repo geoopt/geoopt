@@ -12,7 +12,7 @@ help:
 
 docstyle-check:  # Check geoopt with pydocstyle
 	@printf "Checking documentation with pydocstyle...\n"
-	pydocstyle geoopt
+	pydocstyle geoopt --config=pyproject.toml
 	@printf "\033[1;34mPydocstyle passes!\033[0m\n\n"
 
 sphinx-check:
