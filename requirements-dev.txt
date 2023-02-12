@@ -6,6 +6,6 @@ twine
 wheel
 sphinx
 seaborn
-pydocstyle
+pydocstyle>=6.3.0
 pytest-html
 pylint
