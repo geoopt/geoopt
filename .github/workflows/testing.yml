@@ -31,8 +31,6 @@ jobs:
       run: |
         conda install --yes numpy mkl-service
         conda install --yes pytorch==${{ matrix.pytorch-version }} cpuonly -c pytorch
-        conda install --yes --file requirements-dev.txt
-        conda install --yes conda-build
         pip install -e ."[dev]"
     - name: Run info
       shell: bash -l {0}
