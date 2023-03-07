@@ -33,7 +33,7 @@ jobs:
         conda install --yes pytorch==${{ matrix.pytorch-version }} cpuonly -c pytorch
         conda install --yes --file requirements-dev.txt
         conda install --yes conda-build
-        conda develop .
+        pip install -e ."[dev]"
     - name: Run info
       shell: bash -l {0}
       run: |
