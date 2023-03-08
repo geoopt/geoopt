@@ -171,7 +171,7 @@ class Scaled(Manifold):
         v: torch.Tensor = None,
         *,
         keepdim=False,
-        **kwargs
+        **kwargs,
     ) -> torch.Tensor:
         return self.base.inner(x, u, v, keepdim=keepdim, **kwargs)
 

@@ -109,7 +109,7 @@ def test_geodesic_segement_unit_property(a, b, k):
         # TODO: analyze corner cases for geodesic
         dist_ab_t0mt1[1:],
         true_distance_travelled[1:],
-        **tolerance[k.dtype]
+        **tolerance[k.dtype],
     )
 
 
