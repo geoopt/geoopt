@@ -34,6 +34,21 @@ homepage = "https://github.com/geoopt/geoopt"
 repository = "https://github.com/geoopt/geoopt"
 documentation = "https://geoopt.readthedocs.io/en/latest/"
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-html",
+    "black",
+    "coveralls",
+    "twine",
+    "wheel",
+    "sphinx",
+    "seaborn",
+    "pydocstyle>=6.3.0",
+    "pylint"
+]
+
 [tool.pydocstyle]
 convention = "numpy"
 add-ignore = [

@@ -295,7 +295,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         ok_point=False,
         explain=False,
         atol=1e-5,
-        rtol=1e-5
+        rtol=1e-5,
     ) -> Union[Tuple[bool, Optional[str]], bool]:
         """
         Check if :math:`u` is lying on the tangent space to x.
@@ -915,7 +915,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         *size: Union[int, Tuple[int]],
         dtype=None,
         device=None,
-        seed: Optional[int] = 42
+        seed: Optional[int] = 42,
     ) -> torch.Tensor:
         """
         Create some reasonable point on the manifold in a deterministic way.

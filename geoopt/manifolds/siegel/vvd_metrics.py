@@ -161,7 +161,6 @@ class FinslerWeightedSumMetric(SiegelMetric, torch.nn.Module):
 
 
 class SiegelMetricFactory:
-
     metrics_map = {
         SiegelMetricType.RIEMANNIAN: RiemannianMetric,
         SiegelMetricType.FINSLER_ONE: FinslerOneMetric,

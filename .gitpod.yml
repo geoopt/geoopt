@@ -10,10 +10,10 @@ tasks:
       micromamba create -yn env pip -c conda-forge
       micromamba activate env
       micromamba install -y torch scipy numpy -c conda-forge
-      pip install -r requirements-dev.txt
     command: |
       micromamba activate env
       pip install -e .
+      pip install -e ."[dev]"
 vscode:
   extensions:
     - eamodio.gitlens
