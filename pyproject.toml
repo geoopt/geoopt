@@ -48,8 +48,9 @@ dev = [
     "pylint",
     "sphinx"
 ]
+
 rtd = [
-    matplotlib
+    "matplotlib"
 ]
 
 [tool.pydocstyle]
