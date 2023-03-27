@@ -43,10 +43,12 @@ dev = [
     "coveralls",
     "twine",
     "wheel",
-    "sphinx",
     "seaborn",
     "pydocstyle>=6.3.0",
     "pylint"
+]
+doc = [
+    "sphinx"
 ]
 
 [tool.pydocstyle]
