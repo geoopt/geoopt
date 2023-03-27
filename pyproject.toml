@@ -48,6 +48,9 @@ dev = [
     "pylint",
     "sphinx"
 ]
+rtd = [
+    matplotlib
+]
 
 [tool.pydocstyle]
 convention = "numpy"
