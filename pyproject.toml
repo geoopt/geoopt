@@ -45,9 +45,7 @@ dev = [
     "wheel",
     "seaborn",
     "pydocstyle>=6.3.0",
-    "pylint"
-]
-doc = [
+    "pylint",
     "sphinx"
 ]
 
