@@ -8,5 +8,5 @@ python:
   install:
     - method: pip
       path: .
-    - extra_requirements:
-      - rtd
+      extra_requirements:
+        - rtd
