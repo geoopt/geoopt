@@ -152,7 +152,7 @@ def project(x, *, k, dim=-1):
 
     .. math::
 
-        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathbb{H}^{d, 1}}(\mathbf{x}):=\left(\sqrt{k+\left\|\mathbf{x}_{1: d}\right\|_{2}^{2}}, \mathbf{x}_{1: d}\right)
+        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathbb{H}^{d, 1}}(\mathbf{x}):=\left(\sqrt{k**2+\left\|\mathbf{x}_{1: d}\right\|_{2}^{2}}, \mathbf{x}_{1: d}\right)
 
     Parameters
     ----------
@@ -175,7 +175,7 @@ def project(x, *, k, dim=-1):
 def _project(x, k: torch.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
     left_ = torch.sqrt(
-        k + torch.norm(x.narrow(dim, 1, dn), p=2, dim=dim) ** 2
+        k**2 + torch.norm(x.narrow(dim, 1, dn), p=2, dim=dim) ** 2
     ).unsqueeze(dim)
     right_ = x.narrow(dim, 1, dn)
     proj = torch.cat((left_, right_), dim=dim)
