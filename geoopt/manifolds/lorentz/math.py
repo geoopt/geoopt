@@ -4,7 +4,8 @@ import torch.jit
 @torch.jit.script
 def arcosh(x: torch.Tensor):
     dtype = x.dtype
-    z = torch.sqrt(torch.clamp_min(x.double().pow(2) - 1.0, 1e-15))
+    x = torch.clamp_min(x, 1.0).double() # clamp x to valid arcosh domain
+    z = torch.sqrt(x.pow(2) - 1.0)
     return torch.log(x + z).to(dtype)
 
 
@@ -151,7 +152,7 @@ def project(x, *, k, dim=-1):
 
     .. math::
 
-        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathbb{H}^{d, 1}}(\mathbf{x}):=\left(\sqrt{k^2+\left\|\mathbf{x}_{1: d}\right\|_{2}^{2}}, \mathbf{x}_{1: d}\right)
+        \Pi_{\mathbb{R}^{d+1} \rightarrow \mathbb{H}^{d, 1}}(\mathbf{x}):=\left(\sqrt{k+\left\|\mathbf{x}_{1: d}\right\|_{2}^{2}}, \mathbf{x}_{1: d}\right)
 
     Parameters
     ----------
@@ -174,7 +175,7 @@ def project(x, *, k, dim=-1):
 def _project(x, k: torch.Tensor, dim: int = -1):
     dn = x.size(dim) - 1
     left_ = torch.sqrt(
-        k**2 + torch.norm(x.narrow(dim, 1, dn), p=2, dim=dim) ** 2
+        k + torch.norm(x.narrow(dim, 1, dn), p=2, dim=dim) ** 2
     ).unsqueeze(dim)
     right_ = x.narrow(dim, 1, dn)
     proj = torch.cat((left_, right_), dim=dim)
