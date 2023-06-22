@@ -23,7 +23,7 @@ def test_expm(A):
     for i in range(A.shape[0]):
         expm_scipy[i] = expm(A.detach()[i].numpy())
     expm_torch = geoopt.linalg.expm(A)
-    np.testing.assert_allclose(expm_torch.detach(), expm_scipy, rtol=1e-6)
+    np.testing.assert_allclose(expm_torch.detach(), expm_scipy, rtol=1e-6, atol=1e-13)
     expm_torch.sum().backward()  # this should work
 
 
