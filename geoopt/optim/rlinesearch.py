@@ -4,7 +4,7 @@ This module implements line search on Riemannian manifolds using geoopt.
 This module uses the same syntax as a Torch optimizer
 """
 
-from scipy.optimize.linesearch import scalar_search_wolfe2, scalar_search_armijo
+from scipy.optimize._linesearch import scalar_search_wolfe2, scalar_search_armijo
 import warnings
 import torch
 from .mixin import OptimMixin
