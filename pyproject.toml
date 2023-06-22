@@ -23,7 +23,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "torch>=1.11.0,!=1.12.*",
+    "torch>=1.13.1",
     "numpy",
     "scipy",
 ]
