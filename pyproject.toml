@@ -7,7 +7,7 @@ name = "geoopt"
 dynamic = ["version"]
 description = """Unofficial implementation for “Riemannian Adaptive Optimization Methods” ICLR2019 and more"""
 readme = "README.rst"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
     {name = "Geoopt Developers", email = "maxim.v.kochurov@gmail.com"}
 ]
