@@ -6,8 +6,14 @@ name: Python package
 on:
   push:
     branches: [ master ]
+    paths:
+      - "**.py"
+      - ".github/workflows/testing.yml"
   pull_request:
     branches: [ master ]
+    paths:
+      - "**.py"
+      - ".github/workflows/testing.yml"
   schedule:
     - cron: "0 0 * * 0"
 
