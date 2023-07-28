@@ -21,28 +21,25 @@ jobs:
     env:
       PYTORCH_VERSION: ${{ matrix.pytorch-version }}
     steps:
-    - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: actions/checkout@v3
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
       with:
-        auto-update-conda: true
-        auto-activate-base: true
-        channels: conda-forge
         python-version: ${{ matrix.python-version }}
-    - name: Install deps with conda
-      shell: bash -l {0}
+        cache: "pip"
+        cache-dependency-path: "pyproject.toml"
+    - name: Install dependencies
       run: |
-        conda install --yes numpy mkl-service
-        conda install --yes pytorch==${{ matrix.pytorch-version }} cpuonly -c pytorch
+        python -m pip install --upgrade pip wheel setuptools
         pip install -e ."[dev]"
+        pip install torch==${{ matrix.pytorch-version }}
+        
     - name: Run info
-      shell: bash -l {0}
       run: |
-        conda --version && which python && python --version && python -c 'import torch; print("torch", torch.__version__)'
+        which python && python --version && python -c 'import torch; print("torch", torch.__version__)'
     - name: Run Linters
-      shell: bash -l {0}
       run: make lint
     - name: Run Tests
-      shell: bash -l {0}
       run: |
         pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt --cov-report=xml --cov-report term 
     - name: Coveralls
