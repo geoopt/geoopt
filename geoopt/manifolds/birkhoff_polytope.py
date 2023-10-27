@@ -245,7 +245,7 @@ def proj_tangent(x, u):
     lhs = B.transpose(1, 2) @ B
     zeta = torch.linalg.solve(lhs, rhs)
     alpha = torch.cat(
-        [torch.ones(batch_size, 1, 1, dtype=x.dtype, device=x.device), zeta[:, 0 : n - 1]], dim=1
+        [torch.ones(batch_size, 1, 1, device=x.device, dtype=x.dtype), zeta[:, 0 : n - 1]], dim=1
     )
     beta = zeta[:, n - 1 : 2 * n - 1]
     rgrad = mu - (alpha + beta.transpose(-1, -2)) * x
