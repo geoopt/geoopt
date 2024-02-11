@@ -68,12 +68,7 @@ def tan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     elif order == 2:
         return x + 1 / 3 * k * x**3 + 2 / 15 * k**2 * x**5
     elif order == 3:
-        return (
-            x
-            + 1 / 3 * k * x**3
-            + 2 / 15 * k**2 * x**5
-            + 17 / 315 * k**3 * x**7
-        )
+        return x + 1 / 3 * k * x**3 + 2 / 15 * k**2 * x**5 + 17 / 315 * k**3 * x**7
     elif order == 4:
         return (
             x
@@ -106,9 +101,7 @@ def artan_k_zero_taylor(x: torch.Tensor, k: torch.Tensor, order: int = -1):
     elif order == 2:
         return x - 1 / 3 * k * x**3 + 1 / 5 * k**2 * x**5
     elif order == 3:
-        return (
-            x - 1 / 3 * k * x**3 + 1 / 5 * k**2 * x**5 - 1 / 7 * k**3 * x**7
-        )
+        return x - 1 / 3 * k * x**3 + 1 / 5 * k**2 * x**5 - 1 / 7 * k**3 * x**7
     elif order == 4:
         return (
             x

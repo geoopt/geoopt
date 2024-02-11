@@ -1,6 +1,7 @@
 """
 Tests ideas are taken mostly from https://github.com/dalab/hyperbolic_nn/blob/master/util.py with some changes
 """
+
 import torch
 import random
 import numpy as np
