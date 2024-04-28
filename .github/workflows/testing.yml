@@ -49,7 +49,7 @@ jobs:
       run: |
         pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt --cov-report=xml --cov-report term 
     - name: Coveralls
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v4.3.0
       with:
-        github-token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ secrets.CODECOV_TOKEN }}
         env_vars: PYTORCH_VERSION
