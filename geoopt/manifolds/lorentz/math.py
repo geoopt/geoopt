@@ -4,7 +4,8 @@ import torch.jit
 @torch.jit.script
 def arcosh(x: torch.Tensor):
     dtype = x.dtype
-    z = torch.sqrt(torch.clamp_min(x.double().pow(2) - 1.0, 1e-15))
+    x = torch.clamp_min(x, 1.0).double() # clamp x to valid arcosh domain
+    z = torch.sqrt(x.pow(2) - 1.0)
     return torch.log(x + z).to(dtype)
 
 
