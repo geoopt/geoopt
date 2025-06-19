@@ -23,23 +23,20 @@ python3Packages.buildPythonPackage {
     scipy
     numpy
   ];
-
-  optional-dependencies = {
-    dev = with python3Packages; [
-      pytest
-      pytest-cov
-      pytest-html
-      black
-      coveralls
-      twine
-      wheel
-      seaborn
-      pydocstyle
-      pylint
-      sphinx
-    ];
-    rtd = with python3Packages; [
-      matplotlib
-    ];
-  };
+  nativeBuildInputs = with python3Packages; [
+    pytestCheckHook
+  ];
+  nativeCheckInputs = with python3Packages; [
+    pytest-cov
+    pytest-html
+    black
+    coveralls
+    twine
+    wheel
+    seaborn
+    pydocstyle
+    pylint
+    sphinx
+    matplotlib
+  ];
 }
