@@ -95,8 +95,8 @@ def test_distance_to_same_point_in_some_cases_is_zero(manifold, rank, dtype, eps
     np.testing.assert_allclose(
         dist_yx[5:], torch.zeros_like(dist_yx[5:]), atol=eps, rtol=eps
     )
-    np.testing.assert_equal(torch.all(dist_xy[5:] != 0), torch.tensor(True))
-    np.testing.assert_equal(torch.all(dist_yx[5:] != 0), torch.tensor(True))
+    assert torch.all(dist_xy[5:] != 0).item()
+    assert torch.all(dist_yx[5:] != 0).item()
 
 
 def test_distance_is_symmetric_with_diagonal_matrices(manifold, rank, dtype, eps):
