@@ -122,9 +122,9 @@ def test_rsgd_complex_manifold(params, complex_manifold):
         return loss.item()
 
     optim = geoopt.optim.RiemannianSGD([X], **params)
-    assert manifold.dist(X, Xstar) > 1e-1
+    assert manifold.dist(X, Xstar).item() > 1e-1
     for i in range(10000):
-        distance = manifold.dist(X, Xstar)
+        distance = manifold.dist(X, Xstar).item()
         if distance < 1e-4:
             break
         try:
@@ -134,8 +134,8 @@ def test_rsgd_complex_manifold(params, complex_manifold):
             # complex variable in a casting
             pass
         print(i, distance)
-    distance = manifold.dist(X, Xstar)
-    np.testing.assert_equal(distance < 1e-4, torch.tensor(True))
+    distance = manifold.dist(X, Xstar).item()
+    np.testing.assert_equal(distance < 1e-4, True)
     optim.load_state_dict(optim.state_dict())
     optim.step(closure)
 

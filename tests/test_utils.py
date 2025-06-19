@@ -32,7 +32,7 @@ def test_pickle1():
     p = geoopt.ManifoldTensor(t, manifold=geoopt.Sphere())
     with tempfile.TemporaryDirectory() as path:
         torch.save(p, os.path.join(path, "tens.t7"))
-        p1 = torch.load(os.path.join(path, "tens.t7"))
+        p1 = torch.load(os.path.join(path, "tens.t7"), weights_only=False)
     assert isinstance(p1, geoopt.ManifoldTensor)
     assert p.stride() == p1.stride()
     assert p.storage_offset() == p1.storage_offset()
