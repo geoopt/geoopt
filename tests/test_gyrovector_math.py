@@ -699,7 +699,7 @@ def test_weighted_midpoint_weighted_zero_sum(_k, lincomb):
 
 def test_mobius_matvec_vs_log_exp_equivalence():
     """
-    Test: mobius_matvec ≈ expmap0(logmap0 @ W)
+    Test: mobius_matvec = expmap0(W logmap0(x))
     Now works for high dimensions (e.g., 128), previously only stable for small dims (e.g., 20).
     """
     from geoopt.manifolds import Stereographic
