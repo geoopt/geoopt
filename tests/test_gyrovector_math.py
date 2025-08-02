@@ -706,12 +706,8 @@ def test_mobius_matvec_vs_log_exp_equivalence():
     dtype = torch.float64
     manifold = geoopt.manifolds.Stereographic(k=2.0).to(dtype)
 
-    batch_size = 100
-    dim = 128
-    dim_out = 128
-
-    x = manifold.random_normal(batch_size, dim).to(dtype)
-    weight = torch.randn(dim_out, dim, dtype=dtype)
+    x = manifold.random_normal(100, 128).to(dtype)
+    weight = torch.randn(128, 128, dtype=dtype)
 
     res1 = manifold.mobius_matvec(weight, x)
     res2 = manifold.expmap0(torch.tensordot(manifold.logmap0(x), weight, dims=([-1], [1])))
