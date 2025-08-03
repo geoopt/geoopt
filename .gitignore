@@ -117,4 +117,3 @@ testing-report.html
 test-output.xml
 *.el
 .vscode/
-.DS_Store

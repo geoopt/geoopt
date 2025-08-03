@@ -698,10 +698,6 @@ def test_weighted_midpoint_weighted_zero_sum(_k, lincomb):
     assert torch.isfinite(a.grad).all()
 
 def test_mobius_matvec_vs_log_exp_equivalence():
-    """
-    Test: mobius_matvec = expmap0(W logmap0(x))
-    Now works for high dimensions (e.g., 128), previously only stable for small dims (e.g., 20).
-    """
     dtype = torch.float64
     manifold = geoopt.manifolds.Stereographic(k=2.0).to(dtype)
 
