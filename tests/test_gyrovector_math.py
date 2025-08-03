@@ -702,7 +702,6 @@ def test_mobius_matvec_vs_log_exp_equivalence():
     Test: mobius_matvec = expmap0(W logmap0(x))
     Now works for high dimensions (e.g., 128), previously only stable for small dims (e.g., 20).
     """
-
     dtype = torch.float64
     manifold = geoopt.manifolds.Stereographic(k=2.0).to(dtype)
 
@@ -710,8 +709,9 @@ def test_mobius_matvec_vs_log_exp_equivalence():
     weight = torch.randn(128, 128, dtype=dtype)
 
     res1 = manifold.mobius_matvec(weight, x)
-    res2 = manifold.expmap0(torch.tensordot(manifold.logmap0(x), weight, dims=([-1], [1])))
+    res2 = manifold.expmap0(
+        torch.tensordot(manifold.logmap0(x), weight, dims=([-1], [1]))
+    )
 
     max_diff = (res1 - res2).abs().max()
-
     assert max_diff < 1e-5
