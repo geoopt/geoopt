@@ -697,6 +697,7 @@ def test_weighted_midpoint_weighted_zero_sum(_k, lincomb):
     mid.sum().backward()
     assert torch.isfinite(a.grad).all()
 
+
 def test_mobius_matvec_vs_log_exp_equivalence():
     dtype = torch.float64
     manifold = geoopt.manifolds.Stereographic(k=2.0).to(dtype)
