@@ -96,6 +96,55 @@ class Euclidean(Manifold):
         else:
             return (x - y).pow(2)
 
+    def pairwise_inner(self, u: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+        if self.ndim == 0:
+            return torch.einsum("...i,...j->...ij", u, v)
+        elif self.ndim == 1:
+            return torch.einsum("...id,...jd->...ij", u, v)
+        else:
+            batch_shape_u = u.shape[:-self.ndim-1]
+            batch_shape_v = v.shape[:-self.ndim-1]
+            B1 = u.shape[-self.ndim-1]
+            B2 = v.shape[-self.ndim-1]
+            manifold_size = u.shape[-self.ndim:]
+
+            u_flat = u.reshape(*batch_shape_u, B1, -1)
+            v_flat = v.reshape(*batch_shape_v, B2, -1)
+
+            return torch.einsum("...id,...jd->...ij", u_flat, v_flat)
+
+    def cdist(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        if self.ndim == 0:
+            diff = x.unsqueeze(-1) - y.unsqueeze(-2)
+            return diff.abs()
+        elif self.ndim == 1:
+            x_norm_sq = (x ** 2).sum(dim=-1, keepdim=True)  # (..., B1, 1)
+            y_norm_sq = (y ** 2).sum(dim=-1, keepdim=True)  # (..., B2, 1)
+            xy_inner = self.pairwise_inner(x, y)  # (..., B1, B2)
+
+            dist_sq = x_norm_sq + y_norm_sq.transpose(-2, -1) - 2 * xy_inner
+            # Clamp to avoid numerical issues with sqrt of negative numbers
+            dist_sq = dist_sq.clamp(min=0)
+            return torch.sqrt(dist_sq)
+        else:
+            # Higher-dimensional case
+            batch_shape_x = x.shape[:-self.ndim-1]
+            batch_shape_y = y.shape[:-self.ndim-1]
+            B1 = x.shape[-self.ndim-1]
+            B2 = y.shape[-self.ndim-1]
+
+            # Flatten manifold dimensions
+            x_flat = x.reshape(*batch_shape_x, B1, -1)
+            y_flat = y.reshape(*batch_shape_y, B2, -1)
+
+            x_norm_sq = (x_flat ** 2).sum(dim=-1, keepdim=True)
+            y_norm_sq = (y_flat ** 2).sum(dim=-1, keepdim=True)
+            xy_inner = torch.einsum("...id,...jd->...ij", x_flat, y_flat)
+
+            dist_sq = x_norm_sq + y_norm_sq.transpose(-2, -1) - 2 * xy_inner
+            dist_sq = dist_sq.clamp(min=0)
+            return torch.sqrt(dist_sq)
+
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
         return u.expand(target_shape)
