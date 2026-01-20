@@ -163,9 +163,7 @@ class Sphere(Manifold):
         return torch.acos(inner)
 
     def cdist(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        inner = self.pairwise_inner(x, y).clamp(
-            -1 + EPS[x.dtype], 1 - EPS[x.dtype]
-        )
+        inner = self.pairwise_inner(x, y).clamp(-1 + EPS[x.dtype], 1 - EPS[x.dtype])
         return torch.acos(inner)
 
     egrad2rgrad = proju

@@ -107,7 +107,9 @@ def _pairwise_inner(U, V, dim: int = -1):
     U_space = U.narrow(dim, 1, d)
     V_time = V.narrow(dim, 0, 1)
     V_space = V.narrow(dim, 1, d)
-    time_product = -torch.einsum("...i,...j->...ij", U_time.squeeze(dim), V_time.squeeze(dim))
+    time_product = -torch.einsum(
+        "...i,...j->...ij", U_time.squeeze(dim), V_time.squeeze(dim)
+    )
     space_product = torch.einsum("...id,...jd->...ij", U_space, V_space)
 
     return time_product + space_product
@@ -179,7 +181,7 @@ def _dist0(x, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return torch.sqrt(k) * arcosh(d / k)
 
 
-def cdist(X, Y, *, k, dim=-1):
+def cdist(X, Y, *, k):
     r"""
     Compute pairwise geodesic distances on the Hyperboloid between two batches of points.
 
@@ -199,12 +201,12 @@ def cdist(X, Y, *, k, dim=-1):
     tensor
         Pairwise geodesic distance matrix, shape (..., B1, B2)
     """
-    return _cdist(X, Y, k=k, dim=dim)
+    return _cdist(X, Y, k=k)
 
 
 @torch.jit.script
-def _cdist(X, Y, k: torch.Tensor, dim: int = -1):
-    D = -_pairwise_inner(X, Y, dim=dim)
+def _cdist(X, Y, k: torch.Tensor):
+    D = -_pairwise_inner(X, Y, dim=-1)
     return torch.sqrt(k) * arcosh(D / k)
 
 
