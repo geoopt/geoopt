@@ -630,6 +630,38 @@ def _geodesic_unit(t, x, u, k):
     )
 
 
+def half_aperture(x, k, dim=-1, min_radius=0.1, eps=1e-8):
+    r"""
+    Half-aperture angle of the entailment cone with apex on point x.
+
+    Parameters
+    ----------
+    x : tensor
+        point on Hyperboloid
+    k : tensor
+        manifold negative curvature
+    min_radius : float
+        points close to the origin of the Hyperboloid are left with undefined
+        half aperture
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        half-aperture of entailment cones with values in `(0, pi/2)`.
+    """
+
+    return _half_aperture(x, k, dim, min_radius, eps)
+
+
+@torch.jit.script
+def _half_aperture(x, k, dim: int = -1, min_radius: float = 0.1, eps: float = 1e-8):
+    dn = x.size(dim) - 1
+    denom = torch.norm(x.narrow(dim, 1, dn), dim=-1) * torch.sqrt(k) + eps
+    return torch.asin(torch.clamp(2*min_radius / denom, min=-1 + eps, max=1 - eps))
+
+
 def lorentz_to_poincare(x, k, dim=-1):
     r"""
     Diffeomorphism that maps from Hyperboloid to Poincare disk.
