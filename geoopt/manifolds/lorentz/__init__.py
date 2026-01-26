@@ -76,6 +76,9 @@ class Lorentz(Manifold):
     def dist0(self, x: torch.Tensor, *, dim=-1, keepdim=False) -> torch.Tensor:
         return math.dist0(x, k=self.k, dim=dim, keepdim=keepdim)
 
+    def cdist(self, X: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
+        return math.cdist(X, Y, k=self.k)
+
     def norm(self, u: torch.Tensor, *, keepdim=False, dim=-1) -> torch.Tensor:
         return math.norm(u, keepdim=keepdim, dim=dim)
 

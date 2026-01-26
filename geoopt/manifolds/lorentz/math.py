@@ -79,6 +79,42 @@ def _inner0(v, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     return res
 
 
+def pairwise_inner(U, V, *, dim=-1):
+    r"""
+    Compute pairwise Minkowski inner products between two batches of vectors.
+
+    Parameters
+    ----------
+    U : tensor
+        Batch of vectors in ambient space, shape (..., B1, D)
+    V : tensor
+        Batch of vectors in ambient space, shape (..., B2, D)
+    dim : int
+        Reduction dimension
+
+    Returns
+    -------
+    tensor
+        Pairwise inner product matrix, shape (..., B1, B2)
+    """
+    return _pairwise_inner(U, V, dim=dim)
+
+
+@torch.jit.script
+def _pairwise_inner(U, V, dim: int = -1):
+    d = U.size(dim) - 1
+    U_time = U.narrow(dim, 0, 1)
+    U_space = U.narrow(dim, 1, d)
+    V_time = V.narrow(dim, 0, 1)
+    V_space = V.narrow(dim, 1, d)
+    time_product = -torch.einsum(
+        "...i,...j->...ij", U_time.squeeze(dim), V_time.squeeze(dim)
+    )
+    space_product = torch.einsum("...id,...jd->...ij", U_space, V_space)
+
+    return time_product + space_product
+
+
 def dist(x, y, *, k, keepdim=False, dim=-1):
     r"""
     Compute geodesic distance on the Hyperboloid.
@@ -143,6 +179,35 @@ def dist0(x, *, k, keepdim=False, dim=-1):
 def _dist0(x, k: torch.Tensor, keepdim: bool = False, dim: int = -1):
     d = -_inner0(x, k=k, dim=dim, keepdim=keepdim)
     return torch.sqrt(k) * arcosh(d / k)
+
+
+def cdist(X, Y, *, k):
+    r"""
+    Compute pairwise geodesic distances on the Hyperboloid between two batches of points.
+
+    Parameters
+    ----------
+    X : tensor
+        Batch of points on Hyperboloid, shape (..., B1, D)
+    Y : tensor
+        Batch of points on Hyperboloid, shape (..., B2, D)
+    k : tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension
+
+    Returns
+    -------
+    tensor
+        Pairwise geodesic distance matrix, shape (..., B1, B2)
+    """
+    return _cdist(X, Y, k=k)
+
+
+@torch.jit.script
+def _cdist(X, Y, k: torch.Tensor):
+    D = -_pairwise_inner(X, Y, dim=-1)
+    return torch.sqrt(k) * arcosh(D / k)
 
 
 def project(x, *, k, dim=-1):

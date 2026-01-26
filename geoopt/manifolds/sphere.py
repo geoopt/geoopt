@@ -123,6 +123,9 @@ class Sphere(Manifold):
         target_shape = broadcast_shapes(x.shape[:-1] + (1,) * keepdim, inner.shape)
         return inner.expand(target_shape)
 
+    def pairwise_inner(self, u: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+        return torch.einsum("...id,...jd->...ij", u, v)
+
     def projx(self, x: torch.Tensor) -> torch.Tensor:
         x = self._project_on_subspace(x)
         return x / x.norm(dim=-1, keepdim=True)
@@ -157,6 +160,10 @@ class Sphere(Manifold):
         inner = self.inner(x, x, y, keepdim=keepdim).clamp(
             -1 + EPS[x.dtype], 1 - EPS[x.dtype]
         )
+        return torch.acos(inner)
+
+    def cdist(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        inner = self.pairwise_inner(x, y).clamp(-1 + EPS[x.dtype], 1 - EPS[x.dtype])
         return torch.acos(inner)
 
     egrad2rgrad = proju

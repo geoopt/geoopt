@@ -395,6 +395,29 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    def cdist(self, x: torch.Tensor, y: torch.Tensor, **kwargs) -> torch.Tensor:
+        """
+        Compute pairwise distances between two batches of points.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Batch of points, shape (..., B1, D)
+        y : torch.Tensor
+            Batch of points, shape (..., B2, D)
+        **kwargs : dict
+            Additional manifold-specific arguments
+
+        Returns
+        -------
+        torch.Tensor
+            Pairwise distance matrix, shape (..., B1, B2)
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement pairwise distance computation. "
+            "Please implement cdist() for this manifold."
+        )
+
     @__scaling__(ScalingInfo(2))
     def dist2(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         """
