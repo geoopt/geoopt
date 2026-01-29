@@ -723,8 +723,41 @@ def half_aperture(x, k, dim=-1, min_radius=0.1, eps=1e-8):
 @torch.jit.script
 def _half_aperture(x, k, dim: int = -1, min_radius: float = 0.1, eps: float = 1e-8):
     dn = x.size(dim) - 1
-    denom = torch.norm(x.narrow(dim, 1, dn), dim=-1) * torch.sqrt(k) + eps
-    return torch.asin(torch.clamp(2 * min_radius / denom, min=-1 + eps, max=1 - eps))
+    denom = torch.norm(x.narrow(dim, 1, dn), dim=-1) + eps
+    return torch.asin(torch.clamp(2 * min_radius * torch.sqrt(k) / denom, min=-1 + eps, max=1 - eps))
+
+
+def exterior_angle(x, y, k, dim=-1, eps=1e-8):
+    r"""
+    Exterior angle in the hyperbolic triangle formed by the triplet of points 
+    `(origin, x, y)`.
+
+    Parameters
+    ----------
+    x : tensor
+        point on Hyperboloid
+    y : tensor
+        point on Hyperboloid
+    k : tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        exterior angle of oxy triangle with values in `(0, pi/2)`.
+    """
+    return _exterior_angle(x, y, k, dim, eps)
+
+
+@torch.jit.script
+def _exterior_angle(x, y, k, dim: int = -1, eps: float = 1e-8):
+    dn = x.size(dim) - 1
+    xyk = _inner(x, y, keepdim=False, dim=dim) / k
+    nom = x.narrow(dim, 0, 1) * xyk + y.narrow(dim, 0, 1)
+    denom = torch.clamp(torch.norm(x.narrow(dim, 1, dn), dim=-1) * torch.sqrt(torch.clamp((xyk) ** 2 - 1, min=eps)), min=eps)
+    return torch.acos(torch.clamp(nom / denom, min=-1 + eps, max=1 - eps))
 
 
 def lorentz_to_poincare(x, k, dim=-1):
