@@ -8,11 +8,13 @@ on:
     branches: [ master ]
     paths:
       - "**.py"
+      - "pyproject.toml"
       - ".github/workflows/testing.yml"
   pull_request:
     branches: [ master ]
     paths:
       - "**.py"
+      - "pyproject.toml"
       - ".github/workflows/testing.yml"
   schedule:
     - cron: "0 0 * * 0"
@@ -39,7 +41,7 @@ jobs:
         python -m pip install --upgrade pip wheel setuptools
         pip install -e ."[dev]"
         pip install torch==${{ matrix.pytorch-version }}
-        
+
     - name: Run info
       run: |
         which python && python --version && python -c 'import torch; print("torch", torch.__version__)'
@@ -47,7 +49,7 @@ jobs:
       run: make lint
     - name: Run Tests
       run: |
-        pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt --cov-report=xml --cov-report term 
+        pytest -v geoopt tests --durations=0 --doctest-modules --cov geoopt --cov-report=xml --cov-report term
     - name: Coveralls
       uses: codecov/codecov-action@v4.3.0
       with:
