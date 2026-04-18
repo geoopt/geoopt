@@ -236,6 +236,33 @@ class SymmetricPositiveDefinite(Manifold):
             return torch.unsqueeze(torch.unsqueeze(ret, -1), -1)
         return ret
 
+    def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False) -> torch.Tensor:
+        """
+        Norm of a tangent vector at point :math:`x`.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            point on the manifold
+        u : torch.Tensor
+            tangent vector at point :math:`x`
+        keepdim : bool
+            keep the last dim?
+
+        Returns
+        -------
+        torch.Tensor
+            norm of the tangent vector
+        """
+        inner_prod = self.inner(x, u, keepdim=True)
+        is_zero = torch.eq(inner_prod, 0)
+        safe_inner = torch.where(is_zero, torch.ones_like(inner_prod), inner_prod)
+        norm = torch.sqrt(safe_inner)
+        norm = torch.where(is_zero, torch.zeros_like(norm), norm)
+        if not keepdim:
+            norm = norm.squeeze(-1).squeeze(-1)
+        return norm
+
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_x = linalg.sym_invm(x)
         return linalg.sym(x + u + 0.5 * u @ inv_x @ u)
