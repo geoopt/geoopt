@@ -82,6 +82,8 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                             # Maintains max of all exp. moving avg. of sq. grad. values
                             state["max_exp_avg_sq"] = torch.zeros_like(point)
                     state["step"] += 1
+                    # project point to manifold for numerical stability
+                    point.copy_(manifold.projx(point))
                     # make local variables for easy access
                     exp_avg = state["exp_avg"]
                     exp_avg_sq = state["exp_avg_sq"]
@@ -113,10 +115,7 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     point.copy_(new_point)
                     exp_avg.copy_(exp_avg_new)
 
-                    if (
-                        group["stabilize"] is not None
-                        and state["step"] % group["stabilize"] == 0
-                    ):
+                    if group["stabilize"] is not None and state["step"] % group["stabilize"] == 0:
                         stablilize = True
                 if stablilize:
                     self.stabilize_group(group)
