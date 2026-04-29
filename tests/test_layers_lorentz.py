@@ -62,3 +62,83 @@ def test_lorentz_plfc_backward():
     assert torch.isfinite(layer.z.grad).all()
     assert torch.isfinite(layer.a.grad).all()
     assert torch.isfinite(layer.bias.grad).all()
+
+
+def test_gyro_lorentz_batch_norm_shape_and_manifold():
+    dtype = torch.float64
+    manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
+    layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
+    input = manifold.random_normal(8, 3 + 1).data
+
+    output = layer(input)
+
+    assert output.shape == input.shape
+    assert torch.isfinite(output).all()
+    assert_lorentz_point(manifold, output, atol=1e-6, rtol=1e-6)
+
+
+def test_gyro_lorentz_batch_norm_eval_uses_running_stats():
+    dtype = torch.float64
+    manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
+    layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
+    input = manifold.random_normal(8, 3 + 1).data
+
+    layer.train()
+    layer(input)
+    running_mean = layer.running_mean.clone()
+    running_var = layer.running_var.clone()
+
+    layer.eval()
+    output = layer(manifold.random_normal(8, 3 + 1).data)
+
+    torch.testing.assert_close(layer.running_mean, running_mean)
+    torch.testing.assert_close(layer.running_var, running_var)
+    assert torch.isfinite(output).all()
+    assert_lorentz_point(manifold, output, atol=1e-6, rtol=1e-6)
+
+
+def test_gyro_lorentz_batch_norm_without_affine_or_running_stats():
+    dtype = torch.float64
+    manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
+    layer = geoopt.layers.GyroLorentzBatchNorm(
+        3,
+        manifold=manifold,
+        affine=False,
+        track_running_stats=False,
+    ).to(dtype)
+    input = manifold.random_normal(8, 3 + 1).data
+
+    output = layer(input)
+
+    assert layer.bias is None
+    assert layer.log_scale is None
+    assert layer.running_mean is None
+    assert layer.running_var is None
+    assert torch.isfinite(output).all()
+    assert_lorentz_point(manifold, output, atol=1e-6, rtol=1e-6)
+
+
+def test_gyro_lorentz_batch_norm_small_variance():
+    dtype = torch.float64
+    manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
+    layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
+    input = manifold.origin(3 + 1, dtype=dtype).data.expand(8, 3 + 1).clone()
+
+    output = layer(input)
+
+    assert torch.isfinite(output).all()
+    assert_lorentz_point(manifold, output, atol=1e-6, rtol=1e-6)
+
+
+def test_gyro_lorentz_batch_norm_backward():
+    dtype = torch.float64
+    manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
+    layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
+    input = manifold.random_normal(8, 3 + 1).data.detach().requires_grad_()
+
+    output = layer(input)
+    output.sum().backward()
+
+    assert torch.isfinite(input.grad).all()
+    assert torch.isfinite(layer.bias.grad).all()
+    assert torch.isfinite(layer.log_scale.grad).all()

@@ -79,4 +79,92 @@ class LorentzPLFC(torch.nn.Module):
             torch.nn.init.zeros_(self.bias)
 
 
+class GyroLorentzBatchNorm(torch.nn.Module):
+    """Gyrogroup batch normalization on the Lorentz model."""
+
+    def __init__(
+        self,
+        num_features,
+        *,
+        manifold=None,
+        eps=1e-5,
+        momentum=0.1,
+        affine=True,
+        track_running_stats=True,
+    ):
+        super().__init__()
+        if num_features < 1:
+            raise ValueError("num_features must be positive")
+
+        self.num_features = num_features
+        self.manifold = manifold if manifold is not None else geoopt.Lorentz()
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
+
+        if affine:
+            self.bias = geoopt.ManifoldParameter(
+                self.manifold.origin(num_features + 1), manifold=self.manifold
+            )
+            self.log_scale = torch.nn.Parameter(torch.zeros(()))
+        else:
+            self.register_parameter("bias", None)
+            self.register_parameter("log_scale", None)
+
+        if track_running_stats:
+            self.register_buffer("running_mean", self.manifold.origin(num_features + 1).data)
+            self.register_buffer("running_var", torch.ones(()))
+        else:
+            self.register_buffer("running_mean", None)
+            self.register_buffer("running_var", None)
+
+    def forward(self, input):
+        if input.size(-1) != self.num_features + 1:
+            raise ValueError(
+                f"expected input with last dimension {self.num_features + 1}, "
+                f"got {input.size(-1)}"
+            )
+
+        if self.training or not self.track_running_stats:
+            mean, var = self._compute_batch_stats(input)
+            if self.training and self.track_running_stats:
+                self._update_running_stats(mean, var)
+        else:
+            mean = self.running_mean
+            var = self.running_var
+
+        centered = self.manifold.gyroadd(self.manifold.gyroinv(mean), input)
+        factor = torch.rsqrt(var + self.eps)
+        if self.affine:
+            factor = self.log_scale.exp() * factor
+        output = self.manifold.gyroscalar(factor, centered)
+        if self.affine:
+            output = self.manifold.gyroadd(self.bias, output)
+        return output
+
+    def _compute_batch_stats(self, input):
+        reducedim = list(range(input.dim() - 1))
+        mean = self.manifold.lorentz_centroid(input, reducedim=reducedim)
+        var = self.manifold.lorentz_dispersion(input, mean, reducedim=reducedim)
+        return mean, var
+
+    @torch.no_grad()
+    def _update_running_stats(self, mean, var):
+        direction = self.manifold.logmap(self.running_mean, mean)
+        new_mean = self.manifold.expmap(self.running_mean, self.momentum * direction)
+        self.running_mean.copy_(new_mean)
+        self.running_var.mul_(1 - self.momentum).add_(self.momentum * var.detach())
+
+    def extra_repr(self):
+        return (
+            f"num_features={self.num_features}, "
+            f"eps={self.eps}, "
+            f"momentum={self.momentum}, "
+            f"affine={self.affine}, "
+            f"track_running_stats={self.track_running_stats}"
+        )
+
+
 PLFC = LorentzPLFC
+GyroLBN = GyroLorentzBatchNorm

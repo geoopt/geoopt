@@ -1,1 +1,1 @@
-from .lorentz import LorentzPLFC, PLFC
+from .lorentz import GyroLBN, GyroLorentzBatchNorm, LorentzPLFC, PLFC
