@@ -1,4 +1,5 @@
 import torch
+import pytest
 
 import geoopt
 import geoopt.layers
@@ -13,7 +14,7 @@ def test_lorentz_plfc_shape_and_manifold():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
     layer = geoopt.layers.LorentzPLFC(3, 2, manifold=manifold).to(dtype)
-    input = manifold.random_normal(4, 3 + 1).data
+    input = manifold.random_normal(4, 3 + 1).detach()
 
     output = layer(input)
 
@@ -26,7 +27,7 @@ def test_lorentz_plfc_batch_dims():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(2.0, dtype=dtype))
     layer = geoopt.layers.LorentzPLFC(4, 3, manifold=manifold, bias=False).to(dtype)
-    input = manifold.random_normal(2, 5, 4 + 1).data
+    input = manifold.random_normal(2, 5, 4 + 1).detach()
 
     output = layer(input)
 
@@ -39,7 +40,7 @@ def test_lorentz_plfc_signed_distance_matches_output_space():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
     layer = geoopt.layers.LorentzPLFC(3, 2, manifold=manifold, bias=False).to(dtype)
-    input = manifold.random_normal(4, 3 + 1).data
+    input = manifold.random_normal(4, 3 + 1).detach()
 
     distance = layer.signed_distance(input)
     output = layer(input)
@@ -49,11 +50,23 @@ def test_lorentz_plfc_signed_distance_matches_output_space():
     assert_lorentz_point(manifold, output, atol=1e-6, rtol=1e-6)
 
 
+def test_lorentz_plfc_rejects_wrong_input_shape():
+    dtype = torch.float64
+    manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
+    layer = geoopt.layers.LorentzPLFC(3, 2, manifold=manifold).to(dtype)
+    input = manifold.random_normal(4, 3 + 2).detach()
+
+    with pytest.raises(ValueError, match="last dimension"):
+        layer(input)
+    with pytest.raises(ValueError, match="last dimension"):
+        layer.signed_distance(input)
+
+
 def test_lorentz_plfc_backward():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
     layer = geoopt.layers.LorentzPLFC(3, 2, manifold=manifold).to(dtype)
-    input = manifold.random_normal(4, 3 + 1).data.detach().requires_grad_()
+    input = manifold.random_normal(4, 3 + 1).detach().requires_grad_()
 
     output = layer(input)
     output.sum().backward()
@@ -68,7 +81,7 @@ def test_gyro_lorentz_batch_norm_shape_and_manifold():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
     layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
-    input = manifold.random_normal(8, 3 + 1).data
+    input = manifold.random_normal(8, 3 + 1).detach()
 
     output = layer(input)
 
@@ -81,7 +94,7 @@ def test_gyro_lorentz_batch_norm_eval_uses_running_stats():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
     layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
-    input = manifold.random_normal(8, 3 + 1).data
+    input = manifold.random_normal(8, 3 + 1).detach()
 
     layer.train()
     layer(input)
@@ -89,7 +102,7 @@ def test_gyro_lorentz_batch_norm_eval_uses_running_stats():
     running_var = layer.running_var.clone()
 
     layer.eval()
-    output = layer(manifold.random_normal(8, 3 + 1).data)
+    output = layer(manifold.random_normal(8, 3 + 1).detach())
 
     torch.testing.assert_close(layer.running_mean, running_mean)
     torch.testing.assert_close(layer.running_var, running_var)
@@ -106,7 +119,7 @@ def test_gyro_lorentz_batch_norm_without_affine_or_running_stats():
         affine=False,
         track_running_stats=False,
     ).to(dtype)
-    input = manifold.random_normal(8, 3 + 1).data
+    input = manifold.random_normal(8, 3 + 1).detach()
 
     output = layer(input)
 
@@ -122,7 +135,7 @@ def test_gyro_lorentz_batch_norm_small_variance():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
     layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
-    input = manifold.origin(3 + 1, dtype=dtype).data.expand(8, 3 + 1).clone()
+    input = manifold.origin(3 + 1, dtype=dtype).detach().expand(8, 3 + 1).clone()
 
     output = layer(input)
 
@@ -134,7 +147,7 @@ def test_gyro_lorentz_batch_norm_backward():
     dtype = torch.float64
     manifold = geoopt.Lorentz(k=torch.tensor(1.0, dtype=dtype))
     layer = geoopt.layers.GyroLorentzBatchNorm(3, manifold=manifold).to(dtype)
-    input = manifold.random_normal(8, 3 + 1).data.detach().requires_grad_()
+    input = manifold.random_normal(8, 3 + 1).detach().requires_grad_()
 
     output = layer(input)
     output.sum().backward()

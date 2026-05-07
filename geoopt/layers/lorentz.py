@@ -51,17 +51,21 @@ class LorentzPLFC(torch.nn.Module):
 
     def signed_distance(self, input):
         r"""Compute signed Lorentz point-to-hyperplane distances."""
+        if input.size(-1) != self.in_features + 1:
+            raise ValueError(
+                f"expected input with last dimension {self.in_features + 1}, "
+                f"got {input.size(-1)}"
+            )
         input_time = input.narrow(-1, 0, 1)
         input_space = input.narrow(-1, 1, self.in_features)
         sqrt_k = torch.sqrt(self.manifold.k)
 
-        z_norm = torch.linalg.norm(self.z, dim=-1).clamp_min(self.eps)
+        beta = torch.linalg.norm(self.z, dim=-1).clamp_min(self.eps)
         cosh_term = torch.cosh(self.a / sqrt_k)
         sinh_term = torch.sinh(self.a / sqrt_k)
 
         inner = torch.einsum("...i,oi->...o", input_space, self.z)
-        alpha = cosh_term * inner - sinh_term * z_norm * input_time
-        beta = torch.sqrt(((cosh_term * z_norm) ** 2 - (sinh_term * z_norm) ** 2).clamp_min(self.eps))
+        alpha = cosh_term * inner - sinh_term * beta * input_time
         return sqrt_k * beta * torch.asinh(alpha / (sqrt_k * beta))
 
     def extra_repr(self):
@@ -113,7 +117,9 @@ class GyroLorentzBatchNorm(torch.nn.Module):
             self.register_parameter("log_scale", None)
 
         if track_running_stats:
-            self.register_buffer("running_mean", self.manifold.origin(num_features + 1).data)
+            self.register_buffer(
+                "running_mean", self.manifold.origin(num_features + 1).detach()
+            )
             self.register_buffer("running_var", torch.ones(()))
         else:
             self.register_buffer("running_mean", None)

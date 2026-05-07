@@ -250,6 +250,12 @@ def _project(x, k: torch.Tensor, dim: int = -1):
     return proj
 
 
+@torch.jit.script
+def _project_space(x, k: torch.Tensor, dim: int = -1):
+    left_ = torch.sqrt(k + torch.norm(x, p=2, dim=dim, keepdim=True) ** 2)
+    return torch.cat((left_, x), dim=dim)
+
+
 def project_polar(x, *, k, dim=-1):
     r"""
     Projection on the Hyperboloid from polar coordinates.
@@ -695,8 +701,8 @@ def _gyroadd(x, y, k: torch.Tensor, dim: int = -1):
     x_s = x.narrow(dim, 1, d)
     y_s = y.narrow(dim, 1, d)
 
-    sqrt_k = torch.sqrt(k)
     inv_k = 1.0 / k
+    sqrt_k = torch.sqrt(k)
 
     a = 1.0 + x_t / sqrt_k
     b = 1.0 + y_t / sqrt_k
@@ -717,15 +723,13 @@ def _gyroadd(x, y, k: torch.Tensor, dim: int = -1):
     sign = torch.where(sign == 0, torch.ones_like(sign), sign)
     denom = denom + sign * 1e-15
 
-    time = sqrt_k * (d_term + inv_k * n_term) / denom
-
     coef_x = a * b * b + 2.0 * inv_k * b * inner_xy + inv_k * a * norm_y
     coef_y = b * (a * a - inv_k * norm_x)
     space = 2.0 * (coef_x * x_s + coef_y * y_s) / denom
-    return _project(torch.cat((time, space), dim=dim), k=k, dim=dim)
+    return _project_space(space, k=k, dim=dim)
 
 
-def gyroinv(x, *, k=None, dim=-1):
+def gyroinv(x, *, dim=-1):
     r"""
     Compute the gyroinverse of a Lorentz point.
 

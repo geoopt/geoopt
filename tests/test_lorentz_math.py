@@ -62,14 +62,14 @@ def test_lorentz_poincare(a, k):
 
 def test_randn_mean(k):
     man = lorentz.Lorentz(k=k)
-    a = man.random_normal((10, 500), mean=0).data
+    a = man.random_normal((10, 500), mean=0).detach()
     a = man.logmap0(a).mean(dim=-1)
     np.testing.assert_allclose(a, torch.zeros_like(a), atol=1e-1, rtol=1e-1)
 
 
 def test_origin(k):
     man = lorentz.Lorentz(k=k)
-    a = man.origin(10, 10).data
+    a = man.origin(10, 10).detach()
     b = man.projx(torch.zeros(10, 10))
     np.testing.assert_allclose(a, b, atol=1e-5, rtol=1e-5)
 
@@ -210,7 +210,7 @@ def test_zero_point_ops(a, k):
 def test_lorentz_gyroadd_identity_inverse(a, k):
     man = lorentz.Lorentz(k=k)
     a = man.projx(a)
-    zero = man.origin(a.shape[-1], dtype=a.dtype, device=a.device).data
+    zero = man.origin(a.shape[-1], dtype=a.dtype, device=a.device).detach()
 
     left = man.gyroadd(zero, a)
     right = man.gyroadd(a, zero)
@@ -227,7 +227,7 @@ def test_lorentz_gyroadd_identity_inverse(a, k):
 def test_lorentz_gyroscalar_special_cases(a, k):
     man = lorentz.Lorentz(k=k)
     a = man.projx(a)
-    zero = man.origin(a.shape[-1], dtype=a.dtype, device=a.device).data
+    zero = man.origin(a.shape[-1], dtype=a.dtype, device=a.device).detach()
 
     zero_scaled = man.gyroscalar(torch.zeros((), dtype=a.dtype, device=a.device), a)
     one_scaled = man.gyroscalar(torch.ones((), dtype=a.dtype, device=a.device), a)
