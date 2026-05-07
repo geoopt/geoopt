@@ -158,6 +158,51 @@ class Lorentz(Manifold):
     def transp0back(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
         return math.parallel_transport0back(x, u, k=self.k, dim=dim)
 
+    def gyroadd(self, x: torch.Tensor, y: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.gyroadd(x, y, k=self.k, dim=dim)
+
+    def gyroinv(self, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.gyroinv(x, dim=dim)
+
+    def gyroscalar(self, r: torch.Tensor, x: torch.Tensor, *, dim=-1) -> torch.Tensor:
+        return math.gyroscalar(r, x, k=self.k, dim=dim)
+
+    def lorentz_centroid(
+        self,
+        x: torch.Tensor,
+        weights: torch.Tensor = None,
+        *,
+        reducedim=None,
+        dim=-1,
+        keepdim=False,
+    ) -> torch.Tensor:
+        return math.lorentz_centroid(
+            x,
+            weights=weights,
+            k=self.k,
+            reducedim=reducedim,
+            dim=dim,
+            keepdim=keepdim,
+        )
+
+    def lorentz_dispersion(
+        self,
+        x: torch.Tensor,
+        mean: torch.Tensor,
+        *,
+        reducedim=None,
+        dim=-1,
+        keepdim=False,
+    ) -> torch.Tensor:
+        return math.lorentz_dispersion(
+            x,
+            mean,
+            k=self.k,
+            reducedim=reducedim,
+            dim=dim,
+            keepdim=keepdim,
+        )
+
     def transp_follow_expmap(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor, *, dim=-1, project=True
     ) -> torch.Tensor:

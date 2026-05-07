@@ -1,4 +1,8 @@
+from typing import List, Optional
+
 import torch.jit
+
+from ...utils import drop_dims
 
 
 @torch.jit.script
@@ -244,6 +248,12 @@ def _project(x, k: torch.Tensor, dim: int = -1):
     right_ = x.narrow(dim, 1, dn)
     proj = torch.cat((left_, right_), dim=dim)
     return proj
+
+
+@torch.jit.script
+def _project_space(x, k: torch.Tensor, dim: int = -1):
+    left_ = torch.sqrt(k + torch.norm(x, p=2, dim=dim, keepdim=True) ** 2)
+    return torch.cat((left_, x), dim=dim)
 
 
 def project_polar(x, *, k, dim=-1):
@@ -658,6 +668,254 @@ def _parallel_transport0back(x, v, k, dim: int = -1):
     denom = _dist0(x, k=k, dim=dim, keepdim=True) ** 2
     p = v - nom / denom * (lmap + _logmap0(x, k=k, dim=dim))
     return p
+
+
+def gyroadd(x, y, *, k, dim=-1):
+    r"""
+    Compute gyroaddition on the Lorentz model.
+
+    Parameters
+    ----------
+    x : tensor
+        point on Hyperboloid
+    y : tensor
+        point on Hyperboloid
+    k : tensor
+        manifold negative curvature
+    dim : int
+        reduction dimension for operations
+
+    Returns
+    -------
+    tensor
+        gyroaddition of :math:`x` and :math:`y`
+    """
+    return _gyroadd(x, y, k=k, dim=dim)
+
+
+@torch.jit.script
+def _gyroadd(x, y, k: torch.Tensor, dim: int = -1):
+    d = x.size(dim) - 1
+    x_t = x.narrow(dim, 0, 1)
+    y_t = y.narrow(dim, 0, 1)
+    x_s = x.narrow(dim, 1, d)
+    y_s = y.narrow(dim, 1, d)
+
+    inv_k = 1.0 / k
+    sqrt_k = torch.sqrt(k)
+
+    a = 1.0 + x_t / sqrt_k
+    b = 1.0 + y_t / sqrt_k
+
+    norm_x = (x_s * x_s).sum(dim=dim, keepdim=True)
+    norm_y = (y_s * y_s).sum(dim=dim, keepdim=True)
+    inner_xy = (x_s * y_s).sum(dim=dim, keepdim=True)
+
+    d_term = (
+        a * a * b * b
+        + 2.0 * inv_k * a * b * inner_xy
+        + inv_k * inv_k * norm_x * norm_y
+    )
+    n_term = a * a * norm_y + 2.0 * a * b * inner_xy + b * b * norm_x
+
+    denom = d_term - inv_k * n_term
+    sign = torch.sign(denom)
+    sign = torch.where(sign == 0, torch.ones_like(sign), sign)
+    denom = denom + sign * 1e-15
+
+    coef_x = a * b * b + 2.0 * inv_k * b * inner_xy + inv_k * a * norm_y
+    coef_y = b * (a * a - inv_k * norm_x)
+    space = 2.0 * (coef_x * x_s + coef_y * y_s) / denom
+    return _project_space(space, k=k, dim=dim)
+
+
+def gyroinv(x, *, dim=-1):
+    r"""
+    Compute the gyroinverse of a Lorentz point.
+
+    Parameters
+    ----------
+    x : tensor
+        point on Hyperboloid
+    dim : int
+        manifold dimension
+
+    Returns
+    -------
+    tensor
+        gyroinverse of :math:`x`
+    """
+    return _gyroinv(x, dim=dim)
+
+
+@torch.jit.script
+def _gyroinv(x, dim: int = -1):
+    d = x.size(dim) - 1
+    return torch.cat((x.narrow(dim, 0, 1), -x.narrow(dim, 1, d)), dim=dim)
+
+
+def gyroscalar(r, x, *, k, dim=-1):
+    r"""
+    Compute gyro-scalar multiplication on the Lorentz model.
+
+    Parameters
+    ----------
+    r : tensor
+        scalar multiplier
+    x : tensor
+        point on Hyperboloid
+    k : tensor
+        manifold negative curvature
+    dim : int
+        manifold dimension
+
+    Returns
+    -------
+    tensor
+        gyro-scalar multiplication of :math:`x` by :math:`r`
+    """
+    if not torch.is_tensor(r):
+        r = torch.as_tensor(r, dtype=x.dtype, device=x.device)
+    if r.dim() == x.dim() - 1:
+        r = r.unsqueeze(dim)
+    return _gyroscalar(r, x, k=k, dim=dim)
+
+
+@torch.jit.script
+def _gyroscalar(r, x, k: torch.Tensor, dim: int = -1):
+    d = x.size(dim) - 1
+    x_t = x.narrow(dim, 0, 1)
+    x_s = x.narrow(dim, 1, d)
+
+    sqrt_k = torch.sqrt(k)
+    norm_s = torch.norm(x_s, p=2, dim=dim, keepdim=True).clamp_min(1e-15)
+    theta = arcosh((x_t / sqrt_k).clamp_min(1.0))
+    rtheta = r * theta
+
+    time = sqrt_k * torch.cosh(rtheta)
+    space = sqrt_k * torch.sinh(rtheta) * x_s / norm_s
+    return _project(torch.cat((time, space), dim=dim), k=k, dim=dim)
+
+
+def lorentz_centroid(
+    x,
+    weights: Optional[torch.Tensor] = None,
+    *,
+    k,
+    reducedim: Optional[List[int]] = None,
+    dim=-1,
+    keepdim=False,
+    eps=1e-8,
+):
+    r"""
+    Compute the weighted Lorentz centroid.
+
+    Parameters
+    ----------
+    x : tensor
+        points on Hyperboloid
+    weights : tensor
+        optional non-negative weights, broadcastable to ``x`` without the
+        manifold dimension
+    k : tensor
+        manifold negative curvature
+    reducedim : list[int]
+        dimensions to reduce. By default all non-manifold dimensions are reduced
+    dim : int
+        manifold dimension
+    keepdim : bool
+        retain reduced dimensions
+    eps : float
+        numerical stability constant
+
+    Returns
+    -------
+    tensor
+        Lorentz centroid
+    """
+    reducedim = _default_reducedim(x, reducedim, dim)
+    avg = _weighted_average(x, weights, reducedim, dim)
+    denom = torch.sqrt(torch.clamp_min(-_inner(avg, avg, keepdim=True, dim=dim), eps))
+    centroid = torch.sqrt(k) * avg / denom
+    centroid = _project(centroid, k=k, dim=dim)
+    if not keepdim:
+        centroid = drop_dims(centroid, reducedim)
+    return centroid
+
+
+def lorentz_dispersion(
+    x,
+    mean,
+    *,
+    k,
+    reducedim: Optional[List[int]] = None,
+    dim=-1,
+    keepdim=False,
+):
+    r"""
+    Compute mean squared tangent dispersion around a Lorentz mean.
+
+    Parameters
+    ----------
+    x : tensor
+        points on Hyperboloid
+    mean : tensor
+        centroid point on Hyperboloid
+    k : tensor
+        manifold negative curvature
+    reducedim : list[int]
+        dimensions to reduce. By default all non-manifold dimensions are reduced
+    dim : int
+        manifold dimension
+    keepdim : bool
+        retain reduced dimensions
+
+    Returns
+    -------
+    tensor
+        mean squared Lorentz tangent norm
+    """
+    reducedim = _default_reducedim(x, reducedim, dim)
+    u = _logmap(mean, x, k=k, dim=dim)
+    sqnorm = _inner(u, u, keepdim=False, dim=dim).clamp_min(0.0)
+    reducedim = _reducedim_without_manifold(reducedim, x.dim(), dim)
+    if len(reducedim) > 0:
+        sqnorm = sqnorm.mean(dim=reducedim, keepdim=keepdim)
+    return sqnorm
+
+
+def _default_reducedim(x, reducedim: Optional[List[int]], dim: int):
+    ndim = x.dim()
+    dim = dim % ndim
+    if reducedim is None:
+        reducedim = [d for d in range(ndim) if d != dim]
+    else:
+        reducedim = sorted(d % ndim for d in reducedim if d % ndim != dim)
+    return reducedim
+
+
+def _reducedim_without_manifold(reducedim: List[int], ndim: int, dim: int):
+    dim = dim % ndim
+    result = []
+    for d in reducedim:
+        if d < dim:
+            result.append(d)
+        elif d > dim:
+            result.append(d - 1)
+    return result
+
+
+def _weighted_average(x, weights, reducedim: List[int], dim: int):
+    if len(reducedim) == 0:
+        return x
+    if weights is None or weights.dim() == 0:
+        return x.mean(dim=reducedim, keepdim=True)
+    dim = dim % x.dim()
+    if weights.dim() == x.dim() - 1:
+        weights = weights.unsqueeze(dim)
+    weights = torch.broadcast_to(weights, x.shape)
+    denom = weights.sum(dim=reducedim, keepdim=True).clamp_min(1e-15)
+    return (x * weights).sum(dim=reducedim, keepdim=True) / denom
 
 
 def geodesic_unit(t, x, u, *, k):

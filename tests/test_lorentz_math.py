@@ -62,14 +62,14 @@ def test_lorentz_poincare(a, k):
 
 def test_randn_mean(k):
     man = lorentz.Lorentz(k=k)
-    a = man.random_normal((10, 500), mean=0).data
+    a = man.random_normal((10, 500), mean=0).detach()
     a = man.logmap0(a).mean(dim=-1)
     np.testing.assert_allclose(a, torch.zeros_like(a), atol=1e-1, rtol=1e-1)
 
 
 def test_origin(k):
     man = lorentz.Lorentz(k=k)
-    a = man.origin(10, 10).data
+    a = man.origin(10, 10).detach()
     b = man.projx(torch.zeros(10, 10))
     np.testing.assert_allclose(a, b, atol=1e-5, rtol=1e-5)
 
@@ -205,6 +205,55 @@ def test_zero_point_ops(a, k):
     lmap = man.logmap(a, zero)
 
     np.testing.assert_allclose(lmap, lmap_z, atol=1e-5, rtol=1e-5)
+
+
+def test_lorentz_gyroadd_identity_inverse(a, k):
+    man = lorentz.Lorentz(k=k)
+    a = man.projx(a)
+    zero = man.origin(a.shape[-1], dtype=a.dtype, device=a.device).detach()
+
+    left = man.gyroadd(zero, a)
+    right = man.gyroadd(a, zero)
+    inv = man.gyroadd(man.gyroinv(a), a)
+
+    np.testing.assert_allclose(left, a, atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(right, a, atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(inv, zero.expand_as(inv), atol=1e-5, rtol=1e-5)
+    assert man._check_point_on_manifold(left)[0]
+    assert man._check_point_on_manifold(right)[0]
+    assert man._check_point_on_manifold(inv)[0]
+
+
+def test_lorentz_gyroscalar_special_cases(a, k):
+    man = lorentz.Lorentz(k=k)
+    a = man.projx(a)
+    zero = man.origin(a.shape[-1], dtype=a.dtype, device=a.device).detach()
+
+    zero_scaled = man.gyroscalar(torch.zeros((), dtype=a.dtype, device=a.device), a)
+    one_scaled = man.gyroscalar(torch.ones((), dtype=a.dtype, device=a.device), a)
+
+    np.testing.assert_allclose(zero_scaled, zero.expand_as(zero_scaled), atol=1e-5)
+    np.testing.assert_allclose(one_scaled, a, atol=1e-5, rtol=1e-5)
+    assert man._check_point_on_manifold(zero_scaled)[0]
+    assert man._check_point_on_manifold(one_scaled)[0]
+
+
+def test_lorentz_centroid_and_dispersion(a, k):
+    man = lorentz.Lorentz(k=k)
+    a = man.projx(a.detach()).requires_grad_()
+    weights = torch.rand(a.shape[0], dtype=a.dtype, device=a.device)
+
+    centroid = man.lorentz_centroid(a, weights=weights, reducedim=[0])
+    dispersion = man.lorentz_dispersion(a, centroid, reducedim=[0])
+
+    assert centroid.shape == a.shape[-1:]
+    assert dispersion.shape == torch.Size([])
+    assert torch.isfinite(centroid).all()
+    assert torch.isfinite(dispersion).all()
+    assert man._check_point_on_manifold(centroid)[0]
+
+    (centroid.sum() + dispersion).backward()
+    assert torch.isfinite(a.grad).all()
 
 
 def test_parallel_transport_a_b(a, b, k):
