@@ -54,7 +54,18 @@ def sign(x):
 
 @torch.jit.script
 def sabs(x, eps: float = 1e-15):
-    return x.abs().add_(eps)
+    """Absolute value with a floor, used to keep ``sqrt``/division safe near 0.
+
+    The floor is applied with ``clamp_min`` rather than by adding ``eps``. Both
+    keep the result away from zero, but adding shifts *every* value, including
+    the ones that were never at risk, and that shift breaks the scale relation
+    the stereographic curvature ``k`` obeys: ``sabs`` is used to form
+    ``sqrt(|k|)``, the inverse ball radius, and ``|k| + eps`` does not scale
+    like ``|k|`` under ``k -> k * s**2``. ``clamp_min`` is the identity for any
+    ``|x| >= eps``, so the relation is exact wherever the guard is not needed
+    and the guard still does its job where it is.
+    """
+    return x.abs().clamp_min(eps)
 
 
 @torch.jit.script
