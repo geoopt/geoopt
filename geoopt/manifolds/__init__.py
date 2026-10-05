@@ -20,12 +20,14 @@ from .stereographic import (
 )
 from .product import ProductManifold, StereographicProductManifold
 from .lorentz import Lorentz
+from .proper_velocity import ProperVelocity
 from .scaled import Scaled
 from . import (
     stereographic,
     birkhoff_polytope,
     euclidean,
     product,
+    proper_velocity,
     scaled,
     sphere,
     stiefel,

@@ -34,6 +34,7 @@ manifold_shapes = {
     geoopt.manifolds.SymmetricPositiveDefinite: (2, 2),
     geoopt.manifolds.UpperHalf: (3, 3),
     geoopt.manifolds.BoundedDomain: (3, 3),
+    geoopt.manifolds.ProperVelocity: (3,),
 }
 
 
@@ -170,6 +171,20 @@ def poincare_case():
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)
     yield case
+
+
+def proper_velocity_case():
+    torch.manual_seed(42)
+    shape = manifold_shapes[geoopt.manifolds.ProperVelocity]
+    ex = torch.randn(*shape, dtype=torch.float64) * 2
+    ev = torch.randn(*shape, dtype=torch.float64)
+    x = ex.clone()
+    v = ev.clone()
+    for k in [1.0, 0.5]:
+        manifold = geoopt.ProperVelocity(k=k).to(dtype=torch.float64)
+        x = geoopt.ManifoldTensor(x, manifold=manifold)
+        case = UnaryCase(shape, x, ex, v, ev, manifold)
+        yield case
 
 
 def stereographic_case():
@@ -415,6 +430,7 @@ def scaled(request):
         spd_case(),
         upper_half_case(),
         bounded_domain_case(),
+        proper_velocity_case(),
     ),
     ids=lambda case: case.manifold.__class__.__name__,
 )
