@@ -107,6 +107,78 @@ def test_pv_layers_reject_wrong_input_shape(cls):
         layer(torch.randn(4, 4, dtype=DTYPE))
 
 
+def test_gyro_pv_bn_normalizes_statistics():
+    torch.manual_seed(0)
+    manifold = make_manifold(1.0)
+    layer = geoopt.layers.GyroProperVelocityBatchNorm(3, manifold=manifold, tol=1e-12).to(DTYPE)
+    input = manifold.random_normal(64, 3, std=4.0, mean=1.0).detach()
+
+    output = layer(input)
+    mean = manifold.frechet_mean(output, tol=1e-12)
+    var = manifold.frechet_variance(output, mean)
+
+    torch.testing.assert_close(mean, torch.zeros(3, dtype=DTYPE), atol=1e-8, rtol=0)
+    batch_var = manifold.frechet_variance(input, manifold.frechet_mean(input, tol=1e-12))
+    torch.testing.assert_close(var, batch_var / (batch_var + layer.eps))
+
+
+def test_gyro_pv_bn_bias_and_scale():
+    torch.manual_seed(0)
+    manifold = make_manifold(1.0)
+    layer = geoopt.layers.GyroProperVelocityBatchNorm(3, manifold=manifold, tol=1e-12).to(DTYPE)
+    with torch.no_grad():
+        layer.bias.copy_(torch.tensor([0.5, -1.0, 2.0], dtype=DTYPE))
+        layer.log_scale.fill_(0.3)
+    input = manifold.random_normal(64, 3, std=2.0).detach()
+
+    output = layer(input)
+    mean = manifold.frechet_mean(output, tol=1e-12)
+
+    torch.testing.assert_close(mean, layer.bias.detach(), atol=1e-8, rtol=0)
+    centered = manifold.gyroadd(-layer.bias.detach(), output)
+    var0 = manifold.frechet_variance(centered, torch.zeros(3, dtype=DTYPE))
+    batch_var = manifold.frechet_variance(input, manifold.frechet_mean(input, tol=1e-12))
+    torch.testing.assert_close(
+        var0, torch.exp(torch.tensor(0.6, dtype=DTYPE)) * batch_var / (batch_var + layer.eps)
+    )
+
+
+def test_gyro_pv_bn_running_stats_and_eval():
+    manifold = make_manifold(1.0)
+    layer = geoopt.layers.GyroProperVelocityBatchNorm(3, manifold=manifold, momentum=0.5).to(DTYPE)
+    input = manifold.random_normal(32, 3, mean=1.0).detach()
+
+    layer(input)
+    assert not torch.allclose(layer.running_mean, torch.zeros(3, dtype=DTYPE))
+    assert not torch.allclose(layer.running_var, torch.ones((), dtype=DTYPE))
+
+    layer.eval()
+    running_mean = layer.running_mean.clone()
+    output = layer(input)
+    expected = manifold.gyroscalar(
+        torch.rsqrt(layer.running_var + layer.eps), manifold.gyroadd(-running_mean, input)
+    )
+    torch.testing.assert_close(output, expected)
+    torch.testing.assert_close(layer.running_mean, running_mean)
+
+
+def test_gyro_pv_bn_batch_dims_affine_false_and_backward():
+    manifold = make_manifold(2.0)
+    layer = geoopt.layers.GyroProperVelocityBatchNorm(
+        4, manifold=manifold, affine=False, track_running_stats=False
+    ).to(DTYPE)
+    input = manifold.random_normal(2, 6, 4).detach().requires_grad_()
+
+    output = layer(input)
+    output.sum().backward()
+
+    assert output.shape == (2, 6, 4)
+    assert layer.bias is None and layer.running_mean is None
+    assert torch.isfinite(input.grad).all()
+    with pytest.raises(ValueError, match="last dimension"):
+        layer(torch.randn(4, 3, dtype=DTYPE))
+
+
 def test_pv_layers_validate_arguments_and_repr():
     for cls in [geoopt.layers.ProperVelocityMLR, geoopt.layers.ProperVelocityFC]:
         with pytest.raises(ValueError, match="in_features"):
@@ -121,3 +193,55 @@ def test_pv_layers_validate_arguments_and_repr():
     assert torch.all(fc.bias == 0) and torch.all(fc.r == 0)
     assert "bias=True" in repr(fc)
     assert "out_features=2" in repr(geoopt.layers.ProperVelocityMLR(3, 2))
+
+
+def test_gyro_pv_bn_differentiable_stats():
+    torch.manual_seed(0)
+    manifold = make_manifold(1.0)
+    input = manifold.random_normal(16, 3, std=2.0).detach()
+    weight = torch.randn(16, 3, dtype=DTYPE)
+
+    def loss_fn(x, layer):
+        return (layer(x) * weight).sum()
+
+    layer = geoopt.layers.GyroProperVelocityBatchNorm(
+        3, manifold=manifold, track_running_stats=False, tol=1e-12, differentiable_stats=True
+    ).to(DTYPE)
+    x = input.clone().requires_grad_()
+    loss_fn(x, layer).backward()
+    # central finite differences of the full normalization, including the batch statistics
+    eps = 1e-6
+    numeric = torch.zeros_like(input)
+    for i in range(input.size(0)):
+        for j in range(input.size(1)):
+            delta = torch.zeros_like(input)
+            delta[i, j] = eps
+            numeric[i, j] = (loss_fn(input + delta, layer) - loss_fn(input - delta, layer)) / (
+                2 * eps
+            )
+    torch.testing.assert_close(x.grad, numeric, atol=1e-5, rtol=1e-5)
+
+    detached = geoopt.layers.GyroProperVelocityBatchNorm(
+        3, manifold=manifold, track_running_stats=False, tol=1e-12
+    ).to(DTYPE)
+    x = input.clone().requires_grad_()
+    loss_fn(x, detached).backward()
+    assert not torch.allclose(x.grad, numeric, atol=1e-3)
+
+
+def test_gyro_pv_bn_single_point():
+    manifold = make_manifold(1.0)
+    layer = geoopt.layers.GyroProperVelocityBatchNorm(4, manifold=manifold).to(DTYPE)
+    input = torch.randn(4, dtype=DTYPE)
+    output = layer(input)
+    torch.testing.assert_close(output, layer.bias.detach())
+    torch.testing.assert_close(
+        layer.running_mean,
+        manifold.geodesic(torch.tensor(0.1, dtype=DTYPE), torch.zeros(4, dtype=DTYPE), input),
+    )
+
+
+def test_gyro_pv_bn_validates_arguments_and_repr():
+    with pytest.raises(ValueError, match="num_features"):
+        geoopt.layers.GyroProperVelocityBatchNorm(0)
+    assert "num_features=3" in repr(geoopt.layers.GyroProperVelocityBatchNorm(3))

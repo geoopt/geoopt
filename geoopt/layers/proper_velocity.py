@@ -148,5 +148,137 @@ class ProperVelocityFC(ProperVelocityMLR):
             torch.nn.init.zeros_(self.bias)
 
 
+class GyroProperVelocityBatchNorm(torch.nn.Module):
+    r"""
+    Gyrogroup batch normalization on the Proper Velocity model (Chen et al., 2026, Sec. 5.4).
+
+    .. math::
+
+        \tilde{x}_i = \beta \oplus \left(\frac{s}{\sqrt{\sigma^2 + \epsilon}} \otimes
+        (\ominus \mu \oplus x_i)\right)
+
+    where :math:`\mu` and :math:`\sigma^2` are the Fréchet mean and variance of the batch, and
+    :math:`\beta` and :math:`s` are the learnable bias and scale. All dimensions except the last
+    one are treated as batch dimensions. The Fréchet mean is computed with Karcher flow. By default
+    the batch statistics are treated as constants in the backward pass, as in the reference
+    implementation of the paper; with ``differentiable_stats=True`` gradients also flow through
+    the Karcher flow and the variance, like in standard batch normalization (at a higher cost).
+
+    Parameters
+    ----------
+    num_features : int
+        dimension of the PV points
+    manifold : geoopt.ProperVelocity
+        manifold of inputs and outputs, defaults to ``geoopt.ProperVelocity()``
+    eps : float
+        added to the variance for numerical stability
+    momentum : float
+        momentum of the running statistics
+    affine : bool
+        learn the bias :math:`\beta` and scale :math:`s`
+    track_running_stats : bool
+        keep running statistics for evaluation
+    max_iter : int
+        maximum number of Karcher flow iterations for the Fréchet mean
+    tol : float
+        tolerance of the Karcher flow
+    differentiable_stats : bool
+        backpropagate through the batch statistics
+    """
+
+    def __init__(
+        self,
+        num_features,
+        *,
+        manifold=None,
+        eps=1e-5,
+        momentum=0.1,
+        affine=True,
+        track_running_stats=True,
+        max_iter=100,
+        tol=1e-6,
+        differentiable_stats=False,
+    ):
+        super().__init__()
+        if num_features < 1:
+            raise ValueError("num_features must be positive")
+
+        self.num_features = num_features
+        self.manifold = manifold if manifold is not None else geoopt.ProperVelocity()
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
+        self.max_iter = max_iter
+        self.tol = tol
+        self.differentiable_stats = differentiable_stats
+
+        if affine:
+            self.bias = geoopt.ManifoldParameter(
+                self.manifold.origin(num_features), manifold=self.manifold
+            )
+            self.log_scale = torch.nn.Parameter(torch.zeros(()))
+        else:
+            self.register_parameter("bias", None)
+            self.register_parameter("log_scale", None)
+
+        if track_running_stats:
+            self.register_buffer("running_mean", self.manifold.origin(num_features).detach())
+            self.register_buffer("running_var", torch.ones(()))
+        else:
+            self.register_buffer("running_mean", None)
+            self.register_buffer("running_var", None)
+
+    def forward(self, input):
+        if input.size(-1) != self.num_features:
+            raise ValueError(
+                f"expected input with last dimension {self.num_features}, got {input.size(-1)}"
+            )
+
+        if self.training or not self.track_running_stats:
+            mean, var = self._compute_batch_stats(input)
+            if self.training and self.track_running_stats:
+                self._update_running_stats(mean, var)
+        else:
+            mean = self.running_mean
+            var = self.running_var
+
+        centered = self.manifold.gyroadd(self.manifold.gyroinv(mean), input)
+        factor = torch.rsqrt(var + self.eps)
+        if self.affine:
+            factor = self.log_scale.exp() * factor
+        output = self.manifold.gyroscalar(factor, centered)
+        if self.affine:
+            output = self.manifold.gyroadd(self.bias, output)
+        return output
+
+    def _compute_batch_stats(self, input):
+        reducedim = list(range(input.dim() - 1))
+        with torch.set_grad_enabled(self.differentiable_stats and torch.is_grad_enabled()):
+            mean = self.manifold.frechet_mean(
+                input, reducedim=reducedim, max_iter=self.max_iter, tol=self.tol
+            )
+            var = self.manifold.frechet_variance(input, mean, reducedim=reducedim)
+        return mean, var
+
+    @torch.no_grad()
+    def _update_running_stats(self, mean, var):
+        direction = self.manifold.logmap(self.running_mean, mean)
+        new_mean = self.manifold.expmap(self.running_mean, self.momentum * direction)
+        self.running_mean.copy_(new_mean)
+        self.running_var.mul_(1 - self.momentum).add_(self.momentum * var)
+
+    def extra_repr(self):
+        return (
+            f"num_features={self.num_features}, "
+            f"eps={self.eps}, "
+            f"momentum={self.momentum}, "
+            f"affine={self.affine}, "
+            f"track_running_stats={self.track_running_stats}, "
+            f"differentiable_stats={self.differentiable_stats}"
+        )
+
+
 PVMLR = ProperVelocityMLR
 PVFC = ProperVelocityFC
+GyroPVBN = GyroProperVelocityBatchNorm
