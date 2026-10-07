@@ -289,8 +289,8 @@ class SymmetricPositiveDefinite(Manifold):
             @ sqrt_x
         )
 
-    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
-        tens = 0.5 * torch.randn(*size, dtype=dtype, device=device)
+    def random(self, *size, dtype=None, device=None, generator=None, **kwargs) -> torch.Tensor:
+        tens = 0.5 * torch.randn(*size, dtype=dtype, device=device, generator=generator)
         tens = linalg.sym(tens)
         tens = linalg.sym_funcm(tens, torch.exp)
         return tens

@@ -408,15 +408,23 @@ class ProductManifold(Manifold):
         return cls(*init)
 
     def random_combined(
-        self, *size, dtype=None, device=None
+        self, *size, dtype=None, device=None, generator=None
     ) -> "geoopt.ManifoldTensor":
+        """Sample components sequentially using the same optional generator.
+
+        Component ``random`` methods must accept ``generator``. The generator
+        must be compatible with each component's effective sampling device.
+        See :meth:`Manifold.random` for sampling arguments.
+        """
         shape = geoopt.utils.size2shape(*size)
         self._assert_check_shape(shape, "x")
         batch_shape = shape[:-1]
         points = []
         for manifold, shape in zip(self.manifolds, self.shapes):
             points.append(
-                manifold.random(batch_shape + shape, dtype=dtype, device=device)
+                manifold.random(
+                    batch_shape + shape, dtype=dtype, device=device, generator=generator
+                )
             )
         tensor = self.pack_point(*points)
         return geoopt.ManifoldTensor(tensor, manifold=self)
@@ -620,7 +628,13 @@ class StereographicProductManifold(ProductManifold):
         std: Union[torch.Tensor, int, float] = 1,
         dtype=None,
         device=None,
+        generator=None,
     ) -> "geoopt.ManifoldTensor":
+        """Sample wrapped normals with one optional generator shared by components.
+
+        ``generator`` must be compatible with every component's sampling device.
+        If None, each component uses its device's default generator.
+        """
         shape = size2shape(*size)
         self._assert_check_shape(shape, "x")
         batch_shape = shape[:-1]
@@ -635,6 +649,7 @@ class StereographicProductManifold(ProductManifold):
                     std=self.take_submanifold_value(std, i),
                     dtype=dtype,
                     device=device,
+                    generator=generator,
                 )
             )
         tensor = self.pack_point(*points)

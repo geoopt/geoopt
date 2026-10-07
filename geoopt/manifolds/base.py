@@ -924,12 +924,28 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
             raise ValueError("1 tensor expected, got {}".format(len(tensors)))
         return tensors[0]
 
-    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
+    def random(self, *size, dtype=None, device=None, generator=None, **kwargs) -> torch.Tensor:
         """
         Random sampling on the manifold.
 
         The exact implementation depends on manifold and usually does not follow all
         assumptions about uniform measure, etc.
+
+        Parameters
+        ----------
+        size : shape
+            the desired output shape
+        dtype : torch.dtype, optional
+            desired dtype
+        device : torch.device, optional
+            desired device; some manifolds use their parameter or buffer device
+        generator : torch.Generator, optional
+            Random number generator compatible with the effective sampling device.
+            If None, uses the default generator for that device. Supplying a
+            dedicated generator leaves the default generator state unchanged.
+            Reproducibility is limited to the same device and PyTorch environment.
+        **kwargs
+            Additional arguments for the manifold's sampling method.
         """
         raise NotImplementedError
 

@@ -144,7 +144,7 @@ class BirkhoffPolytope(Manifold):
         y = self.expmap(x, u)
         return self.transp(x, y, v)
 
-    def random_naive(self, *size, dtype=None, device=None) -> torch.Tensor:
+    def random_naive(self, *size, dtype=None, device=None, generator=None) -> torch.Tensor:
         """
         Naive approach to get random matrix on Birkhoff Polytope manifold.
 
@@ -159,6 +159,9 @@ class BirkhoffPolytope(Manifold):
             desired dtype
         device : torch.device
             desired device
+        generator : torch.Generator, optional
+            Random number generator on the sampling device. If None, uses the
+            default generator for that device.
 
         Returns
         -------
@@ -167,7 +170,7 @@ class BirkhoffPolytope(Manifold):
         """
         self._assert_check_shape(size2shape(*size), "x")
         # projection requires all values be non-negative
-        tens = torch.randn(*size, device=device, dtype=dtype).abs_()
+        tens = torch.randn(*size, device=device, dtype=dtype, generator=generator).abs_()
         return ManifoldTensor(self.projx(tens), manifold=self)
 
     random = random_naive
