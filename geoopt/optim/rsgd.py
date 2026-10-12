@@ -93,13 +93,14 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                     else:
                         manifold = self._default_manifold
 
-                    grad.add_(point, alpha=weight_decay)
+                    if weight_decay != 0:
+                        grad = grad.add(point, alpha=weight_decay)
                     grad = manifold.egrad2rgrad(point, grad)
                     if momentum > 0:
                         momentum_buffer = state["momentum_buffer"]
                         momentum_buffer.mul_(momentum).add_(grad, alpha=1 - dampening)
                         if nesterov:
-                            grad = grad.add_(momentum_buffer, alpha=momentum)
+                            grad = grad.add(momentum_buffer, alpha=momentum)
                         else:
                             grad = momentum_buffer
                         # we have all the things projected
