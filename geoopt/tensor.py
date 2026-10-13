@@ -116,7 +116,7 @@ class ManifoldTensor(torch.Tensor):
         if p == "g":
             return self.manifold.dist(self, other, **kwargs)
         else:
-            return super().dist(other)
+            return super().dist(other, p=p)
 
     @insert_docs(Manifold.logmap.__doc__, r"\s+x : .+\n.+", "")
     def logmap(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
