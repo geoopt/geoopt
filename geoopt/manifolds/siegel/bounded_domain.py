@@ -177,8 +177,8 @@ class BoundedDomain(SiegelManifold):
         reason = None if ok else "'Id - overline{Z}Z' is not definite positive"
         return ok, reason
 
-    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
-        points = UpperHalf().random(*size, dtype=dtype, device=device, **kwargs)
+    def random(self, *size, dtype=None, device=None, generator=None, **kwargs) -> torch.Tensor:
+        points = UpperHalf().random(*size, dtype=dtype, device=device, generator=generator, **kwargs)
         return sm.inverse_cayley_transform(points)
 
     def origin(

@@ -402,7 +402,7 @@ class Stereographic(Manifold):
 
     @__scaling__(ScalingInfo(std=-1), "random")
     def random_normal(
-        self, *size, mean=0, std=1, dtype=None, device=None
+        self, *size, mean=0, std=1, dtype=None, device=None, generator=None
     ) -> "geoopt.ManifoldTensor":
         """
         Create a point on the manifold, measure is induced by Normal distribution on the tangent space of zero.
@@ -419,6 +419,9 @@ class Stereographic(Manifold):
             target dtype for sample, if not None, should match Manifold dtype
         device: torch.device
             target device for sample, if not None, should match Manifold device
+        generator : torch.Generator, optional
+            Random number generator on the sampling device. If None, uses the
+            default generator for that device.
 
         Returns
         -------
@@ -440,7 +443,7 @@ class Stereographic(Manifold):
                 "`dtype` does not match the manifold `dtype`, set the `dtype` argument to None"
             )
         tens = (
-            torch.randn(size, device=self.k.device, dtype=self.k.dtype)
+            torch.randn(size, device=self.k.device, dtype=self.k.dtype, generator=generator)
             * std
             / size[-1] ** 0.5
             + mean
@@ -451,7 +454,7 @@ class Stereographic(Manifold):
 
     @__scaling__(ScalingInfo(std=-1))
     def wrapped_normal(
-        self, *size, mean: torch.Tensor, std=1, dtype=None, device=None
+        self, *size, mean: torch.Tensor, std=1, dtype=None, device=None, generator=None
     ) -> "geoopt.ManifoldTensor":
         """
         Create a point on the manifold, measure is induced by Normal distribution on the tangent space of mean.
@@ -473,6 +476,9 @@ class Stereographic(Manifold):
             target dtype for sample, if not None, should match Manifold dtype
         device: torch.device
             target device for sample, if not None, should match Manifold device
+        generator : torch.Generator, optional
+            Random number generator on the sampling device. If None, uses the
+            default generator for that device.
 
         Returns
         -------
@@ -493,7 +499,7 @@ class Stereographic(Manifold):
             raise ValueError(
                 "`dtype` does not match the manifold `dtype`, set the `dtype` argument to None"
             )
-        v = torch.randn(size, device=self.k.device, dtype=self.k.dtype) * std
+        v = torch.randn(size, device=self.k.device, dtype=self.k.dtype, generator=generator) * std
         lambda_x = self.lambda_x(mean).unsqueeze(-1)
         return geoopt.ManifoldTensor(self.expmap(mean, v / lambda_x), manifold=self)
 
