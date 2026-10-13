@@ -38,3 +38,47 @@ def test_adam_birkhoff(params):
     assert X.is_contiguous()
 
     np.testing.assert_allclose(X.data, Xstar, atol=1e-3, rtol=1e-3)
+
+
+def test_check_point_rejects_negative_entries():
+    birkhoff = geoopt.manifolds.BirkhoffPolytope()
+    x_bad = torch.tensor(
+        [[2.0, -1.0, 0.0], [-1.0, 2.0, 0.0], [0.0, 0.0, 1.0]]
+    )
+    ok, _ = birkhoff._check_point_on_manifold(x_bad)
+    assert not ok
+    # a genuine doubly stochastic matrix still passes
+    ok, _ = birkhoff._check_point_on_manifold(torch.eye(3))
+    assert ok
+
+
+def test_retr_at_vertex_permutation_matrix():
+    birkhoff = geoopt.manifolds.BirkhoffPolytope()
+    P = torch.eye(3)
+    torch.manual_seed(0)
+    u = torch.randn(3, 3)
+    u = u - u.mean(dim=0, keepdim=True)
+    u = u - u.mean(dim=1, keepdim=True)
+    ok, reason = birkhoff._check_vector_on_tangent(P, u)
+    assert ok, reason
+    y = birkhoff.retr(P, u)
+    assert torch.isfinite(y).all()
+    assert (y >= 0).all()
+    np.testing.assert_allclose(
+        y.sum(dim=-1), torch.ones(3), atol=1e-4, rtol=0.0
+    )
+    np.testing.assert_allclose(
+        y.sum(dim=-2), torch.ones(3), atol=1e-4, rtol=0.0
+    )
+
+
+def test_proj_doubly_stochastic_default_eps_accuracy():
+    torch.manual_seed(1)
+    x = torch.rand(4, 4)
+    y = geoopt.manifolds.birkhoff_polytope.proj_doubly_stochastic(x)
+    np.testing.assert_allclose(
+        y.sum(dim=-1), torch.ones(4), atol=1e-5, rtol=1e-5
+    )
+    np.testing.assert_allclose(
+        y.sum(dim=-2), torch.ones(4), atol=1e-5, rtol=1e-5
+    )
