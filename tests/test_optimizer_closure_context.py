@@ -55,3 +55,28 @@ def test_optimizer_closure_grad_context(optimizer_type, reference_type, sparse, 
         torch.testing.assert_close(result, expected_loss)
         torch.testing.assert_close(point, reference, rtol=1e-12, atol=1e-12)
     assert modes == [True, True]
+
+
+@pytest.mark.parametrize("outer_grad_enabled", [False, True])
+@pytest.mark.parametrize("method", ["armijo", "wolfe"])
+def test_line_search_closure_grad_context(method, outer_grad_enabled):
+    point = torch.nn.Parameter(torch.tensor([1.0, 2.0], dtype=torch.float64))
+    optimizer = geoopt.optim.RiemannianLineSearch(
+        [point], line_search_method=method, cg_method="steepest"
+    )
+    modes = []
+
+    def closure():
+        modes.append(torch.is_grad_enabled())
+        optimizer.zero_grad()
+        loss = point.square().sum()
+        loss.backward()
+        return loss.item()
+
+    with torch.set_grad_enabled(outer_grad_enabled):
+        result = optimizer.step(closure)
+        assert torch.is_grad_enabled() == outer_grad_enabled
+    assert len(modes) >= 2
+    assert all(modes)
+    assert abs(result) < 1e-12
+    torch.testing.assert_close(point, torch.zeros_like(point), rtol=0.0, atol=1e-12)

@@ -266,7 +266,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
                 point.copy_(new_point)
 
         # recompute loss at new point
-        phi = self.closure()
+        with torch.enable_grad():
+            phi = self.closure()
 
         if self.compute_derphi:
             # Store new gradients in state
@@ -337,7 +338,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         """
 
         if recompute_gradients or (not self._grads_computed):
-            loss = self.closure()
+            with torch.enable_grad():
+                loss = self.closure()
             reuse_grads = False
         else:
             loss = self.prev_loss
