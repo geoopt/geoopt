@@ -80,7 +80,8 @@ class BirkhoffPolytope(Manifold):
         col_ok = torch.allclose(
             col_sum, col_sum.new((1,)).fill_(1), atol=atol, rtol=rtol
         )
-        if row_ok and col_ok:
+        nonneg_ok = bool((x >= -atol).all())
+        if row_ok and col_ok and nonneg_ok:
             return True, None
         else:
             return (
@@ -112,10 +113,23 @@ class BirkhoffPolytope(Manifold):
     egrad2rgrad = proju
 
     def retr(self, x, u):
-        k = u / x
-        y = x * torch.exp(k)
-        y = self.projx(y)
-        y = torch.max(y, y.new(1).fill_(1e-12))
+        eps = 1e-12
+        k = u / torch.clamp(x, min=eps)
+        k = torch.clamp(k, max=50.0)
+        y = torch.where(
+            x > eps,
+            x * torch.exp(k),
+            torch.max(torch.clamp(x + u, min=0.0), x.new(1).fill_(1e-3)),
+        )
+        if (x <= eps).any():
+            # points with (near-)zero entries make the support almost singular,
+            # so Sinkhorn converges only linearly; give the projection a
+            # larger iteration budget there (max_iter=100 suffices for interior
+            # points and keeps the common case fast)
+            y = proj_doubly_stochastic(x=y, max_iter=500, eps=self.eps, tol=self.tol)
+        else:
+            y = self.projx(y)
+        y = torch.max(y, y.new(1).fill_(eps))
         return y
 
     expmap = retr
@@ -200,19 +214,23 @@ class BirkhoffPolytope(Manifold):
 
 @torch.jit.script
 def proj_doubly_stochastic(
-    x, max_iter: int = 300, eps: float = 1e-5, tol: float = 1e-5
+    x, max_iter: int = 300, eps: float = 1e-12, tol: float = 1e-5
 ):
     it_num = 0
     c = 1.0 / (x.sum(dim=-2, keepdim=True) + eps)
     r = 1.0 / ((x @ c.transpose(-1, -2)) + eps)
+    y = x * (r @ c)
     while it_num < max_iter:
+        if torch.max(
+            torch.abs(y.sum(dim=-2, keepdim=True) - 1)
+        ) <= tol and torch.max(torch.abs(y.sum(dim=-1, keepdim=True) - 1)) <= tol:
+            break
         it_num += 1
         cinv = torch.matmul(r.transpose(-1, -2), x)
-        if torch.max(torch.abs(cinv * c - 1)) <= tol:
-            break
         c = 1.0 / (cinv + eps)
         r = 1.0 / ((x @ c.transpose(-1, -2)) + eps)
-    return x * (r @ c)
+        y = x * (r @ c)
+    return y
 
 
 @torch.jit.script
