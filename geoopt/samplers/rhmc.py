@@ -111,7 +111,7 @@ class RHMC(Sampler):
                     egrad2rgrad = manifold.egrad2rgrad
 
                     r = self.state[p]["r"]
-                    r.add_(0.5 * epsilon * egrad2rgrad(p, p.grad))
+                    r.add_(0.5 * group["epsilon"] * egrad2rgrad(p, p.grad))
                     p.grad.zero_()
 
                     new_H += 0.5 * (r * r).sum().item()
