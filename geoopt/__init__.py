@@ -26,6 +26,7 @@ from .manifolds import (
     StereographicProductManifold,
     Scaled,
     Lorentz,
+    ProperVelocity,
     BirkhoffPolytope,
     SymmetricPositiveDefinite,
     UpperHalf,
