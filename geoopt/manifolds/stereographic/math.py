@@ -1543,7 +1543,9 @@ def dist2plane(
     signed : bool
         return signed distance
     scaled : bool
-        scale distance by tangent norm
+        scale distance by the Euclidean norm :math:`\|a\|_2`, not the
+        Riemannian norm :math:`\lambda^\kappa_p \|a\|_2`. For a fixed
+        :math:`a`, this scaling factor is independent of :math:`p`.
     dim : int
         reduction dimension for operations
 
