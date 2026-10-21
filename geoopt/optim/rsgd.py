@@ -84,10 +84,6 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                         )
                     state = self.state[point]
 
-                    # State initialization
-                    if len(state) == 0:
-                        if momentum > 0:
-                            state["momentum_buffer"] = grad.clone()
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:
@@ -96,8 +92,11 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                     grad.add_(point, alpha=weight_decay)
                     grad = manifold.egrad2rgrad(point, grad)
                     if momentum > 0:
-                        momentum_buffer = state["momentum_buffer"]
-                        momentum_buffer.mul_(momentum).add_(grad, alpha=1 - dampening)
+                        if "momentum_buffer" not in state:
+                            momentum_buffer = state["momentum_buffer"] = grad.clone()
+                        else:
+                            momentum_buffer = state["momentum_buffer"]
+                            momentum_buffer.mul_(momentum).add_(grad, alpha=1 - dampening)
                         if nesterov:
                             grad = grad.add_(momentum_buffer, alpha=momentum)
                         else:
