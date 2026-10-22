@@ -68,7 +68,8 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
     def step(self, closure=None):
         loss = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
         with torch.no_grad():
             for group in self.param_groups:
                 if "step" not in group:
