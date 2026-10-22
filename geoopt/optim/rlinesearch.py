@@ -105,6 +105,11 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         and beta is a float giving the scale parameter. The keyword
         arguments are specified in optional parameter `cg_kwargs`.
 
+    maximize : bool (optional)
+        maximize the objective instead of minimizing it (default: False).
+        All parameter groups must use the same value, since line search
+        evaluates a single scalar objective.
+
     Other Paremeters
     ----------------
     compute_derphi : bool, optional
@@ -156,6 +161,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         transport_search_direction=True,
         fallback_stepsize=1,
         stabilize=None,
+        maximize=False,
     ):
         defaults = dict(
             line_search_method=line_search_method,
@@ -167,10 +173,16 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             transport_search_direction=transport_search_direction,
             fallback_stepsize=fallback_stepsize,
             stabilize=stabilize,
+            maximize=maximize,
         )
         super(RiemannianLineSearch, self).__init__(
             params, defaults, stabilize=stabilize
         )
+        if any(
+            group.get("maximize", False) != self.param_groups[0].get("maximize", False)
+            for group in self.param_groups
+        ):
+            raise ValueError("All parameter groups must use the same maximize value")
         self._params = []
         for group in self.param_groups:
             group.setdefault("step", 0)
@@ -267,6 +279,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         # recompute loss at new point
         phi = self.closure()
+        if self.param_groups[0].get("maximize", False):
+            phi = -phi
 
         if self.compute_derphi:
             # Store new gradients in state
@@ -282,6 +296,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
                 state = self.state[point]
 
                 # project gradient onto tangent space
+                if self.param_groups[0].get("maximize", False):
+                    grad = -grad
                 grad = manifold.egrad2rgrad(point, grad)
 
                 state["new_grad"] = grad
@@ -338,6 +354,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
         if recompute_gradients or (not self._grads_computed):
             loss = self.closure()
+            if self.param_groups[0].get("maximize", False):
+                loss = -loss
             reuse_grads = False
         else:
             loss = self.prev_loss
@@ -355,6 +373,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
                 grad = state["new_grad"]
             else:
                 grad = point.grad
+                if self.param_groups[0].get("maximize", False):
+                    grad = -grad
                 grad = manifold.egrad2rgrad(point, grad)
 
             if "grad" in state:
@@ -532,6 +552,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             self.prev_loss = new_loss
         else:
             new_loss = self.prev_loss
+        if self.param_groups[0].get("maximize", False) and new_loss is not None:
+            return -new_loss
         return new_loss
 
     def stabilize_group(self, group):

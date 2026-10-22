@@ -25,6 +25,9 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
     nesterov : bool (optional)
         enables Nesterov momentum (default: False)
 
+    maximize : bool (optional)
+        maximize the objective instead of minimizing it (default: False)
+
     Other Parameters
     ----------------
     stabilize : int
@@ -41,6 +44,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
         weight_decay=0,
         nesterov=False,
         stabilize=None,
+        maximize=False,
     ):
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -55,6 +59,7 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
             dampening=dampening,
             weight_decay=weight_decay,
             nesterov=nesterov,
+            maximize=maximize,
         )
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
@@ -78,6 +83,8 @@ class RiemannianSGD(OptimMixin, torch.optim.Optimizer):
                     grad = point.grad
                     if grad is None:
                         continue
+                    if group.get("maximize", False):
+                        grad = -grad
                     if grad.is_sparse:
                         raise RuntimeError(
                             "RiemannianSGD does not support sparse gradients, use SparseRiemannianSGD instead"
