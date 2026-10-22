@@ -112,6 +112,10 @@ class Sphere(Manifold):
         ok = torch.allclose(inner, inner.new_zeros((1,)), atol=atol, rtol=rtol)
         if not ok:
             return False, "`<x, u> != 0` with atol={}, rtol={}".format(atol, rtol)
+        if not torch.allclose(self._project_on_subspace(u), u, atol=atol, rtol=rtol):
+            return False, "`u` is not in the subspace of the manifold with atol={}, rtol={}".format(
+                atol, rtol
+            )
         return True, None
 
     def inner(

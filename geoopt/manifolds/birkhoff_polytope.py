@@ -110,7 +110,8 @@ class BirkhoffPolytope(Manifold):
     def proju(self, x, u):
         return proj_tangent(x, u)
 
-    egrad2rgrad = proju
+    def egrad2rgrad(self, x, u):
+        return self.proju(x, x * u * x.shape[-1])
 
     def retr(self, x, u):
         eps = 1e-12
@@ -246,7 +247,7 @@ def proj_tangent(x, u):
     I = torch.eye(n, dtype=x.dtype, device=x.device)
     I = I.expand_as(x)
 
-    mu = x * u
+    mu = u
 
     A = linalg.block_matrix([[I, x], [xt, I]])
 

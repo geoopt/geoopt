@@ -32,6 +32,9 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
         algorithm from the paper `On the Convergence of Adam and Beyond`_
         (default: False)
 
+    maximize : bool (optional)
+        maximize the objective instead of minimizing it (default: False)
+
     Other Parameters
     ----------------
     stabilize : int
@@ -44,7 +47,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
 
     """
 
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, amsgrad=False):
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, amsgrad=False, maximize=False):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -53,7 +56,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
             raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
         if not 0.0 <= betas[1] < 1.0:
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
-        defaults = dict(lr=lr, betas=betas, eps=eps, amsgrad=amsgrad)
+        defaults = dict(lr=lr, betas=betas, eps=eps, amsgrad=amsgrad, maximize=maximize)
         super(SparseRiemannianAdam, self).__init__(params, defaults)
 
     def __setstate__(self, state):
@@ -77,6 +80,8 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     grad = point.grad
                     if grad is None:
                         continue
+                    if group.get("maximize", False):
+                        grad = -grad
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:
