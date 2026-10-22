@@ -86,3 +86,15 @@ def test_zero_input_jacobian(curvature, kind):
 
     torch.testing.assert_close(fn(x), torch.zeros(expected.shape[0], dtype=x.dtype), atol=0, rtol=0)
     torch.testing.assert_close(torch.autograd.functional.jacobian(fn, x), expected)
+
+
+def test_nonzero_matrix_with_input_in_nullspace():
+    # A trained/nonzero matrix can also produce zero, not only an initial zero weight.
+    x = torch.tensor([0.1875, -0.09375, 0.03125], dtype=torch.float64, requires_grad=True)
+    weight = x.new_tensor([[1.0, 2.0, 0.0], [0.0, 1.0, 3.0]])
+    k = x.new_tensor(-1.0)
+    assert torch.count_nonzero(weight @ x).item() == 0
+    result = smath.mobius_matvec(weight, x, k=k)
+    torch.testing.assert_close(result, torch.zeros_like(result), atol=0, rtol=0)
+    jac = torch.autograd.functional.jacobian(lambda a: smath.mobius_matvec(weight, a, k=k), x)
+    torch.testing.assert_close(jac, gain(x, -1.0) * weight)
