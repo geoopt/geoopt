@@ -86,7 +86,7 @@ class Stiefel(Manifold):
         U, _, V = linalg.svd(x, full_matrices=False)
         return torch.einsum("...ik,...kj->...ij", U, V)
 
-    def random_naive(self, *size, dtype=None, device=None) -> torch.Tensor:
+    def random_naive(self, *size, dtype=None, device=None, generator=None) -> torch.Tensor:
         """
         Naive approach to get random matrix on Stiefel manifold.
 
@@ -101,6 +101,9 @@ class Stiefel(Manifold):
             desired dtype
         device : torch.device
             desired device
+        generator : torch.Generator, optional
+            Random number generator on the sampling device. If None, uses the
+            default generator for that device.
 
         Returns
         -------
@@ -108,7 +111,7 @@ class Stiefel(Manifold):
             random point on Stiefel manifold
         """
         self._assert_check_shape(size2shape(*size), "x")
-        tens = torch.randn(*size, device=device, dtype=dtype)
+        tens = torch.randn(*size, device=device, dtype=dtype, generator=generator)
         return ManifoldTensor(linalg.qr(tens)[0], manifold=self)
 
     random = random_naive

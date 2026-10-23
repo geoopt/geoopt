@@ -221,7 +221,7 @@ class Lorentz(Manifold):
 
     @__scaling__(ScalingInfo(std=-1), "random")
     def random_normal(
-        self, *size, mean=0, std=1, dtype=None, device=None
+        self, *size, mean=0, std=1, dtype=None, device=None, generator=None
     ) -> "geoopt.ManifoldTensor":
         r"""
         Create a point on the manifold, measure is induced by Normal distribution on the tangent space of zero.
@@ -238,6 +238,9 @@ class Lorentz(Manifold):
             target dtype for sample, if not None, should match Manifold dtype
         device: torch.device
             target device for sample, if not None, should match Manifold device
+        generator : torch.Generator, optional
+            Random number generator on the sampling device. If None, uses the
+            default generator for that device.
 
         Returns
         -------
@@ -257,7 +260,10 @@ class Lorentz(Manifold):
             raise ValueError(
                 "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
             )
-        tens = torch.randn(*size, device=self.k.device, dtype=self.k.dtype) * std + mean
+        tens = (
+            torch.randn(*size, device=self.k.device, dtype=self.k.dtype, generator=generator)
+            * std + mean
+        )
         tens /= tens.norm(dim=-1, keepdim=True)
         return geoopt.ManifoldTensor(self.expmap0(tens), manifold=self)
 

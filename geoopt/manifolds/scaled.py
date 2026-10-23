@@ -194,5 +194,5 @@ class Scaled(Manifold):
     ) -> torch.Tensor:
         return self.base.transp(x, y, v, **kwargs)
 
-    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
-        return self.base.random(*size, dtype=dtype, device=device, **kwargs)
+    def random(self, *size, dtype=None, device=None, generator=None, **kwargs) -> torch.Tensor:
+        return self.base.random(*size, dtype=dtype, device=device, generator=generator, **kwargs)

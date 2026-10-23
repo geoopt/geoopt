@@ -158,7 +158,7 @@ class Euclidean(Manifold):
 
     @__scaling__(ScalingInfo(std=-1), "random")
     def random_normal(
-        self, *size, mean=0.0, std=1.0, device=None, dtype=None
+        self, *size, mean=0.0, std=1.0, device=None, dtype=None, generator=None
     ) -> "geoopt.ManifoldTensor":
         """
         Create a point on the manifold, measure is induced by Normal distribution.
@@ -175,6 +175,9 @@ class Euclidean(Manifold):
             the desired device
         dtype : torch.dtype
             the desired dtype
+        generator : torch.Generator, optional
+            Random number generator on the sampling device. If None, uses the
+            default generator for that device.
 
         Returns
         -------
@@ -184,7 +187,7 @@ class Euclidean(Manifold):
         self._assert_check_shape(size2shape(*size), "x")
         mean = torch.as_tensor(mean, device=device, dtype=dtype)
         std = torch.as_tensor(std, device=device, dtype=dtype)
-        tens = std.new_empty(*size).normal_() * std + mean
+        tens = std.new_empty(*size).normal_(generator=generator) * std + mean
         return geoopt.ManifoldTensor(tens, manifold=self)
 
     random = random_normal
