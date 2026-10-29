@@ -79,6 +79,7 @@ Manifolds
 -  ``geoopt.SphereProjection`` - Sphere stereographic projection model
 -  ``geoopt.PoincareBall`` -  `Poincare ball model <https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model>`_
 -  ``geoopt.Lorentz`` - `Hyperboloid model <https://en.wikipedia.org/wiki/Hyperboloid_model>`_
+-  ``geoopt.ProperVelocity`` - Proper Velocity model of hyperbolic space: unconstrained coordinates, as in `Proper Velocity Neural Networks <https://openreview.net/forum?id=UDIYU1X3vC>`_
 -  ``geoopt.ProductManifold`` - Product manifold constructor
 -  ``geoopt.Scaled`` - Scaled version of the manifold. Similar to `Learning Mixed-Curvature Representations in Product Spaces <https://openreview.net/forum?id=HJxeWnCcF7>`_ if combined with ``ProductManifold``
 -  ``geoopt.SymmetricPositiveDefinite`` - SPD matrix manifold
