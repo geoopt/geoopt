@@ -112,3 +112,53 @@ def test_ismanifold():
         geoopt.ismanifold(m1, 1)
 
     assert not geoopt.ismanifold(1, geoopt.Euclidean)
+
+
+def test_sabs_is_exact_above_the_floor():
+    """``sabs`` must not perturb values that were never near zero."""
+    import torch
+    from geoopt.utils import sabs
+
+    for dtype in (torch.float32, torch.float64):
+        x = torch.tensor([1.0, 1e-3, 3.7, 1e-6], dtype=dtype)
+        assert torch.equal(sabs(x), x.abs())
+        assert torch.equal(sabs(-x), x.abs())
+
+
+def test_sabs_still_guards_zero():
+    import torch
+    from geoopt.utils import sabs
+
+    z = torch.zeros((), dtype=torch.float64, requires_grad=True)
+    out = sabs(z)
+    assert float(out) > 0.0
+    out.sqrt().reciprocal().backward()
+    assert torch.isfinite(z.grad).all()
+
+
+def test_project_commutes_with_curvature_rescaling():
+    """The ball is the same ball in different units.
+
+    Under ``x -> x / s`` and ``k -> k * s**2`` the Poincare ball of curvature
+    ``k`` maps onto the ball of curvature ``k * s**2``, so projecting and then
+    rescaling must agree with rescaling and then projecting. With an additive
+    floor inside ``sqrt(|k|)`` the two disagree, and the disagreement grows as
+    ``|k|`` shrinks towards the floor: about 5e-4 at ``k = -1e-12`` in float64.
+    """
+    import torch
+    from geoopt.manifolds.stereographic import math as smath
+
+    torch.manual_seed(0)
+    x0 = torch.randn(32, 8, dtype=torch.float64)
+    for k0 in (-1.0, -1e-6, -1e-12):
+        k = torch.tensor(k0, dtype=torch.float64)
+        # start outside the ball so that the projection actually clips
+        x = x0 / x0.norm(dim=-1, keepdim=True) * (1.5 / abs(k0) ** 0.5)
+        ref = smath.project(x, k=k)
+        for s in (2.0, 4.0, 8.0):
+            ks = torch.tensor(k0 * s * s, dtype=torch.float64)
+            got = smath.project(x / s, k=ks) * s
+            assert torch.allclose(got, ref, rtol=0, atol=0), (
+                f"projection is not scale-equivariant at k={k0}, s={s}: "
+                f"max |diff| = {(got - ref).abs().max().item():.3e}"
+            )
