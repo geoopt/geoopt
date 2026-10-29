@@ -338,7 +338,9 @@ def test_wrapped_normal_scalar_std_matches_component_samples(dtype, batched_mean
             for i, (manifold, size) in enumerate(manifolds)
         ]
     )
-    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    # Independent component evaluations may differ by machine rounding on CPU.
+    tolerance = 4 * torch.finfo(dtype).eps
+    torch.testing.assert_close(actual, expected, rtol=tolerance, atol=tolerance)
     assert actual.manifold is product
     assert product.check_point_on_manifold(actual)
     if std != 0:
