@@ -28,7 +28,7 @@ class RHMC(Sampler):
         super().__init__(params, defaults)
         self.n_steps = n_steps
 
-    def _step(self, p, r, epsilon):
+    def _step(self, p, r, epsilon, initial=False):
         if isinstance(p, (ManifoldParameter, ManifoldTensor)):
             manifold = p.manifold
         else:
@@ -37,7 +37,8 @@ class RHMC(Sampler):
         egrad2rgrad = manifold.egrad2rgrad
         retr_transp = manifold.retr_transp
 
-        r.add_(epsilon * egrad2rgrad(p, p.grad))
+        # Only the first kick is a half step; all position updates are full steps.
+        r.add_((0.5 if initial else 1.0) * epsilon * egrad2rgrad(p, p.grad))
         p_, r_ = retr_transp(p, r * epsilon, r)
         p.copy_(p_)
         r.copy_(r_)
@@ -77,7 +78,7 @@ class RHMC(Sampler):
                     state["old_r"].copy_(r)
 
                     epsilon = group["epsilon"]
-                    self._step(p, r, epsilon)
+                    self._step(p, r, epsilon, initial=True)
                     p.grad.zero_()
 
         for _ in range(1, self.n_steps):
