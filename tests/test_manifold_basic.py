@@ -89,7 +89,7 @@ def proju_original(x, u):
         batch_size, 1, 1
     )
 
-    mu = x * u
+    mu = u.reshape_as(x)
 
     A = linalg.block_matrix([[I, x], [torch.transpose(x, 1, 2), I]])
 

@@ -31,6 +31,9 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
         algorithm from the paper `On the Convergence of Adam and Beyond`_
         (default: False)
 
+    maximize : bool (optional)
+        maximize the objective instead of minimizing it (default: False)
+
     Other Parameters
     ----------------
     stabilize : int
@@ -46,7 +49,8 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
     def step(self, closure=None):
         loss = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
         with torch.no_grad():
             for group in self.param_groups:
                 betas = group["betas"]
@@ -59,6 +63,8 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     grad = point.grad
                     if grad is None:
                         continue
+                    if group.get("maximize", False):
+                        grad = -grad
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:

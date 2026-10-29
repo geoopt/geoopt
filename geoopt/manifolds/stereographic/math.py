@@ -1232,11 +1232,12 @@ def _mobius_matvec(m: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int =
     else:
         mx = torch.matmul(m, x.unsqueeze(-1)).squeeze(-1)
     mx_norm = mx.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
-    res_c = tan_k(mx_norm / x_norm * artan_k(x_norm, k), k) * (mx / mx_norm)
-    cond = (mx == 0).all(dim=dim, keepdim=True)
-    res_0 = torch.zeros(1, dtype=res_c.dtype, device=res_c.device)
-    res = torch.where(cond, res_0, res_c)
-    return res
+    gain = artan_k(x_norm, k) / x_norm
+    gain = torch.where(x_norm <= 1e-15, torch.ones_like(gain), gain)
+    res_c = tan_k(mx_norm * gain, k) * (mx / mx_norm)
+    # The clamped norm already makes the zero vector safe. Selecting a constant
+    # zero branch here would erase the linear map's nonzero Jacobian at mx=0.
+    return res_c
 
 
 # TODO: check if this extends to gyrovector spaces for positive curvature
@@ -1280,11 +1281,10 @@ def _mobius_pointwise_mul(
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
     wx = w * x
     wx_norm = wx.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
-    res_c = tan_k(wx_norm / x_norm * artan_k(x_norm, k), k) * (wx / wx_norm)
-    zero = torch.zeros((), dtype=res_c.dtype, device=res_c.device)
-    cond = wx.isclose(zero).prod(dim=dim, keepdim=True, dtype=torch.bool)
-    res = torch.where(cond, zero, res_c)
-    return res
+    gain = artan_k(x_norm, k) / x_norm
+    gain = torch.where(x_norm <= 1e-15, torch.ones_like(gain), gain)
+    res_c = tan_k(wx_norm * gain, k) * (wx / wx_norm)
+    return res_c
 
 
 def mobius_fn_apply_chain(x: torch.Tensor, *fns: callable, k: torch.Tensor, dim=-1):
@@ -1543,7 +1543,9 @@ def dist2plane(
     signed : bool
         return signed distance
     scaled : bool
-        scale distance by tangent norm
+        scale distance by the Euclidean norm :math:`\|a\|_2`, not the
+        Riemannian norm :math:`\lambda^\kappa_p \|a\|_2`. For a fixed
+        :math:`a`, this scaling factor is independent of :math:`p`.
     dim : int
         reduction dimension for operations
 

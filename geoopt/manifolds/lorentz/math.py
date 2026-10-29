@@ -354,7 +354,7 @@ def norm(u, *, keepdim=False, dim=-1):
 
 @torch.jit.script
 def _norm(u, keepdim: bool = False, dim: int = -1):
-    return torch.sqrt(torch.clamp_min(_inner(u, u, keepdim=keepdim), 1e-8))
+    return torch.sqrt(torch.clamp_min(_inner(u, u, keepdim=keepdim, dim=dim), 1e-8))
 
 
 def expmap(x, u, *, k, dim=-1):
@@ -467,8 +467,8 @@ def logmap(x, y, *, k, dim=-1):
 @torch.jit.script
 def _logmap(x, y, k, dim: int = -1):
     dist_ = _dist(x, y, k=k, dim=dim, keepdim=True)
-    nomin = y + 1.0 / k * _inner(x, y, keepdim=True) * x
-    denom = _norm(nomin, keepdim=True)
+    nomin = y + 1.0 / k * _inner(x, y, keepdim=True, dim=dim) * x
+    denom = _norm(nomin, keepdim=True, dim=dim)
     return dist_ * nomin / denom
 
 
@@ -496,10 +496,10 @@ def logmap0(y, *, k, dim=-1):
 @torch.jit.script
 def _logmap0(y, k, dim: int = -1):
     dist_ = _dist0(y, k=k, dim=dim, keepdim=True)
-    nomin_ = 1.0 / k * _inner0(y, k=k, keepdim=True) * torch.sqrt(k)
+    nomin_ = 1.0 / k * _inner0(y, k=k, keepdim=True, dim=dim) * torch.sqrt(k)
     dn = y.size(dim) - 1
     nomin = torch.cat((nomin_ + y.narrow(dim, 0, 1), y.narrow(dim, 1, dn)), dim)
-    denom = _norm(nomin, keepdim=True)
+    denom = _norm(nomin, keepdim=True, dim=dim)
     return dist_ * nomin / denom
 
 
@@ -527,12 +527,12 @@ def logmap0back(x, *, k, dim=-1):
 @torch.jit.script
 def _logmap0back(x, k, dim: int = -1):
     dist_ = _dist0(x, k=k, dim=dim, keepdim=True)
-    nomin_ = 1.0 / k * _inner0(x, k=k, keepdim=True) * x
+    nomin_ = 1.0 / k * _inner0(x, k=k, keepdim=True, dim=dim) * x
     dn = nomin_.size(dim) - 1
     nomin = torch.cat(
         (nomin_.narrow(dim, 0, 1) + torch.sqrt(k), nomin_.narrow(dim, 1, dn)), dim
     )
-    denom = _norm(nomin, keepdim=True)
+    denom = _norm(nomin, keepdim=True, dim=dim)
     return dist_ * nomin / denom
 
 
@@ -565,7 +565,7 @@ def egrad2rgrad(x, grad, *, k, dim=-1):
 
 @torch.jit.script
 def _egrad2rgrad(x, grad, k, dim: int = -1):
-    grad.narrow(-1, 0, 1).mul_(-1)
+    grad.narrow(dim, 0, 1).mul_(-1)
     grad = grad.addcmul(_inner(x, grad, dim=dim, keepdim=True), x / k)
     return grad
 
@@ -597,11 +597,11 @@ def parallel_transport(x, y, v, *, k, dim=-1):
 
 @torch.jit.script
 def _parallel_transport(x, y, v, k, dim: int = -1):
-    lmap = _logmap(x, y, k=k, dim=dim)
-    nom = _inner(lmap, v, keepdim=True)
-    denom = _dist(x, y, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap(y, x, k=k, dim=dim))
-    return p
+    # On the upper sheet, k - <x, y>_L >= 2*k, including coincident points.
+    # This avoids the cancellation and norm floor in the logmap/distance formula.
+    return v + _inner(y, v, keepdim=True, dim=dim) / (
+        k - _inner(x, y, keepdim=True, dim=dim)
+    ) * (x + y)
 
 
 def parallel_transport0(y, v, *, k, dim=-1):
@@ -629,11 +629,9 @@ def parallel_transport0(y, v, *, k, dim=-1):
 
 @torch.jit.script
 def _parallel_transport0(y, v, k, dim: int = -1):
-    lmap = _logmap0(y, k=k, dim=dim)
-    nom = _inner(lmap, v, keepdim=True)
-    denom = _dist0(y, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap0back(y, k=k, dim=dim))
-    return p
+    origin = torch.zeros_like(y)
+    origin.narrow(dim, 0, 1).copy_(torch.sqrt(k))
+    return _parallel_transport(origin, y, v, k=k, dim=dim)
 
 
 def parallel_transport0back(x, v, *, k, dim: int = -1):
@@ -663,11 +661,9 @@ def parallel_transport0back(x, v, *, k, dim: int = -1):
 
 @torch.jit.script
 def _parallel_transport0back(x, v, k, dim: int = -1):
-    lmap = _logmap0back(x, k=k, dim=dim)
-    nom = _inner(lmap, v, keepdim=True)
-    denom = _dist0(x, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap0(x, k=k, dim=dim))
-    return p
+    origin = torch.zeros_like(x)
+    origin.narrow(dim, 0, 1).copy_(torch.sqrt(k))
+    return _parallel_transport(x, origin, v, k=k, dim=dim)
 
 
 def gyroadd(x, y, *, k, dim=-1):
@@ -1008,7 +1004,7 @@ def lorentz_to_poincare(x, k, dim=-1):
         points on the Poincare disk
     """
     dn = x.size(dim) - 1
-    return x.narrow(dim, 1, dn) / (x.narrow(-dim, 0, 1) + torch.sqrt(k))
+    return x.narrow(dim, 1, dn) / (x.narrow(dim, 0, 1) + torch.sqrt(k))
 
 
 def poincare_to_lorentz(x, k, dim=-1, eps=1e-6):
