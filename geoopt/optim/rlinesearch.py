@@ -75,7 +75,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     ----------
     params : iterable
         iterable of parameters to optimize or dicts defining
-        parameter groups
+        parameter groups. Parameters whose gradient is ``None`` after evaluating
+        the closure are left unchanged.
     line_search_method : ('wolfe', 'armijo', or callable)
         Which line_search_method to use. If callable it should be any method
         of signature `(phi, derphi, **kwargs) -> step_size`,
@@ -362,6 +363,21 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         else:
             loss = self.prev_loss
             reuse_grads = True
+
+        if not reuse_grads:
+            active_params = [
+                point
+                for group in self.param_groups
+                for point in group["params"]
+                if point.grad is not None
+            ]
+            if len(active_params) != len(self._params) or any(
+                point is not previous for point, previous in zip(active_params, self._params)
+            ):
+                # A changed search space needs a fresh conjugate-gradient direction.
+                for point in active_params:
+                    self.state[point].pop("search_direction", None)
+            self._params = active_params
 
         self._step_size_dic = dict()
 
