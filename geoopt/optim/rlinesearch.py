@@ -484,14 +484,6 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         self.old_phi0 = phi0
         self.old_derphi0 = derphi0
 
-        # Ensure that the last step for which we computed the closure coincides with
-        # proposed step size, so that we can reuse the gradients and retract.
-        # This is very rare, and should only happen if force_step=True and no stepsize
-        # was found, or for user-defined linesearch methods.
-        if self._last_step != step_size or not self.compute_derphi:
-            self._grads_computed = False
-        redo_retract = self._last_step != step_size
-
         # If it fails to find a good step, probably we have convergence
         if step_size is None:
             if force_step:
@@ -504,6 +496,16 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
                 was taken. Call `step` with `force_step=True` to take a step anyway.
                 """
                 warnings.warn(warning_string, LineSearchWarning)
+
+        # Evaluate an untested proposal before committing its retraction. Otherwise
+        # the final _phi call would evaluate another step from the updated parameters.
+        if step_size is not None and step_size not in self._step_size_dic:
+            self._phi(step_size)
+
+        # Only the last evaluated trial has matching cached gradients and points.
+        if self._last_step != step_size or not self.compute_derphi:
+            self._grads_computed = False
+        redo_retract = self._last_step != step_size
 
         for point in self._params:
             if step_size is None or no_step:
@@ -554,6 +556,8 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             self.prev_loss = new_loss
         else:
             new_loss = self.prev_loss
+        if no_step or step_size is None:
+            self._grads_computed = False
         if self.param_groups[0].get("maximize", False) and new_loss is not None:
             return -new_loss
         return new_loss
