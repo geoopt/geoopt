@@ -94,7 +94,8 @@ class RiemannianAdam(OptimMixin, torch.optim.Adam):
                     exp_avg = state["exp_avg"]
                     exp_avg_sq = state["exp_avg_sq"]
                     # actual step
-                    grad.add_(point, alpha=weight_decay)
+                    if weight_decay != 0:
+                        grad = grad.add(point, alpha=weight_decay)
                     grad = manifold.egrad2rgrad(point, grad)
                     exp_avg.mul_(betas[0]).add_(grad, alpha=1 - betas[0])
                     exp_avg_sq.mul_(betas[1]).add_(
