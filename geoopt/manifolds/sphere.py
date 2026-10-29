@@ -161,14 +161,16 @@ class Sphere(Manifold):
         return result
 
     def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
-        inner = self.inner(x, x, y, keepdim=keepdim).clamp(
-            -1 + EPS[x.dtype], 1 - EPS[x.dtype]
-        )
-        return torch.acos(inner)
+        difference = (x - y).norm(dim=-1, keepdim=keepdim)
+        sum_norm = (x + y).norm(dim=-1, keepdim=keepdim)
+        return 2 * torch.atan2(difference, sum_norm)
 
     def cdist(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        inner = self.pairwise_inner(x, y).clamp(-1 + EPS[x.dtype], 1 - EPS[x.dtype])
-        return torch.acos(inner)
+        # Direct distance kernels retain small chord lengths and avoid an
+        # intermediate (..., B1, B2, D) broadcast tensor.
+        difference = torch.cdist(x, y, p=2, compute_mode="donot_use_mm_for_euclid_dist")
+        sum_norm = torch.cdist(x, -y, p=2, compute_mode="donot_use_mm_for_euclid_dist")
+        return 2 * torch.atan2(difference, sum_norm)
 
     egrad2rgrad = proju
 
