@@ -84,12 +84,16 @@ class SymmetricPositiveDefinite(Manifold):
         """.format(
             self._dist_doc
         )
-        inv_sqrt_x = linalg.sym_inv_sqrtm1(x)
-        return torch.norm(
-            linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x),
-            dim=[-1, -2],
-            keepdim=keepdim,
-        )
+        # Cholesky whitening has the same generalized eigenvalues as symmetric
+        # whitening, without differentiating eigenvectors at repeated spectra.
+        chol_x = torch.linalg.cholesky(x)
+        whitened = torch.linalg.solve_triangular(chol_x, y, upper=False)
+        whitened = torch.linalg.solve_triangular(
+            chol_x, whitened.transpose(-1, -2), upper=False
+        ).transpose(-1, -2)
+        eigenvalues = torch.linalg.eigvalsh(whitened)
+        distance = torch.linalg.vector_norm(eigenvalues.log(), dim=-1, keepdim=keepdim)
+        return distance.unsqueeze(-1) if keepdim else distance
 
     def _stein_metric(
         self, x: torch.Tensor, y: torch.Tensor, keepdim=False
