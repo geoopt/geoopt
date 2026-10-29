@@ -639,7 +639,7 @@ class StereographicProductManifold(ProductManifold):
         self._assert_check_shape(shape, "x")
         batch_shape = shape[:-1]
         if type(std) == int or type(std) == float:
-            std = torch.zeros(mean.shape[-1]).type_as(mean) * std
+            std = torch.full((mean.shape[-1],), std, dtype=mean.dtype, device=mean.device)
         points = []
         for i, (manifold, shape) in enumerate(zip(self.manifolds, self.shapes)):
             points.append(
