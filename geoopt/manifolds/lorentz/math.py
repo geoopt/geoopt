@@ -597,11 +597,11 @@ def parallel_transport(x, y, v, *, k, dim=-1):
 
 @torch.jit.script
 def _parallel_transport(x, y, v, k, dim: int = -1):
-    lmap = _logmap(x, y, k=k, dim=dim)
-    nom = _inner(lmap, v, keepdim=True, dim=dim)
-    denom = _dist(x, y, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap(y, x, k=k, dim=dim))
-    return p
+    # On the upper sheet, k - <x, y>_L >= 2*k, including coincident points.
+    # This avoids the cancellation and norm floor in the logmap/distance formula.
+    return v + _inner(y, v, keepdim=True, dim=dim) / (
+        k - _inner(x, y, keepdim=True, dim=dim)
+    ) * (x + y)
 
 
 def parallel_transport0(y, v, *, k, dim=-1):
@@ -629,11 +629,9 @@ def parallel_transport0(y, v, *, k, dim=-1):
 
 @torch.jit.script
 def _parallel_transport0(y, v, k, dim: int = -1):
-    lmap = _logmap0(y, k=k, dim=dim)
-    nom = _inner(lmap, v, keepdim=True, dim=dim)
-    denom = _dist0(y, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap0back(y, k=k, dim=dim))
-    return p
+    origin = torch.zeros_like(y)
+    origin.narrow(dim, 0, 1).copy_(torch.sqrt(k))
+    return _parallel_transport(origin, y, v, k=k, dim=dim)
 
 
 def parallel_transport0back(x, v, *, k, dim: int = -1):
@@ -663,11 +661,9 @@ def parallel_transport0back(x, v, *, k, dim: int = -1):
 
 @torch.jit.script
 def _parallel_transport0back(x, v, k, dim: int = -1):
-    lmap = _logmap0back(x, k=k, dim=dim)
-    nom = _inner(lmap, v, keepdim=True, dim=dim)
-    denom = _dist0(x, k=k, dim=dim, keepdim=True) ** 2
-    p = v - nom / denom * (lmap + _logmap0(x, k=k, dim=dim))
-    return p
+    origin = torch.zeros_like(x)
+    origin.narrow(dim, 0, 1).copy_(torch.sqrt(k))
+    return _parallel_transport(x, origin, v, k=k, dim=dim)
 
 
 def gyroadd(x, y, *, k, dim=-1):
