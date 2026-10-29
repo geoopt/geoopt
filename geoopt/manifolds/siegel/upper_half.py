@@ -140,12 +140,12 @@ class UpperHalf(SiegelManifold):
             reason = None
         return ok, reason
 
-    def random(self, *size, dtype=None, device=None, **kwargs) -> torch.Tensor:
+    def random(self, *size, dtype=None, device=None, generator=None, **kwargs) -> torch.Tensor:
         if dtype and dtype not in COMPLEX_DTYPES:
             raise ValueError(f"dtype must be one of {COMPLEX_DTYPES}")
         if dtype is None:
             dtype = torch.complex128
-        tens = 0.5 * torch.randn(*size, dtype=dtype, device=device)
+        tens = 0.5 * torch.randn(*size, dtype=dtype, device=device, generator=generator)
         tens = lalg.sym(tens)
         tens.imag = lalg.expm(tens.imag)
         return tens

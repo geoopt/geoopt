@@ -193,7 +193,7 @@ class Sphere(Manifold):
         else:
             return x
 
-    def random_uniform(self, *size, dtype=None, device=None) -> torch.Tensor:
+    def random_uniform(self, *size, dtype=None, device=None, generator=None) -> torch.Tensor:
         """
         Uniform random measure on Sphere manifold.
 
@@ -205,6 +205,9 @@ class Sphere(Manifold):
             desired dtype
         device : torch.device
             desired device
+        generator : torch.Generator, optional
+            Random number generator on the sampling device. If None, uses the
+            default generator for that device.
 
         Returns
         -------
@@ -218,7 +221,7 @@ class Sphere(Manifold):
         """
         self._assert_check_shape(size2shape(*size), "x")
         if self.projector is None:
-            tens = torch.randn(*size, device=device, dtype=dtype)
+            tens = torch.randn(*size, device=device, dtype=dtype, generator=generator)
         else:
             if device is not None and device != self.projector.device:
                 raise ValueError(
@@ -229,7 +232,7 @@ class Sphere(Manifold):
                     "`dtype` does not match the projector `dtype`, set the `dtype` arguement to None"
                 )
             tens = torch.randn(
-                *size, device=self.projector.device, dtype=self.projector.dtype
+                *size, device=self.projector.device, dtype=self.projector.dtype, generator=generator
             )
         return ManifoldTensor(self.projx(tens), manifold=self)
 
