@@ -20,6 +20,7 @@ following resources:
            2010.
 """
 
+# Modified: stabilize inverse hyperbolic sine values and gradients.
 import functools
 import torch.jit
 from typing import List, Optional
@@ -39,7 +40,7 @@ def artanh(x: torch.Tensor):
 
 @torch.jit.script
 def arsinh(x: torch.Tensor):
-    return (x + torch.sqrt(1 + x.pow(2))).clamp_min(1e-15).log().to(x.dtype)
+    return torch.asinh(x)
 
 
 @torch.jit.script
