@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, Union
 import torch
 from geoopt import linalg as lalg
-from geoopt.utils import COMPLEX_DTYPES
+from geoopt.utils import COMPLEX_DTYPES, size2shape
 from .siegel import SiegelManifold
 from .vvd_metrics import SiegelMetricType
 from ..siegel import csym_math as sm
@@ -179,7 +179,9 @@ class UpperHalf(SiegelManifold):
         -------
         torch.Tensor
         """
-        imag = torch.eye(*size[:-1], dtype=dtype, device=device)
+        shape = size2shape(*size)
+        self._assert_check_shape(shape, "x")
+        imag = torch.eye(*shape[-2:], dtype=dtype, device=device).expand(shape)
         if imag.dtype in COMPLEX_DTYPES:
             imag = imag.real
         return torch.complex(torch.zeros_like(imag), imag)
