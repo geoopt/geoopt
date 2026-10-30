@@ -70,7 +70,9 @@ class Euclidean(Manifold):
 
     def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False):
         if self.ndim > 0:
-            return u.norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
+            return torch.linalg.vector_norm(
+                u, dim=tuple(range(-self.ndim, 0)), keepdim=keepdim
+            )
         else:
             return u.abs()
 
@@ -86,7 +88,9 @@ class Euclidean(Manifold):
 
     def dist(self, x: torch.Tensor, y: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         if self.ndim > 0:
-            return (x - y).norm(dim=tuple(range(-self.ndim, 0)), keepdim=keepdim)
+            return torch.linalg.vector_norm(
+                x - y, dim=tuple(range(-self.ndim, 0)), keepdim=keepdim
+            )
         else:
             return (x - y).abs()
 
