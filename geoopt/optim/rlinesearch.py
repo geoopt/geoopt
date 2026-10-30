@@ -36,10 +36,12 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     .. math::
 
         \phi'(\alpha) = \langle\mathrm{grad} f(R_x(\alpha\eta)),\,
-        \mathcal T_{\alpha\eta}(\eta) \rangle_{R_x(\alpha\eta)},
+        D R_x(\alpha\eta)[\eta] \rangle_{R_x(\alpha\eta)}.
 
-    where :math:`\mathcal T_\xi(\eta)` denotes the vector transport of :math:`\eta`
-    to the point :math:`R_x(\xi)`.
+    Manifolds implementing ``retr_jvp`` supply this curve derivative. Otherwise,
+    the optimizer retains its vector-transport approximation. Vector transport
+    :math:`\mathcal T_\xi(\eta)` to :math:`R_x(\xi)` is still used for the
+    conjugate-gradient recurrence below.
 
     The search direction :math:`\eta` is defined recursively by
 
@@ -271,6 +273,12 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
                 state["search_transported"] = manifold.proju(
                     new_point, search_transported
                 )
+                try:
+                    state["retraction_velocity"] = manifold.retr_jvp(
+                        point, step_size * search_direction, search_direction
+                    )
+                except NotImplementedError:
+                    state["retraction_velocity"] = state["search_transported"]
             else:
                 new_point = manifold.retr(point, step_size * search_direction)
 
@@ -303,7 +311,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
 
                 state["new_grad"] = grad
                 state["der_phi"] = torch.sum(
-                    manifold.inner(point, grad, state["search_transported"])
+                    manifold.inner(point, grad, state["retraction_velocity"])
                 ).item()
 
             self._grads_computed = True
@@ -323,10 +331,9 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
     def _derphi(self, step_size):
         """Compute derivative of phi.
 
-        The derivative of phi is given by computing inner
-        product between all tensor gradients at target point and those at source point.
-        The source gradients are transported to the target point, and both gradients are
-        projected.
+        Pair the gradients at the trial point with the retraction-curve velocity.
+        Manifolds without an exact differential retain the transported-direction
+        approximation.
         """
 
         if not self.compute_derphi:

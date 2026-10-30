@@ -63,3 +63,64 @@ def test_stabilizing_canonical_momentum_does_not_rescale_it(optimizer_name):
     optimizer.stabilize()
 
     torch.testing.assert_close(optimizer.state[point][state_key], expected)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("shape", [(2, 2), (4, 2), (4, 1), (2, 4, 2)])
+def test_canonical_retraction_has_identity_differential(dtype, shape):
+    manifold = geoopt.CanonicalStiefel()
+    n, k = shape[-2:]
+    batch_shape = shape[:-2]
+    generator = torch.Generator().manual_seed(29)
+    q, _ = torch.linalg.qr(
+        torch.randn(*batch_shape, n, n, dtype=dtype, generator=generator)
+    )
+    x = q[..., :k]
+    omega = torch.randn(*batch_shape, k, k, dtype=dtype, generator=generator)
+    omega = omega - omega.transpose(-1, -2)
+    horizontal = torch.randn(
+        *batch_shape, n - k, k, dtype=dtype, generator=generator
+    )
+    tangent = x @ omega + q[..., k:] @ horizontal
+    manifold.assert_check_vector_on_tangent(x, tangent)
+
+    point, velocity = torch.autograd.functional.jvp(
+        lambda step: manifold.retr(x, step), torch.zeros_like(tangent), tangent
+    )
+
+    torch.testing.assert_close(point, x)
+    torch.testing.assert_close(velocity, tangent)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("shape", [(3, 3), (4, 2), (2, 4, 2)])
+@pytest.mark.parametrize("scale", [1.0, 2.0])
+def test_canonical_retraction_jvp_matches_autograd(dtype, shape, scale):
+    manifold = geoopt.CanonicalStiefel()
+    if scale != 1:
+        manifold = geoopt.Scaled(manifold, scale).to(dtype=dtype)
+    n, k = shape[-2:]
+    batch_shape = shape[:-2]
+    generator = torch.Generator().manual_seed(31)
+    q, _ = torch.linalg.qr(
+        torch.randn(*batch_shape, n, n, dtype=dtype, generator=generator)
+    )
+    x = q[..., :k]
+
+    def tangent():
+        omega = torch.randn(*batch_shape, k, k, dtype=dtype, generator=generator)
+        omega = omega - omega.transpose(-1, -2)
+        horizontal = torch.randn(
+            *batch_shape, n - k, k, dtype=dtype, generator=generator
+        )
+        return 0.2 * (x @ omega + q[..., k:] @ horizontal)
+
+    u, v = tangent(), tangent()
+    point, expected = torch.autograd.functional.jvp(
+        lambda step: manifold.retr(x, step), u, v
+    )
+
+    actual = manifold.retr_jvp(x, u, v)
+
+    torch.testing.assert_close(actual, expected)
+    manifold.assert_check_vector_on_tangent(point, actual)
