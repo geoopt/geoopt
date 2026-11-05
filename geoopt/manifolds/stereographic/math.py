@@ -808,7 +808,7 @@ def mobius_scalar_mul(r: torch.Tensor, x: torch.Tensor, *, k: torch.Tensor, dim=
     tensor
         the result of the Möbius scalar multiplication
     """
-    return _mobius_scalar_mul(r, x, k, dim=dim)
+    return _mobius_scalar_mul(r, x, k, dim)
 
 
 @torch.jit.script
@@ -816,8 +816,47 @@ def _mobius_scalar_mul(
     r: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int = -1
 ):
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
-    res_c = tan_k(r * artan_k(x_norm, k), k) * (x / x_norm)
-    return res_c
+    # same curvature dispatch as artan_k and tan_k, evaluated once for both;
+    # |k| <= 1e-8 matches k.isclose(0) with its default tolerances
+    if k.dim() == 0:
+        # read a scalar curvature once instead of building boolean tensors
+        k_float = float(k)
+        all_zero = abs(k_float) <= 1e-8
+        all_neg = k_float < -1e-8
+        all_pos = k_float > 1e-8
+    else:
+        all_zero = bool(torch.all(k.abs().le(1e-8)))
+        all_neg = bool(torch.all(k.lt(-1e-8)))
+        all_pos = bool(torch.all(k.gt(1e-8)))
+    if all_zero:
+        # first order Taylor expansions of artan_k and tan_k
+        k_third = 1 / 3 * abs_zero_grad(k)
+        r_artan = r * (x_norm - k_third * x_norm**3)
+        tan_res = r_artan + k_third * r_artan**3
+        # scale the reduced norm tensor first, then x once
+        return x * (tan_res / x_norm)
+    k_sqrt = sabs(k).sqrt()
+    scaled_x = x_norm * k_sqrt
+    # for a single curvature sign the 1/sqrt|k| and sqrt|k| factors cancel:
+    # tan_k(r * artan_k(n)) / n = tan(r * atan(sqrt|k| n)) / (sqrt|k| n)
+    if all_neg:
+        return x * (tanh(r * artanh(scaled_x)) / scaled_x)
+    if all_pos:
+        return x * ((r * scaled_x.atan()).clamp_max(1e38).tan() / scaled_x)
+    k_sqrt_inv = k_sqrt.reciprocal()
+    k_zero = k.abs().le(1e-8)
+    k_pos = k.gt(1e-8)
+    artan_nonzero = torch.where(k_pos, scaled_x.atan(), artanh(scaled_x)) * k_sqrt_inv
+    r_artan = r * torch.where(
+        k_zero, artan_k_zero_taylor(x_norm, k, order=1), artan_nonzero
+    )
+    scaled_r_artan = r_artan * k_sqrt
+    tan_nonzero = (
+        torch.where(k_pos, scaled_r_artan.clamp_max(1e38).tan(), tanh(scaled_r_artan))
+        * k_sqrt_inv
+    )
+    tan_res = torch.where(k_zero, tan_k_zero_taylor(r_artan, k, order=1), tan_nonzero)
+    return x * (tan_res / x_norm)
 
 
 def dist(x: torch.Tensor, y: torch.Tensor, *, k: torch.Tensor, keepdim=False, dim=-1):
