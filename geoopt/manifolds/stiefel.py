@@ -154,6 +154,8 @@ class CanonicalStiefel(Stiefel):
 
     @staticmethod
     def _amat(x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+        # Make the Cayley curve's initial velocity equal to the tangent vector u.
+        u = u - 0.5 * x @ (x.transpose(-1, -2) @ u)
         return u @ x.transpose(-1, -2) - x @ u.transpose(-1, -2)
 
     def inner(
@@ -205,12 +207,23 @@ class CanonicalStiefel(Stiefel):
     expmap_transp = retr_transp
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return u - x @ u.transpose(-1, -2) @ x
+        return u - x @ linalg.sym(x.transpose(-1, -2) @ u)
 
-    egrad2rgrad = proju
+    def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+        return u - x @ u.transpose(-1, -2) @ x
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return self._transp_follow_one(x, x, u=u)
+
+    def retr_jvp(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
+        a = self._amat(x, u)
+        lhs = -0.5 * a
+        lhs[..., torch.arange(a.shape[-2]), torch.arange(a.shape[-2])] += 1
+        new_x = torch.linalg.solve(lhs, x + 0.5 * a @ x)
+        rhs = 0.5 * self._amat(x, v) @ (x + new_x)
+        return torch.linalg.solve(lhs, rhs)
 
     expmap = retr
 

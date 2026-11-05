@@ -48,7 +48,8 @@ def canonical_stiefel_case():
     ev = torch.randn(*shape)
     u, _, v = torch.linalg.svd(ex, full_matrices=False)
     x = torch.einsum("...ik,...kj->...ij", u, v)
-    v = ev - x @ ev.t() @ x
+    xtv = x.t() @ ev
+    v = ev - x @ (xtv + xtv.t()) / 2
     manifold = geoopt.manifolds.CanonicalStiefel()
     x = geoopt.ManifoldTensor(x, manifold=manifold)
     case = UnaryCase(shape, x, ex, v, ev, manifold)

@@ -459,6 +459,34 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @__scaling__(ScalingInfo(u=-1, v=-1))
+    def retr_jvp(
+        self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
+    ) -> torch.Tensor:
+        r"""Apply the retraction differential :math:`D R_x(u)[v]`.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            point on the manifold, held fixed when differentiating
+        u : torch.Tensor
+            tangent vector at which to evaluate the retraction differential
+        v : torch.Tensor
+            tangent direction in which to differentiate
+
+        Returns
+        -------
+        torch.Tensor
+            derivative of ``retr(x, u + t * v)`` with respect to ``t`` at zero
+
+        Notes
+        -----
+        This optional operation is distinct from vector transport. Manifolds
+        without an implementation raise ``NotImplementedError``; line search
+        then retains its transported-direction derivative approximation.
+        """
+        raise NotImplementedError
+
     @abc.abstractmethod
     @__scaling__(ScalingInfo(u=-1))
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
