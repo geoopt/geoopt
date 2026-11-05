@@ -1,6 +1,7 @@
 from geoopt import StereographicProductManifold
 from geoopt import PoincareBall, SphereProjection, Stereographic
 import torch
+import pytest
 
 
 def test_mobius_add_sub_coadd_cosub():
@@ -305,3 +306,42 @@ def test_antipode():
     res = torch.cat(res, axis=-1)
 
     assert torch.isclose(res, a).all()
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("batched_mean", [False, True])
+@pytest.mark.parametrize(
+    "std", [None, 2, 0.25, 0], ids=["default", "integer", "fractional", "zero"]
+)
+def test_wrapped_normal_scalar_std_matches_component_samples(dtype, batched_mean, std):
+    """Scalar scales must preserve the component distributions, including the default."""
+    manifolds = ((PoincareBall(c=0.5), 2), (Stereographic(k=0.0), 3))
+    product = StereographicProductManifold(*manifolds).to(dtype=dtype)
+    mean = torch.tensor([0.1, -0.15, 0.05, 0.02, -0.1], dtype=dtype)
+    if batched_mean:
+        mean = mean.expand(3, -1)
+    kwargs = {} if std is None else {"std": std}
+    actual = product.wrapped_normal(
+        3, 5, mean=mean, generator=torch.Generator().manual_seed(412), **kwargs
+    )
+
+    generator = torch.Generator().manual_seed(412)
+    expected = product.pack_point(
+        *[
+            manifold.wrapped_normal(
+                3,
+                size,
+                mean=product.take_submanifold_value(mean, i),
+                std=1 if std is None else std,
+                generator=generator,
+            )
+            for i, (manifold, size) in enumerate(manifolds)
+        ]
+    )
+    # Independent component evaluations may differ by machine rounding on CPU.
+    tolerance = 4 * torch.finfo(dtype).eps
+    torch.testing.assert_close(actual, expected, rtol=tolerance, atol=tolerance)
+    assert actual.manifold is product
+    assert product.check_point_on_manifold(actual)
+    if std != 0:
+        assert not torch.equal(actual, mean.expand_as(actual))
