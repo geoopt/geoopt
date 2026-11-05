@@ -565,7 +565,10 @@ def egrad2rgrad(x, grad, *, k, dim=-1):
 
 @torch.jit.script
 def _egrad2rgrad(x, grad, k, dim: int = -1):
-    grad.narrow(dim, 0, 1).mul_(-1)
+    # Apply the inverse Minkowski metric without modifying ``grad`` in place:
+    # it is often ``param.grad`` itself.
+    d = grad.size(dim) - 1
+    grad = torch.cat((-grad.narrow(dim, 0, 1), grad.narrow(dim, 1, d)), dim=dim)
     grad = grad.addcmul(_inner(x, grad, dim=dim, keepdim=True), x / k)
     return grad
 
