@@ -79,7 +79,14 @@ class Lorentz(Manifold):
     def cdist(self, X: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
         return math.cdist(X, Y, k=self.k)
 
-    def norm(self, u: torch.Tensor, *, keepdim=False, dim=-1) -> torch.Tensor:
+    def norm(
+        self, x: torch.Tensor, u: torch.Tensor = None, *, keepdim=False, dim=-1
+    ) -> torch.Tensor:
+        # The Minkowski norm of a tangent vector does not depend on the point.
+        # Accept both ``norm(x, u)`` (the :class:`Manifold` signature, used e.g.
+        # by :class:`Scaled`) and the historical ``norm(u)``.
+        if u is None:
+            u = x
         return math.norm(u, keepdim=keepdim, dim=dim)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor, *, dim=-1) -> torch.Tensor:
