@@ -43,7 +43,9 @@ class RHMC(Sampler):
         p.copy_(p_)
         r.copy_(r_)
 
+    @torch.enable_grad()
     def step(self, closure):
+        self.zero_grad(set_to_none=True)
         logp = closure()
         logp.backward()
 
@@ -117,7 +119,8 @@ class RHMC(Sampler):
 
                     new_H += 0.5 * (r * r).sum().item()
 
-            rho = min(1.0, math.exp(old_H - new_H))
+            log_ratio = old_H - new_H
+            rho = math.exp(min(0.0, log_ratio)) if not math.isnan(log_ratio) else 0.0
 
             if not self.burnin:
                 self.steps += 1
@@ -137,8 +140,9 @@ class RHMC(Sampler):
                         p.copy_(state["old_p"])
                         r.copy_(state["old_r"])
 
-                self.log_probs.append(old_logp)
-            else:
+                new_logp = old_logp
+
+            if not self.burnin:
                 self.log_probs.append(new_logp)
 
     @torch.no_grad()
