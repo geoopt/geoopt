@@ -27,12 +27,11 @@ class SGRHMC(Sampler):
     def __init__(self, params, epsilon=1e-3, n_steps=1, alpha=0.1):
         defaults = dict(epsilon=epsilon, alpha=alpha)
         super().__init__(params, defaults)
+        if n_steps < 1:
+            raise ValueError("n_steps must be positive")
         self.n_steps = n_steps
 
     def step(self, closure):
-        H_old = 0.0
-        H_new = 0.0
-
         for group in self.param_groups:
             for p in group["params"]:
                 state = self.state[p]
@@ -44,13 +43,13 @@ class SGRHMC(Sampler):
                 v = state["v"]
                 v.normal_().mul_(epsilon)
 
-                r = v / epsilon
-                H_old += 0.5 * (r * r).sum().item()
-        logp = float("nan")
-        for _ in range(self.n_steps + 1):
-            logp = closure()
-            logp.backward()
-            logp = logp.item()
+                if isinstance(p, (ManifoldParameter, ManifoldTensor)):
+                    with torch.no_grad():
+                        v.copy_(p.manifold.proju(p, v))
+        for _ in range(self.n_steps):
+            with torch.enable_grad():
+                logp = closure()
+                logp.backward()
             with torch.no_grad():
                 for group in self.param_groups:
                     for p in group["params"]:
@@ -66,22 +65,19 @@ class SGRHMC(Sampler):
 
                         v = self.state[p]["v"]
 
-                        p_, v_ = retr_transp(p, v, v)
-                        p.copy_(p_)
-                        v.copy_(v_)
-
                         n = egrad2rgrad(p, torch.randn_like(v))
-                        v.mul_(1 - alpha).add_(epsilon * p.grad).add_(
+                        v.mul_(1 - alpha).add_(egrad2rgrad(p, p.grad), alpha=epsilon).add_(
                             math.sqrt(2 * alpha * epsilon) * n
                         )
                         p.grad.zero_()
 
-                        r = v / epsilon
-                        H_new += 0.5 * (r * r).sum().item()
+                        p_, v_ = retr_transp(p, v, v)
+                        p.copy_(p_)
+                        v.copy_(v_)
 
         if not self.burnin:
             self.steps += 1
-            self.log_probs.append(logp)
+            self.log_probs.append(logp.item())
 
     @torch.no_grad()
     def stabilize_group(self, group):
