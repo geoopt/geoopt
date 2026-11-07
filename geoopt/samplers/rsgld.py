@@ -25,8 +25,9 @@ class RSGLD(Sampler):
         super().__init__(params, defaults)
 
     def step(self, closure):
-        logp = closure()
-        logp.backward()
+        with torch.enable_grad():
+            logp = closure()
+            logp.backward()
 
         with torch.no_grad():
             for group in self.param_groups:
