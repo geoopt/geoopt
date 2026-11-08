@@ -1269,6 +1269,8 @@ def _mobius_matvec(m: torch.Tensor, x: torch.Tensor, k: torch.Tensor, dim: int =
     x_norm = x.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
     if dim != -1 or m.dim() == 2:
         mx = torch.tensordot(x, m, ([dim], [1]))
+        if dim != -1:
+            mx = mx.movedim(-1, dim)
     else:
         mx = torch.matmul(m, x.unsqueeze(-1)).squeeze(-1)
     mx_norm = mx.norm(dim=dim, keepdim=True, p=2).clamp_min(1e-15)
