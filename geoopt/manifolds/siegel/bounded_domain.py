@@ -62,7 +62,7 @@ class BoundedDomain(SiegelManifold):
         """
         uhsm_z1 = sm.cayley_transform(z1)
         uhsm_z2 = sm.cayley_transform(z2)
-        return super().dist(uhsm_z1, uhsm_z2)
+        return super().dist(uhsm_z1, uhsm_z2, keepdim=keepdim)
 
     def egrad2rgrad(self, z: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         r"""
