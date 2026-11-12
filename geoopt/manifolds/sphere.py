@@ -189,7 +189,7 @@ class Sphere(Manifold):
 
     def _project_on_subspace(self, x: torch.Tensor) -> torch.Tensor:
         if self.projector is not None:
-            return x @ self.projector.transpose(-1, -2)
+            return (x.unsqueeze(-2) @ self.projector.transpose(-1, -2)).squeeze(-2)
         else:
             return x
 
