@@ -257,8 +257,7 @@ class EuclideanStiefel(Stiefel):
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         q, r = linalg.qr(x + u)
         unflip = linalg.extract_diag(r).sign().add(0.5).sign()
-        q *= unflip[..., None, :]
-        return q
+        return q * unflip[..., None, :]
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         xtu = x.transpose(-1, -2) @ u
