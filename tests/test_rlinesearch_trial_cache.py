@@ -130,3 +130,45 @@ def test_failed_search_can_retry_from_the_current_point(compute_derphi):
         optimizer.step(_closure(point, optimizer, objective))
     assert torch.equal(point, original)
     _compare_step(optimizer, point, reference_optimizer, reference, objective)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_derivative_of_revisited_trial_matches_its_step_size(dtype):
+    """Each cached objective must be paired with the derivative at that same trial."""
+    point = torch.nn.Parameter(torch.tensor([2.0], dtype=dtype))
+
+    def choose_step(phi, derphi, **kwargs):
+        phi(0.1)
+        phi(0.4)
+        for alpha in (0.1, 0.4, 0.1):
+            expected = -8.0 * (2.0 - 4.0 * alpha)
+            assert derphi(alpha) == pytest.approx(expected, rel=1e-6)
+        return 0.1
+
+    optimizer = geoopt.optim.RiemannianLineSearch(
+        [point], line_search_method=choose_step, compute_derphi=True
+    )
+    optimizer.step(_closure(point, optimizer, lambda value: value.square().sum()))
+    torch.testing.assert_close(point, torch.tensor([1.6], dtype=dtype))
+
+
+def test_batched_trial_evaluations_preserve_wolfe_curvature_checks():
+    """A callable checking several pre-evaluated trials must reject insufficient curvature reduction."""
+    point = torch.nn.Parameter(torch.tensor([2.0], dtype=torch.float64))
+
+    def choose_step(phi, derphi, phi0, derphi0, **kwargs):
+        candidates = (0.1, 0.4)
+        values = [phi(alpha) for alpha in candidates]
+        for alpha, value in zip(candidates, values):
+            if value <= phi0 + 1e-4 * alpha * derphi0 and abs(derphi(alpha)) <= 0.5 * abs(derphi0):
+                return alpha
+        return None
+
+    optimizer = geoopt.optim.RiemannianLineSearch(
+        [point], line_search_method=choose_step, compute_derphi=True
+    )
+    loss = optimizer.step(_closure(point, optimizer, lambda value: value.square().sum()))
+
+    assert optimizer.last_step_size == 0.4
+    torch.testing.assert_close(point, torch.tensor([0.4], dtype=torch.float64))
+    assert loss == pytest.approx(0.16)

@@ -340,8 +340,10 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
         if not self.compute_derphi:
             raise ValueError("Cannot call _derphi if self.compute_derphi=False!")
 
-        # Call _phi to compute gradients; Does nothing if _phi was
-        # already called with this stepsize during this step
+        # Scalar losses can be cached for several trials, but gradients only
+        # belong to the most recently evaluated trial.
+        if step_size != self._last_step:
+            self._step_size_dic.pop(step_size, None)
         self._phi(step_size)
 
         derphi = 0
