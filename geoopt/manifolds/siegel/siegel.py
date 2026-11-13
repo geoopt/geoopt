@@ -77,8 +77,8 @@ class SiegelManifold(Manifold, ABC):
         # Vector-valued distance: v_i = log((1 + e_i) / (1 - e_i))
         vvd = (1 + evalues) / (1 - evalues).clamp(min=eps)
         vvd = torch.log(vvd)
-        res = self.metric.compute_metric(vvd)
-        return res
+        res = self.metric.compute_metric(vvd, keepdim=keepdim)
+        return res.unsqueeze(-1) if keepdim else res
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         # always assume u is scaled properly

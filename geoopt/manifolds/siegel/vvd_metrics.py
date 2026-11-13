@@ -125,7 +125,7 @@ class FinslerMinimumEntropyMetric(SiegelMetric):
         torch.Tensor
             Finsler distance of minimum entropy between the points
         """
-        res = torch.sum(self.weights * v, dim=-1, keepdim=keepdim)
+        res = torch.sum(self.weights.squeeze(0) * v, dim=-1, keepdim=keepdim)
         return res
 
 
@@ -154,7 +154,7 @@ class FinslerWeightedSumMetric(SiegelMetric, torch.nn.Module):
         torch.Tensor
             Weighted sum of vector-valued distance between the points
         """
-        weights = torch.relu(self.weights)  # 1 x n
+        weights = torch.relu(self.weights).squeeze(0)
         res = weights * v
         res = torch.sum(res, dim=-1, keepdim=keepdim)
         return res
