@@ -127,9 +127,6 @@ class Euclidean(Manifold):
             xy_inner = self.pairwise_inner(x, y)  # (..., B1, B2)
 
             dist_sq = x_norm_sq + y_norm_sq.transpose(-2, -1) - 2 * xy_inner
-            # Clamp to avoid numerical issues with sqrt of negative numbers
-            dist_sq = dist_sq.clamp(min=0)
-            return torch.sqrt(dist_sq)
         else:
             # Higher-dimensional case
             batch_shape_x = x.shape[: -self.ndim - 1]
@@ -146,8 +143,11 @@ class Euclidean(Manifold):
             xy_inner = torch.einsum("...id,...jd->...ij", x_flat, y_flat)
 
             dist_sq = x_norm_sq + y_norm_sq.transpose(-2, -1) - 2 * xy_inner
-            dist_sq = dist_sq.clamp(min=0)
-            return torch.sqrt(dist_sq)
+
+        dist_sq = dist_sq.clamp(min=0)
+        zero = dist_sq == 0
+        # Avoid the infinite derivative of sqrt at zero, including clamped distances.
+        return dist_sq.masked_fill(zero, 1).sqrt().masked_fill(zero, 0)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         target_shape = broadcast_shapes(x.shape, u.shape)
