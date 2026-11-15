@@ -4,6 +4,7 @@ import warnings
 import torch
 from .base import Manifold
 from .. import linalg
+from ..utils import size2shape
 
 __all__ = ["SymmetricPositiveDefinite"]
 
@@ -308,4 +309,5 @@ class SymmetricPositiveDefinite(Manifold):
         device=None,
         seed: Optional[int] = 42,
     ) -> torch.Tensor:
+        size = size2shape(*size)
         return torch.diag_embed(torch.ones(*size[:-1], dtype=dtype, device=device))
