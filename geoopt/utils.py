@@ -128,7 +128,7 @@ def broadcast_shapes(*shapes: Tuple[int]) -> Tuple[int]:
         for d in dims:
             if dim != 1 and d != 1 and d != dim:
                 raise ValueError("Shapes can't be broadcasted")
-            elif d > dim:
+            elif dim == 1:
                 dim = d
         result.append(dim)
     return tuple(reversed(result))
