@@ -34,9 +34,9 @@ def rescale(function, scaling_info):
         for k, power in scaling_info.kwargs.items():
             arguments[k] = rescale_value(arguments[k], self.scale, power)
         params = params.__class__(signature, arguments)
-        results = function(*params.args, **params.kwargs)
+        results = self._wrap_manifold_tensor(function(*params.args, **params.kwargs))
         if not scaling_info.results:
-            # do nothing
+            # No output scaling is required.
             return results
         wrapped_results = []
         is_tuple = isinstance(results, tuple)
@@ -85,14 +85,28 @@ class Scaled(Manifold):
         else:
             self.register_buffer("_scale", None)
             self.register_parameter("_log_scale", torch.nn.Parameter(scale.log()))
-        # do not rebuild scaled functions very frequently, save them
+        self._init_scaled_methods()
 
+    def _init_scaled_methods(self):
         for method, scaling_info in self.base.__scaling__.items():
             # register rescaled functions as bound methods of this particular instance
             unbound_method = getattr(self.base, method).__func__  # unbound method
             self.__setattr__(
                 method, types.MethodType(rescale(unbound_method, scaling_info), self)
             )
+
+    def __getstate__(self):
+        getstate = getattr(super(), "__getstate__", None)
+        state = getstate() if getstate is not None else self.__dict__
+        state = state.copy()
+        # Rebuild derived methods after their base manifold has been restored.
+        for method in self.base.__scaling__:
+            state.pop(method, None)
+        return state
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self._init_scaled_methods()
 
     @property
     def scale(self) -> torch.Tensor:
@@ -125,11 +139,23 @@ class Scaled(Manifold):
             try:
                 # propagate only public methods and attributes, ignore buffers, parameters, etc
                 if isinstance(self.base, Scaled) and item in self._base_attributes:
-                    return self.base.__getattr__(item)
+                    attribute = self.base.__getattr__(item)
                 else:
-                    return self.base.__getattribute__(item)
+                    attribute = self.base.__getattribute__(item)
+                if isinstance(attribute, types.MethodType) and isinstance(
+                    attribute.__self__, Manifold
+                ):
+                    return types.MethodType(rescale(attribute.__func__, ScalingInfo()), self)
+                return attribute
             except AttributeError as e:
                 raise original from e
+
+    def _wrap_manifold_tensor(self, tensor):
+        if isinstance(tensor, geoopt.ManifoldTensor) and tensor.manifold is self.base:
+            # Keep the base result's metadata and autograd history intact.
+            tensor = tensor.as_subclass(type(tensor))
+            tensor.manifold = self
+        return tensor
 
     @property
     def _base_attributes(self):
@@ -195,4 +221,6 @@ class Scaled(Manifold):
         return self.base.transp(x, y, v, **kwargs)
 
     def random(self, *size, dtype=None, device=None, generator=None, **kwargs) -> torch.Tensor:
-        return self.base.random(*size, dtype=dtype, device=device, generator=generator, **kwargs)
+        return self._wrap_manifold_tensor(
+            self.base.random(*size, dtype=dtype, device=device, generator=generator, **kwargs)
+        )
