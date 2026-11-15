@@ -288,6 +288,7 @@ class ProductManifold(Manifold):
     def expmap_transp(
         self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        x, u, v = torch.broadcast_tensors(x, u, v)
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
         results = []
         for i, manifold in enumerate(self.manifolds):
@@ -304,6 +305,7 @@ class ProductManifold(Manifold):
         return torch.cat(points, -1), torch.cat(vectors, -1)
 
     def retr_transp(self, x: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
+        x, u, v = torch.broadcast_tensors(x, u, v)
         target_batch_dim = _calculate_target_batch_dim(x.dim(), u.dim(), v.dim())
         results = []
         for i, manifold in enumerate(self.manifolds):
