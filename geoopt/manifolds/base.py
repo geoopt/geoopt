@@ -395,6 +395,7 @@ class Manifold(torch.nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @__scaling__(ScalingInfo(1))
     def cdist(self, x: torch.Tensor, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """
         Compute pairwise distances between two batches of points.
