@@ -106,14 +106,8 @@ class Euclidean(Manifold):
         elif self.ndim == 1:
             return torch.einsum("...id,...jd->...ij", u, v)
         else:
-            batch_shape_u = u.shape[: -self.ndim - 1]
-            batch_shape_v = v.shape[: -self.ndim - 1]
-            B1 = u.shape[-self.ndim - 1]
-            B2 = v.shape[-self.ndim - 1]
-            manifold_size = u.shape[-self.ndim :]
-
-            u_flat = u.reshape(*batch_shape_u, B1, -1)
-            v_flat = v.reshape(*batch_shape_v, B2, -1)
+            u_flat = u.flatten(start_dim=-self.ndim)
+            v_flat = v.flatten(start_dim=-self.ndim)
 
             return torch.einsum("...id,...jd->...ij", u_flat, v_flat)
 
@@ -131,15 +125,9 @@ class Euclidean(Manifold):
             dist_sq = dist_sq.clamp(min=0)
             return torch.sqrt(dist_sq)
         else:
-            # Higher-dimensional case
-            batch_shape_x = x.shape[: -self.ndim - 1]
-            batch_shape_y = y.shape[: -self.ndim - 1]
-            B1 = x.shape[-self.ndim - 1]
-            B2 = y.shape[-self.ndim - 1]
-
             # Flatten manifold dimensions
-            x_flat = x.reshape(*batch_shape_x, B1, -1)
-            y_flat = y.reshape(*batch_shape_y, B2, -1)
+            x_flat = x.flatten(start_dim=-self.ndim)
+            y_flat = y.flatten(start_dim=-self.ndim)
 
             x_norm_sq = (x_flat**2).sum(dim=-1, keepdim=True)
             y_norm_sq = (y_flat**2).sum(dim=-1, keepdim=True)
