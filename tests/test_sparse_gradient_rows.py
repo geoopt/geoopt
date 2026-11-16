@@ -41,12 +41,10 @@ def test_sparse_optimizer_layout_equivalence(kind, curved, coalesced, maximize):
     hybrid_optimizer = optimizer(kind, hybrid_point, maximize)
     coordinate_optimizer = optimizer(kind, coordinate_point, maximize)
     for step in range(4):
-        rows = (
-            torch.tensor([11, 2, 11, 5, 3, 2])
-            if step != 2
-            else torch.empty(0, dtype=torch.long)
-        )
+        rows = torch.tensor([11, 2, 11, 5, 3, 2])
         values = torch.randn(rows.numel(), 7, dtype=torch.float64)
+        if step == 2:
+            values.zero_()
         hybrid_grad, coordinate_grad = gradient_layouts(rows, values, initial.shape)
         if coalesced:
             hybrid_grad, coordinate_grad = (
@@ -77,9 +75,17 @@ def test_sparse_embedding_training_matches_torch(kind, dtype):
     torch.manual_seed(1851)
     embedding = torch.nn.Embedding(100, 5, sparse=True).to(dtype)
     reference = copy.deepcopy(embedding)
-    candidate_optimizer = optimizer(kind, embedding.weight)
+    options = {"lr": 0.02}
+    if kind == "adam":
+        options["eps"] = 0.0
+    candidate_class = (
+        geoopt.optim.SparseRiemannianSGD
+        if kind == "sgd"
+        else geoopt.optim.SparseRiemannianAdam
+    )
+    candidate_optimizer = candidate_class(embedding.parameters(), **options)
     reference_class = torch.optim.SGD if kind == "sgd" else torch.optim.SparseAdam
-    reference_optimizer = reference_class(reference.parameters(), lr=0.02)
+    reference_optimizer = reference_class(reference.parameters(), **options)
     for indices in [
         torch.tensor([4, 1, 4, 8]),
         torch.tensor([8, 4, 3]),
