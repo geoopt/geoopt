@@ -73,7 +73,7 @@ def _sym_funcm_impl(func, **kwargs):
 
     def _impl(x):
         e, v = torch.linalg.eigh(x, "U")
-        return v @ torch.diag_embed(func(e)) @ v.transpose(-1, -2)
+        return (v * func(e).unsqueeze(-2)) @ v.transpose(-1, -2)
 
     return torch.jit.script(_impl)
 
@@ -204,8 +204,8 @@ def sym_inv_sqrtm2(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     sqrt_e = torch.sqrt(e)
     inv_sqrt_e = torch.reciprocal(sqrt_e)
     return (
-        v @ torch.diag_embed(inv_sqrt_e) @ v.transpose(-1, -2),
-        v @ torch.diag_embed(sqrt_e) @ v.transpose(-1, -2),
+        (v * inv_sqrt_e.unsqueeze(-2)) @ v.transpose(-1, -2),
+        (v * sqrt_e.unsqueeze(-2)) @ v.transpose(-1, -2),
     )
 
 
