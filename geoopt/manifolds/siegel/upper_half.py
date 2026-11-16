@@ -121,9 +121,13 @@ class UpperHalf(SiegelManifold):
         torch.Tensor
             inner product (broadcasted)
         """
-        metric = z.imag.type_as(z)
-        scaled_u = torch.linalg.solve(metric, u)
-        scaled_v = scaled_u if v is None else torch.linalg.solve(metric, v)
+        if v is None:
+            scaled_u = torch.linalg.solve(z.imag.type_as(z), u)
+            scaled_v = scaled_u
+        else:
+            inv_y = sm.inverse(z.imag).type_as(z)
+            scaled_u = inv_y @ u
+            scaled_v = inv_y @ v
         inner = (scaled_u * scaled_v.conj().transpose(-1, -2)).sum(dim=(-2, -1))
         return inner.unsqueeze(-1) if keepdim else inner
 
