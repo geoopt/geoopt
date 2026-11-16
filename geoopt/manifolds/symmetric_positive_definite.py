@@ -159,8 +159,15 @@ class SymmetricPositiveDefinite(Manifold):
         return True, None
 
     def projx(self, x: torch.Tensor) -> torch.Tensor:
+        """Reflect negative eigenvalues and floor modes below the numerical rank tolerance."""
         symx = linalg.sym(x)
-        return linalg.sym_funcm(symx, torch.abs)
+        eigenvalues, eigenvectors = torch.linalg.eigh(symx, UPLO="U")
+        magnitudes = eigenvalues.abs()
+        # Raise numerically zero eigenvalues above the relative rank threshold.
+        finfo = torch.finfo(x.dtype)
+        rank_tol = magnitudes.amax(dim=-1, keepdim=True) * (x.shape[-1] * finfo.eps)
+        magnitudes = magnitudes.clamp_min(rank_tol.clamp_min(finfo.tiny))
+        return (eigenvectors * magnitudes.unsqueeze(-2)) @ eigenvectors.transpose(-1, -2)
 
     def proju(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return linalg.sym(u)
