@@ -8,8 +8,12 @@ from ...utils import drop_dims
 @torch.jit.script
 def arcosh(x: torch.Tensor):
     dtype = x.dtype
-    z = torch.sqrt(torch.clamp_min(x.double().pow(2) - 1.0, 1e-15))
-    return torch.log(x + z).to(dtype)
+    x = x.double()
+    near = x.clamp_max(2.0)
+    far = x.clamp_min(2.0)
+    near_value = torch.log(near + torch.sqrt(torch.clamp_min(near.square() - 1.0, 1e-15)))
+    far_value = torch.log(far) + torch.log1p(torch.sqrt(1.0 - far.reciprocal().square()))
+    return torch.where(x > 2.0, far_value, near_value).to(dtype)
 
 
 def inner(u, v, *, keepdim=False, dim=-1):
