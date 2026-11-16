@@ -51,18 +51,15 @@ class Sphere(Manifold):
             )
         elif intersection is not None:
             self._configure_manifold_intersection(intersection)
+            subspace_rank = linalg.matrix_rank(intersection)
         elif complement is not None:
             self._configure_manifold_complement(complement)
+            subspace_rank = complement.shape[-2] - linalg.matrix_rank(complement)
         else:
             self._configure_manifold_no_constraints()
-        if (
-            self.projector is not None
-            and (linalg.matrix_rank(self.projector) == 1).any()
-        ):
-            raise ValueError(
-                "Manifold only consists of isolated points when "
-                "subspace is 1-dimensional."
-            )
+            subspace_rank = None
+        if subspace_rank is not None and (subspace_rank < 2).any():
+            raise ValueError("Manifold subspace must have at least two dimensions.")
 
     def _check_shape(
         self, shape: Tuple[int], name: str
@@ -175,14 +172,13 @@ class Sphere(Manifold):
     egrad2rgrad = proju
 
     def _configure_manifold_complement(self, complement: torch.Tensor):
-        Q, _ = linalg.qr(complement)
-        P = -Q @ Q.transpose(-1, -2)
+        P = -complement @ torch.linalg.pinv(complement)
         P[..., torch.arange(P.shape[-2]), torch.arange(P.shape[-2])] += 1
         self.register_buffer("projector", P)
 
     def _configure_manifold_intersection(self, intersection: torch.Tensor):
-        Q, _ = linalg.qr(intersection)
-        self.register_buffer("projector", Q @ Q.transpose(-1, -2))
+        projector = intersection @ torch.linalg.pinv(intersection)
+        self.register_buffer("projector", projector)
 
     def _configure_manifold_no_constraints(self):
         self.register_buffer("projector", None)
