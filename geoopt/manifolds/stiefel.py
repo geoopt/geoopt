@@ -180,6 +180,15 @@ class CanonicalStiefel(Stiefel):
     def _transp_follow_one(
         self, x: torch.Tensor, v: torch.Tensor, *, u: torch.Tensor
     ) -> torch.Tensor:
+        if 2 * x.shape[-1] < x.shape[-2]:
+            u = u - 0.5 * x @ (x.transpose(-1, -2) @ u)
+            x = x.expand_as(u)
+            left = torch.cat((u, x), dim=-1)
+            right = torch.cat((x.transpose(-1, -2), -u.transpose(-1, -2)), dim=-2)
+            # Woodbury applies the Cayley transform without an n-by-n matrix.
+            lhs = -0.5 * (right @ left)
+            lhs = lhs + torch.eye(lhs.shape[-1], dtype=lhs.dtype, device=lhs.device)
+            return v + left @ torch.linalg.solve(lhs, right @ v)
         a = self._amat(x, u)
         rhs = v + 1 / 2 * a @ v
         lhs = -1 / 2 * a
