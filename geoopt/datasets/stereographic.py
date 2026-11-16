@@ -34,7 +34,7 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
     ):
         self.dim = int(dim)
         self.ball = ball
-        self.root = ball.origin(self.dim)
+        self.root = ball.origin(self.dim, dtype=ball.dtype, device=ball.device)
         self.sigma_sibling = sigma_sibling
         self.depth = int(depth)
         self.dist_children = dist_children
@@ -55,12 +55,14 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
 
     def get_directions(self, parent_value, numberOfChildren):
         if self.dim == 2 and numberOfChildren == 2:
-            direction = torch.randn(self.dim)
+            direction = torch.randn(self.dim, dtype=parent_value.dtype, device=parent_value.device)
             parent_value_n = parent_value / parent_value.norm().clamp_min(1e-15)
             direction -= parent_value_n @ direction * parent_value_n
             return torch.stack([direction, -direction])
         else:
-            directions = torch.randn(numberOfChildren, self.dim)
+            directions = torch.randn(
+                numberOfChildren, self.dim, dtype=parent_value.dtype, device=parent_value.device
+            )
             parent_value_n = parent_value / parent_value.norm().clamp_min(1e-15)
             directions -= (directions @ parent_value_n)[:, None] * parent_value_n
             return directions
@@ -75,7 +77,7 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
         if offspring:
             directions = self.get_directions(parent_value, numberOfChildren)
             child_values = self.ball.geodesic_unit(
-                torch.tensor(sigma), parent_value, directions
+                parent_value.new_tensor(sigma), parent_value, directions
             )
             children = []
             for child in child_values:
