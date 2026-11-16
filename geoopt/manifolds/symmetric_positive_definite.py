@@ -144,7 +144,7 @@ class SymmetricPositiveDefinite(Manifold):
         ok = torch.allclose(x, x.transpose(-1, -2), atol=atol, rtol=rtol)
         if not ok:
             return False, "`x != x.transpose` with atol={}, rtol={}".format(atol, rtol)
-        e, _ = torch.linalg.eigh(x, "U")
+        e = torch.linalg.eigvalsh(x.detach(), "U")
         ok = (e > -atol).min()
         if not ok:
             return False, "eigenvalues of x are not all greater than 0."
