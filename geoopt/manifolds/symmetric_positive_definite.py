@@ -234,13 +234,9 @@ class SymmetricPositiveDefinite(Manifold):
         ValueError
             if `keepdim` sine `torch.trace` doesn't support keepdim
         """
-        if v is None:
-            v = u
-        inv_x = linalg.sym_invm(x)
-        ret = linalg.trace(inv_x @ u @ inv_x @ v)
-        if keepdim:
-            return torch.unsqueeze(torch.unsqueeze(ret, -1), -1)
-        return ret
+        solved_u = torch.linalg.solve(x, u)
+        solved_v = solved_u if v is None else torch.linalg.solve(x, v)
+        return (solved_u * solved_v.transpose(-1, -2)).sum(dim=(-1, -2), keepdim=keepdim)
 
     def norm(self, x: torch.Tensor, u: torch.Tensor, *, keepdim=False) -> torch.Tensor:
         """
@@ -270,8 +266,7 @@ class SymmetricPositiveDefinite(Manifold):
         return norm
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_x = linalg.sym_invm(x)
-        return linalg.sym(x + u + 0.5 * u @ inv_x @ u)
+        return linalg.sym(x + u + 0.5 * u @ torch.linalg.solve(x, u))
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_sqrt_x, sqrt_x = linalg.sym_inv_sqrtm2(x)
