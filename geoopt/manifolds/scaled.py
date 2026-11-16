@@ -78,7 +78,7 @@ class Scaled(Manifold):
         super().__init__()
         self.base = manifold
         scale = torch.as_tensor(scale, dtype=torch.get_default_dtype())
-        scale = scale.requires_grad_(False)
+        scale = scale.detach()
         if not learnable:
             self.register_buffer("_scale", scale)
             self.register_buffer("_log_scale", None)
