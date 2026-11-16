@@ -260,13 +260,13 @@ def project_polar(x, *, k, dim=-1):
     r"""
     Projection on the Hyperboloid from polar coordinates.
 
-    ... math::
-        \pi((\mathbf{d}, r))=(\sqrt{k} \sinh (r/\sqrt{k}) \mathbf{d}, \cosh (r / \sqrt{k}))
+    .. math::
+        \pi((\mathbf{d}, r))=(\sqrt{k} \cosh (r/\sqrt{k}), \sqrt{k} \sinh (r/\sqrt{k}) \mathbf{d})
 
     Parameters
     ----------
     x: tensor
-        point in Rn
+        unit spatial direction followed by the radial distance
     k: tensor
         hyperboloid negative curvature
     dim : int
@@ -287,7 +287,7 @@ def _project_polar(x, k: torch.Tensor, dim: int = -1):
     r = x.narrow(dim, -1, 1)
     res = torch.cat(
         (
-            torch.cosh(r / torch.sqrt(k)),
+            torch.sqrt(k) * torch.cosh(r / torch.sqrt(k)),
             torch.sqrt(k) * torch.sinh(r / torch.sqrt(k)) * d,
         ),
         dim=dim,
