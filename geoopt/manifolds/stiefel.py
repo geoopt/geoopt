@@ -210,7 +210,7 @@ class CanonicalStiefel(Stiefel):
         return u - x @ linalg.sym(x.transpose(-1, -2) @ u)
 
     def egrad2rgrad(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        return u - x @ u.transpose(-1, -2) @ x
+        return u - x @ (u.transpose(-1, -2) @ x)
 
     def retr(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         return self._transp_follow_one(x, x, u=u)
