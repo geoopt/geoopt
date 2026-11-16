@@ -1,4 +1,5 @@
 import itertools
+from collections import deque
 import torch.utils.data
 
 
@@ -95,13 +96,13 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
     def bst(self):
         label = -torch.ones(self.depth + 1, dtype=torch.long)
         label[0] = next(self.__class_counter)
-        queue = [(self.root, label, 0)]
+        queue = deque([(self.root, label, 0)])
         visited = []
         labels_visited = []
         values_clones = []
         labels_clones = []
         while len(queue) > 0:
-            current_node, current_label, current_depth = queue.pop(0)
+            current_node, current_label, current_depth = queue.popleft()
             visited.append(current_node)
             labels_visited.append(current_label)
             if current_depth < self.depth:
