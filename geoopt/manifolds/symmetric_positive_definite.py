@@ -286,12 +286,12 @@ class SymmetricPositiveDefinite(Manifold):
 
     def transp(self, x: torch.Tensor, y: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
         inv_sqrt_x, sqrt_x = linalg.sym_inv_sqrtm2(x)
-        exp_x_y = linalg.sym_expm(0.5 * linalg.sym_logm(inv_sqrt_x @ y @ inv_sqrt_x))
+        sqrt_x_y = linalg.sym_sqrtm(inv_sqrt_x @ y @ inv_sqrt_x)
         return (
             sqrt_x
-            @ exp_x_y
+            @ sqrt_x_y
             @ linalg.sym(inv_sqrt_x @ v @ inv_sqrt_x)
-            @ exp_x_y
+            @ sqrt_x_y
             @ sqrt_x
         )
 
