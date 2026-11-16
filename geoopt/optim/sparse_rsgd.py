@@ -90,10 +90,6 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     rows = grad.coalesce().indices()[0].unique()
                     state = self.state[point]
 
-                    # State initialization
-                    if len(state) == 0:
-                        if momentum > 0:
-                            state["momentum_buffer"] = grad.to_dense().clone()
                     if isinstance(point, (ManifoldParameter, ManifoldTensor)):
                         manifold = point.manifold
                     else:
@@ -106,8 +102,12 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
 
                     grad = manifold.egrad2rgrad(point, grad)
                     if momentum > 0:
-                        momentum_buffer = state["momentum_buffer"][rows]
-                        momentum_buffer.mul_(momentum).add_(grad, alpha=1 - dampening)
+                        if "momentum_buffer" not in state:
+                            state["momentum_buffer"] = torch.zeros_like(full_point)
+                            momentum_buffer = grad.clone()
+                        else:
+                            momentum_buffer = state["momentum_buffer"][rows]
+                            momentum_buffer.mul_(momentum).add_(grad, alpha=1 - dampening)
                         if nesterov:
                             grad = grad.add_(momentum_buffer, alpha=momentum)
                         else:
