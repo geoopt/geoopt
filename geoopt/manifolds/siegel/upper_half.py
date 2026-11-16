@@ -121,12 +121,11 @@ class UpperHalf(SiegelManifold):
         torch.Tensor
             inner product (broadcasted)
         """
-        if v is None:
-            v = u
-        inv_y = sm.inverse(z.imag).type_as(z)
-
-        res = inv_y @ u @ inv_y @ v.conj()
-        return lalg.trace(res, keepdim=keepdim)
+        metric = z.imag.type_as(z)
+        scaled_u = torch.linalg.solve(metric, u)
+        scaled_v = scaled_u if v is None else torch.linalg.solve(metric, v)
+        inner = (scaled_u * scaled_v.conj().transpose(-1, -2)).sum(dim=(-2, -1))
+        return inner.unsqueeze(-1) if keepdim else inner
 
     def _check_point_on_manifold(self, z: torch.Tensor, *, atol=1e-5, rtol=1e-5):
         if not self._check_matrices_are_symmetric(z, atol=atol, rtol=rtol):
