@@ -133,9 +133,7 @@ def cayley_transform(z: torch.Tensor) -> torch.Tensor:
     identity = identity_like(z)
 
     i_z_plus_id = multiply_by_i(identity + z)
-    inv_z_minus_id = inverse(identity - z)
-
-    return i_z_plus_id @ inv_z_minus_id
+    return torch.linalg.solve(identity - z, i_z_plus_id)
 
 
 def inverse_cayley_transform(z: torch.Tensor) -> torch.Tensor:
@@ -165,8 +163,7 @@ def inverse_cayley_transform(z: torch.Tensor) -> torch.Tensor:
     i_identity = multiply_by_i(identity)
 
     z_minus_id = z - i_identity
-    inv_z_plus_id = inverse(z + i_identity)
-    return z_minus_id @ inv_z_plus_id
+    return torch.linalg.solve(z + i_identity, z_minus_id)
 
 
 def is_complex_symmetric(z: torch.Tensor, atol=3e-5, rtol=1e-5):
