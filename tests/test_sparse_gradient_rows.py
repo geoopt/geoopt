@@ -77,7 +77,7 @@ def test_sparse_embedding_training_matches_torch(kind, dtype):
     reference = copy.deepcopy(embedding)
     options = {"lr": 0.02}
     if kind == "adam":
-        options["eps"] = 0.0
+        options["eps"] = 1e-30
     candidate_class = (
         geoopt.optim.SparseRiemannianSGD
         if kind == "sgd"
