@@ -91,7 +91,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                         raise RuntimeError(
                             "SparseRiemannianAdam does not support sparse gradients, use RiemannianAdam instead"
                         )
-                    rows = grad.coalesce().indices()[0].unique()
+                    rows, row_grad = self._sparse_grad_rows(grad)
                     state = self.state[point]
 
                     # State initialization
@@ -107,7 +107,7 @@ class SparseRiemannianAdam(OptimMixin, SparseMixin, torch.optim.Optimizer):
                     state["step"] += 1
                     full_point = point
                     # only nonzero rows are required to make an update
-                    grad = grad.index_select(0, rows).to_dense()
+                    grad = row_grad
                     # this takes not view, but copy, we are required to make updates later
                     point = point[rows]
                     exp_avg = state["exp_avg"][rows]

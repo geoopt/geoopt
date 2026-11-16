@@ -23,6 +23,14 @@ class OptimMixin(object):
 
 
 class SparseMixin(object):
+    @staticmethod
+    def _sparse_grad_rows(grad):
+        grad = grad.coalesce()
+        if grad.sparse_dim() == 1:
+            return grad.indices()[0], grad.values().clone()
+        rows = grad.indices()[0].unique()
+        return rows, grad.index_select(0, rows).to_dense()
+
     def add_param_group(self, param_group):
         params = param_group["params"]
         if isinstance(params, torch.Tensor):

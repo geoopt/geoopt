@@ -87,7 +87,7 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
                             "SparseRiemannianAdam does not support sparse gradients, use RiemannianAdam instead"
                         )
                     # select rows that contain gradient
-                    rows = grad.coalesce().indices()[0].unique()
+                    rows, row_grad = self._sparse_grad_rows(grad)
                     state = self.state[point]
 
                     # State initialization
@@ -101,7 +101,7 @@ class SparseRiemannianSGD(OptimMixin, SparseMixin, torch.optim.Optimizer):
 
                     full_point = point
                     # only nonzero rows are required to make an update
-                    grad = grad.index_select(0, rows).to_dense()
+                    grad = row_grad
                     point = point[rows]
 
                     grad = manifold.egrad2rgrad(point, grad)
