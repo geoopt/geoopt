@@ -274,8 +274,14 @@ class SymmetricPositiveDefinite(Manifold):
         return linalg.sym(x + u + 0.5 * u @ inv_x @ u)
 
     def expmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        inv_sqrt_x, sqrt_x = linalg.sym_inv_sqrtm2(x)
-        return sqrt_x @ linalg.sym_expm(inv_sqrt_x @ u @ inv_sqrt_x) @ sqrt_x
+        # A Cholesky factor whitens the tangent up to an orthogonal change
+        # of basis, without differentiating eigenvectors of the base point.
+        chol_x = torch.linalg.cholesky(x)
+        whitened = torch.linalg.solve_triangular(chol_x, u, upper=False)
+        whitened = torch.linalg.solve_triangular(
+            chol_x, whitened.transpose(-1, -2), upper=False
+        ).transpose(-1, -2)
+        return chol_x @ linalg.sym_expm(whitened) @ chol_x.transpose(-1, -2)
 
     def logmap(self, x: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         inv_sqrt_x, sqrt_x = linalg.sym_inv_sqrtm2(x)

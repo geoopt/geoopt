@@ -580,3 +580,38 @@ def test_dist(unary_case):
         np.testing.assert_allclose(dist.detach(), tangent_norm.detach())
     except NotImplementedError:
         pytest.skip("dist is not implemented for {}".format(unary_case.manifold))
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_spd_expmap_repeated_base_eigenvalues(dtype):
+    manifold = geoopt.SymmetricPositiveDefinite()
+    x = (2 * torch.eye(3, dtype=dtype)).requires_grad_()
+    tangent = torch.tensor([0.2, -0.1, 0.3], dtype=dtype)
+    u = torch.diag(tangent).requires_grad_()
+
+    result = manifold.expmap(x, u)
+    grad_x, grad_u = torch.autograd.grad(result.trace(), (x, u))
+
+    ratio = tangent / 2
+    eps = torch.finfo(dtype).eps
+    torch.testing.assert_close(result, torch.diag(2 * ratio.exp()), rtol=40 * eps, atol=40 * eps)
+    torch.testing.assert_close(
+        grad_x, torch.diag((1 - ratio) * ratio.exp()), rtol=40 * eps, atol=40 * eps
+    )
+    torch.testing.assert_close(grad_u, torch.diag(ratio.exp()), rtol=40 * eps, atol=40 * eps)
+
+
+def test_spd_expmap_broadcast_noncommuting_arguments():
+    manifold = geoopt.SymmetricPositiveDefinite()
+    x = torch.tensor(
+        [[[2.0, 0.4], [0.4, 1.0]], [[1.1, -0.2], [-0.2, 1.7]]],
+        dtype=torch.float64,
+    )[:, None]
+    u = torch.tensor(
+        [[[0.2, 0.1], [0.1, -0.3]], [[-0.1, -0.3], [-0.3, 0.2]], [[0.3, 0.0], [0.0, -0.2]]],
+        dtype=torch.float64,
+    )
+
+    result = manifold.expmap(x, u)
+    expected = x @ torch.matrix_exp(torch.linalg.solve(x, u))
+    assert result.shape == (2, 3, 2, 2)
+    torch.testing.assert_close(result, expected, rtol=1e-12, atol=1e-12)
