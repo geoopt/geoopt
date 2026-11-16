@@ -66,7 +66,7 @@ def takagi_eig(z: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
 def takagi_eigvals(z: torch.Tensor) -> torch.Tensor:
     r"""
-    Compute the Takagi Factorization to obtain eigenvalues and eigenvectors.
+    Compute the nonnegative Takagi values in ascending order.
 
     Given a complex symmetric matrix A, the Takagi factorization is an algorithm that
     computes a real diagonal matrix D and a complex unitary matrix S such that:
@@ -96,15 +96,7 @@ def takagi_eigvals(z: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         eigenvalues of z
     """
-    compound_z = to_compound_symmetric(
-        z
-    )  # Z = A + iB, then compound_z = [(A, B),(B, -A)]
-    evalues = eigvalsh(compound_z)  # evalues in ascending order
-    index = torch.arange(
-        start=z.shape[-1], end=2 * z.shape[-1], device=evalues.device, dtype=torch.long
-    )
-    sing_values = evalues.index_select(dim=-1, index=index)
-    return sing_values
+    return torch.linalg.svdvals(z).flip(-1)
 
 
 def cayley_transform(z: torch.Tensor) -> torch.Tensor:
