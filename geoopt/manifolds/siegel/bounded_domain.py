@@ -156,16 +156,11 @@ class BoundedDomain(SiegelManifold):
         torch.Tensor
             inner product (broadcasted)
         """
-        if v is None:
-            v = u
-        identity = sm.identity_like(z)
-        conj_z = z.conj()
-
-        inv_id_minus_conjz_z = sm.inverse(identity - (conj_z @ z))
-        inv_id_minus_z_conjz = sm.inverse(identity - (z @ conj_z))
-
-        res = inv_id_minus_conjz_z @ u @ inv_id_minus_z_conjz @ v.conj()
-        return lalg.trace(res, keepdim=keepdim)
+        metric = sm.identity_like(z) - z.conj() @ z
+        scaled_u = torch.linalg.solve(metric, u)
+        scaled_v = scaled_u if v is None else torch.linalg.solve(metric, v)
+        inner = (scaled_u * scaled_v.conj().transpose(-1, -2)).sum(dim=(-2, -1))
+        return inner.unsqueeze(-1) if keepdim else inner
 
     def _check_point_on_manifold(self, x: torch.Tensor, *, atol=1e-4, rtol=1e-5):
         if not self._check_matrices_are_symmetric(x, atol=atol, rtol=rtol):
