@@ -106,3 +106,21 @@ def test_aim_optimizer_learns_from_identity(dtype):
         assert torch.isfinite(point).all()
         assert manifold.check_point_on_manifold(point)
     assert manifold.dist(point, target).square() < initial
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_aim_projected_rank_deficient_covariance_can_be_used_as_base(dtype):
+    samples = torch.tensor(
+        [[1., 0., 2.], [-1., 0., -2.], [2., 0., 4.], [-2., 0., -4.]], dtype=dtype
+    )
+    covariance = samples.T @ samples / (samples.shape[0] - 1)
+    # The second member is well conditioned but has a much smaller scale.
+    small_spd = torch.diag(torch.tensor([2e-8, 3e-8, 4e-8], dtype=dtype))
+    manifold = geoopt.SymmetricPositiveDefinite()
+
+    projected, preserved = manifold.projx(torch.stack((covariance, small_spd)))
+
+    assert torch.linalg.cholesky_ex(projected).info.item() == 0
+    assert torch.isfinite(manifold.dist(projected, torch.eye(3, dtype=dtype)))
+    tolerance = 10 * torch.finfo(dtype).eps * covariance.norm()
+    assert (projected - covariance).norm() < tolerance
+    torch.testing.assert_close(preserved, small_spd, atol=0, rtol=1e-6)
