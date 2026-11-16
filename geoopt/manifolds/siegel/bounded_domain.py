@@ -72,7 +72,7 @@ class BoundedDomain(SiegelManifold):
 
         .. math::
 
-            \operatorname{grad}_{R}(f(Z)) = A \cdot \operatorname{grad}_E(f(Z)) \cdot A
+            \operatorname{grad}_{R}(f(Z)) = A \cdot \operatorname{grad}_E(f(Z)) \cdot \overline{A}
 
         where :math:`A = Id - \overline{Z}Z`
 
@@ -89,7 +89,7 @@ class BoundedDomain(SiegelManifold):
             Riemannian gradient
         """
         a = get_id_minus_conjugate_z_times_z(z)
-        return lalg.sym(a @ u @ a)  # impose symmetry due to numerical instabilities
+        return lalg.sym(a @ u @ a.conj())  # impose symmetry due to numerical instabilities
 
     def projx(self, z: torch.Tensor) -> torch.Tensor:
         r"""
