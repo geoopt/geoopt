@@ -565,13 +565,14 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             with torch.no_grad():  # Take suggested step
                 point.copy_(new_point)
 
-        for group in self.param_groups:
-            group["step"] += 1
-            if (
-                group["stabilize"] is not None
-                and group["step"] % group["stabilize"] == 0
-            ):
-                self.stabilize_group(group)
+        if step_size is not None and not no_step:
+            for group in self.param_groups:
+                group["step"] += 1
+                if (
+                    group["stabilize"] is not None
+                    and group["step"] % group["stabilize"] == 0
+                ):
+                    self.stabilize_group(group)
 
         # Update loss value
         if step_size is not None:
@@ -585,6 +586,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
             return -new_loss
         return new_loss
 
+    @torch.no_grad()
     def stabilize_group(self, group):
         for p in group["params"]:
             if not isinstance(p, (ManifoldParameter, ManifoldTensor)):
@@ -594,6 +596,7 @@ class RiemannianLineSearch(OptimMixin, torch.optim.Optimizer):
                 continue
             manifold = p.manifold
             p.copy_(manifold.projx(p))
+            self._grads_computed = False
 
 
 #################################################################################
