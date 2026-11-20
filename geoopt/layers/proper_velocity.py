@@ -1,6 +1,43 @@
+"""
+Layers of the Proper Velocity model of hyperbolic space.
+
+References
+----------
+Ziheng Chen, Zihan Su, Bernhard Schölkopf, Nicu Sebe. Proper Velocity Neural Networks. ICLR 2026.
+
+Xianglong Shi, Nicu Sebe, Bernhard Schölkopf, Ziheng Chen. PVFormer: Proper Velocity Transformer
+for Stable and Scalable Hyperbolic Representation Learning. NeurIPS 2026.
+"""
+
+import math
+
 import torch
 
 import geoopt
+
+
+def _rotation(weight):
+    return torch.matrix_exp(weight - weight.transpose(-1, -2))
+
+
+def _rotate(input, weight):
+    # (..., N, n) and a stack of H generators (H, n, n) -> (..., H, N, n)
+    return input.unsqueeze(-3) @ _rotation(weight).transpose(-1, -2)
+
+
+def _lift(x, k):
+    # time coordinate of the lifted point divided by sqrt(k)
+    return torch.sqrt(1 + (x * x).sum(dim=-1, keepdim=True) / k)
+
+
+def _centroid(b, a, k, eps):
+    # PV coordinates of the time-like vector (sqrt(k) a, b) rescaled onto the hyperboloid
+    return b / torch.sqrt((a * a - (b * b).sum(dim=-1, keepdim=True) / k).clamp_min(eps))
+
+
+def _midpoint(values, weights, k, eps):
+    # PV midpoint of the rows of values (..., M, n) for every row of weights (..., N, M)
+    return _centroid(weights @ values, weights @ _lift(values, k), k, eps)
 
 
 class ProperVelocityMLR(torch.nn.Module):
@@ -279,6 +316,399 @@ class GyroProperVelocityBatchNorm(torch.nn.Module):
         )
 
 
+class ProperVelocityHomomorphism(torch.nn.Module):
+    r"""
+    Gyrovector homomorphism of the Proper Velocity model given by a learnable rotation
+    (Shi et al., 2026, Thm. 1).
+
+    .. math::
+
+        \Phi_R(x) = R x, \qquad R = \exp(W - W^\top) \in SO(n)
+
+    :math:`\Phi_R` preserves gyroaddition and scalar gyromultiplication,
+    :math:`\Phi_R(x \oplus y) = \Phi_R(x) \oplus \Phi_R(y)` and
+    :math:`\Phi_R(t \otimes x) = t \otimes \Phi_R(x)`, and it is an isometry of the PV metric for
+    every curvature. It replaces the query and value projections of a Transformer in
+    :class:`ProperVelocityBusemannAttention` and :class:`ProperVelocityLinearAttention`.
+    :math:`W` is initialized to zero, i.e. :math:`R = I`.
+
+    Parameters
+    ----------
+    features : int
+        dimension of the PV points
+    """
+
+    def __init__(self, features):
+        super().__init__()
+        if features < 1:
+            raise ValueError("features must be positive")
+        self.features = features
+        self.weight = torch.nn.Parameter(torch.zeros(features, features))
+
+    @property
+    def rotation(self):
+        """The rotation matrix :math:`R`."""
+        return _rotation(self.weight)
+
+    def forward(self, input):
+        if input.size(-1) != self.features:
+            raise ValueError(
+                f"expected input with last dimension {self.features}, got {input.size(-1)}"
+            )
+        return input @ self.rotation.transpose(-1, -2)
+
+    def extra_repr(self):
+        return f"features={self.features}"
+
+    @torch.no_grad()
+    def reset_parameters(self):
+        torch.nn.init.zeros_(self.weight)
+
+
+class ProperVelocityHyperplaneKey(ProperVelocityMLR):
+    r"""
+    Point-to-hyperplane key map of the Proper Velocity model (Shi et al., 2026, Thm. 4).
+
+    The signed PV point-to-hyperplane margins :math:`v_j(x)` of :class:`ProperVelocityMLR` are
+    stacked into a tangent vector at the origin,
+
+    .. math::
+
+        \Psi(x) = \left[v_1(x), \ldots, v_m(x)\right]^\top \in T_0\mathcal{PV}^m_k,
+
+    which serves as a direction-like key for :class:`ProperVelocityBusemannAttention`. As
+    :math:`k \to \infty` it reduces to the fully connected layer :math:`x \mapsto Zx + b` with rows
+    :math:`z_j` of :math:`Z` and :math:`b_j = -r_j \|z_j\|`. The normals :math:`z_j` are initialized
+    with :func:`torch.nn.init.xavier_uniform_` and the offsets :math:`r_j` with zeros.
+
+    Parameters
+    ----------
+    in_features : int
+        dimension of the input PV points
+    out_features : int
+        dimension of the output tangent keys
+    manifold : geoopt.ProperVelocity
+        input manifold, defaults to ``geoopt.ProperVelocity()``
+    eps : float
+        lower bound for :math:`\|z_j\|`
+    """
+
+    def __init__(self, in_features, out_features, *, manifold=None, eps=1e-9):
+        super().__init__(in_features, out_features, manifold=manifold, eps=eps)
+
+    @torch.no_grad()
+    def reset_parameters(self):
+        torch.nn.init.xavier_uniform_(self.z)
+        torch.nn.init.zeros_(self.r)
+
+
+class ProperVelocityBusemannAttention(torch.nn.Module):
+    r"""
+    Busemann attention on the Proper Velocity model (Shi et al., 2026, Sec. 4.2).
+
+    For every head, queries :math:`q_i` and values :math:`v_j` are rotated by
+    :class:`ProperVelocityHomomorphism` maps and keys :math:`k_j` are produced by a
+    :class:`ProperVelocityHyperplaneKey`. The logits are PV Busemann similarities of the queries
+    to the key directions :math:`\hat{k}_j = k_j / \|k_j\|` (Thm. 2),
+
+    .. math::
+
+        S_{ij} = -\tau_h \sqrt{k} \log\left(\sqrt{1 + \|q_i\|^2 / k}
+        - \langle q_i, \hat{k}_j \rangle / \sqrt{k}\right),
+
+    with a learnable temperature :math:`\tau_h > 0` per head. The output is the PV midpoint
+    (Thm. 3) of the values under :math:`\alpha_{ij} = \operatorname{softmax}_j(S_{ij} / \sigma)`
+    with a learnable scale :math:`\sigma`,
+
+    .. math::
+
+        z_i = \frac{b_i}{\sqrt{a_i^2 - \|b_i\|^2 / k}}, \qquad
+        b_i = \sum_j \alpha_{ij} v_j, \qquad
+        a_i = \sum_j \alpha_{ij} \sqrt{1 + \|v_j\|^2 / k}.
+
+    Every head works on all ``features`` dimensions and the heads are merged by their uniform PV
+    midpoint. The cost is quadratic in the number of tokens, see
+    :class:`ProperVelocityLinearAttention` for a linear one.
+
+    Parameters
+    ----------
+    features : int
+        dimension of the PV points
+    num_heads : int
+        number of attention heads
+    manifold : geoopt.ProperVelocity
+        manifold of inputs and outputs, defaults to ``geoopt.ProperVelocity()``
+    temperature : float
+        initial temperature :math:`\tau_h`
+    score_clip : float
+        if positive, clip the Busemann similarities to ``[-score_clip, score_clip]``
+    eps : float
+        numerical stability constant
+
+    Examples
+    --------
+    >>> import torch, geoopt.layers
+    >>> attention = geoopt.layers.ProperVelocityBusemannAttention(8, num_heads=2)
+    >>> attention(torch.randn(3, 10, 8)).shape
+    torch.Size([3, 10, 8])
+    """
+
+    def __init__(
+        self,
+        features,
+        num_heads=1,
+        *,
+        manifold=None,
+        temperature=1.0,
+        score_clip=0.0,
+        eps=1e-8,
+    ):
+        super().__init__()
+        if features < 1:
+            raise ValueError("features must be positive")
+        if num_heads < 1:
+            raise ValueError("num_heads must be positive")
+        if temperature <= 0:
+            raise ValueError("temperature must be positive")
+
+        self.features = features
+        self.num_heads = num_heads
+        self.manifold = manifold if manifold is not None else geoopt.ProperVelocity()
+        self.init_temperature = temperature
+        self.score_clip = score_clip
+        self.eps = eps
+
+        self.query_weight = torch.nn.Parameter(torch.empty(num_heads, features, features))
+        self.key_map = ProperVelocityHyperplaneKey(
+            features, num_heads * features, manifold=self.manifold
+        )
+        self.value_weight = torch.nn.Parameter(torch.empty(num_heads, features, features))
+        self.raw_temperature = torch.nn.Parameter(torch.empty(num_heads, 1, 1))
+        self.scale = torch.nn.Parameter(torch.empty(()))
+        self.reset_parameters()
+
+    @property
+    def temperature(self):
+        r"""The per-head temperatures :math:`\tau_h`."""
+        return torch.nn.functional.softplus(self.raw_temperature) + self.eps
+
+    def forward(self, query, key=None, value=None, mask=None):
+        r"""
+        Attend from ``query`` to ``key`` and aggregate ``value``.
+
+        Parameters
+        ----------
+        query : tensor
+            PV points of shape ``(..., N, features)``
+        key : tensor
+            PV points of shape ``(..., M, features)``, defaults to ``query``
+        value : tensor
+            PV points of shape ``(..., M, features)``, defaults to ``key``
+        mask : tensor
+            boolean mask broadcastable to ``(..., num_heads, N, M)`` that is ``True`` where
+            attention is allowed, or a float mask added to the logits
+
+        Returns
+        -------
+        tensor
+            PV points of shape ``(..., N, features)``
+        """
+        key = query if key is None else key
+        value = key if value is None else value
+        for input in (query, key, value):
+            if input.size(-1) != self.features:
+                raise ValueError(
+                    f"expected input with last dimension {self.features}, got {input.size(-1)}"
+                )
+        k = self.manifold.k
+        sqrt_k = torch.sqrt(k)
+
+        q = _rotate(query, self.query_weight)
+        v = _rotate(value, self.value_weight)
+        keys = self.key_map(key)
+        keys = keys.reshape(keys.shape[:-1] + (self.num_heads, self.features)).transpose(-2, -3)
+        direction = keys / keys.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+
+        argument = _lift(q, k) - q @ direction.transpose(-1, -2) / sqrt_k
+        logits = -self.temperature * sqrt_k * torch.log(argument.clamp_min(self.eps))
+        if self.score_clip > 0:
+            logits = logits.clamp(min=-self.score_clip, max=self.score_clip)
+        logits = logits / self.scale.abs().clamp_min(self.eps)
+        if mask is not None:
+            if mask.dtype == torch.bool:
+                logits = logits.masked_fill(~mask, float("-inf"))
+            else:
+                logits = logits + mask
+
+        output = _midpoint(v, torch.softmax(logits, dim=-1), k, self.eps)
+        if self.num_heads == 1:
+            return output.squeeze(-3)
+        heads = output.transpose(-2, -3)
+        uniform = heads.new_full((1, self.num_heads), 1.0 / self.num_heads)
+        return _midpoint(heads, uniform, k, self.eps).squeeze(-2)
+
+    def extra_repr(self):
+        return (
+            f"features={self.features}, "
+            f"num_heads={self.num_heads}, "
+            f"temperature={self.init_temperature}, "
+            f"score_clip={self.score_clip}"
+        )
+
+    @torch.no_grad()
+    def reset_parameters(self):
+        torch.nn.init.zeros_(self.query_weight)
+        torch.nn.init.zeros_(self.value_weight)
+        for head in range(self.num_heads):
+            rows = slice(head * self.features, (head + 1) * self.features)
+            torch.nn.init.xavier_uniform_(self.key_map.z[rows])
+        torch.nn.init.zeros_(self.key_map.r)
+        self.raw_temperature.fill_(math.log(math.expm1(self.init_temperature)))
+        self.scale.fill_(math.sqrt(self.features))
+
+
+class ProperVelocityLinearAttention(torch.nn.Module):
+    r"""
+    Linear attention on the Proper Velocity model (Shi et al., 2026, Sec. 4.4).
+
+    For every head, queries, keys and values are rotated by :class:`ProperVelocityHomomorphism`
+    maps and compared with the focused nonnegative feature map
+
+    .. math::
+
+        \varphi_p(e) = \frac{\|\tilde{e}\|}{\|\tilde{e}^{p}\|} \tilde{e}^{p}, \qquad
+        \tilde{e} = \frac{\operatorname{ReLU}(e) + \epsilon}{t},
+
+    with a learnable scale :math:`t`. The output is the PV midpoint of the values under weights
+    proportional to :math:`\lambda_{ij} = \varphi_p(q_i)^\top \varphi_p(k_j)`, which can be
+    evaluated without forming the :math:`N \times M` weight matrix (Thm. 5),
+
+    .. math::
+
+        o_i = \frac{B_i}{\sqrt{A_i^2 - \|B_i\|^2 / k}}, \qquad
+        \left[B_i, A_i\right] = \varphi_p(q_i)^\top
+        \sum_j \varphi_p(k_j) \left[v_j, \sqrt{1 + \|v_j\|^2 / k}\right].
+
+    :math:`B_i` and :math:`A_i` are divided by :math:`\sum_j \lambda_{ij}`, which leaves
+    :math:`o_i` unchanged and keeps it accurate when all kernel weights of a query are tiny.
+    Every head works on all ``features`` dimensions. With several heads their outputs are mapped to
+    the tangent space at the origin, concatenated, merged by a linear layer and mapped back.
+
+    Parameters
+    ----------
+    features : int
+        dimension of the PV points
+    num_heads : int
+        number of attention heads
+    manifold : geoopt.ProperVelocity
+        manifold of inputs and outputs, defaults to ``geoopt.ProperVelocity()``
+    power : float
+        focusing power :math:`p` of the feature map
+    eps : float
+        numerical stability constant :math:`\epsilon`
+
+    Examples
+    --------
+    >>> import torch, geoopt.layers
+    >>> attention = geoopt.layers.ProperVelocityLinearAttention(8, num_heads=2)
+    >>> attention(torch.randn(3, 1000, 8)).shape
+    torch.Size([3, 1000, 8])
+    """
+
+    def __init__(self, features, num_heads=1, *, manifold=None, power=2.0, eps=1e-8):
+        super().__init__()
+        if features < 1:
+            raise ValueError("features must be positive")
+        if num_heads < 1:
+            raise ValueError("num_heads must be positive")
+        if power <= 0:
+            raise ValueError("power must be positive")
+
+        self.features = features
+        self.num_heads = num_heads
+        self.manifold = manifold if manifold is not None else geoopt.ProperVelocity()
+        self.power = power
+        self.eps = eps
+
+        self.query_weight = torch.nn.Parameter(torch.empty(num_heads, features, features))
+        self.key_weight = torch.nn.Parameter(torch.empty(num_heads, features, features))
+        self.value_weight = torch.nn.Parameter(torch.empty(num_heads, features, features))
+        self.feature_scale = torch.nn.Parameter(torch.empty(()))
+        if num_heads > 1:
+            self.merge = torch.nn.Linear(num_heads * features, features)
+        else:
+            self.merge = None
+        self.reset_parameters()
+
+    def feature_map(self, input):
+        r"""Compute the focused feature map :math:`\varphi_p`."""
+        input = (torch.relu(input) + self.eps) / self.feature_scale.abs().clamp_min(self.eps)
+        powered = input.pow(self.power)
+        norm = powered.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+        return input.norm(dim=-1, keepdim=True) * powered / norm
+
+    def forward(self, query, key=None, value=None, mask=None):
+        r"""
+        Attend from ``query`` to ``key`` and aggregate ``value``.
+
+        Parameters
+        ----------
+        query : tensor
+            PV points of shape ``(..., N, features)``
+        key : tensor
+            PV points of shape ``(..., M, features)``, defaults to ``query``
+        value : tensor
+            PV points of shape ``(..., M, features)``, defaults to ``key``
+        mask : tensor
+            boolean mask of shape ``(..., M)`` that is ``True`` for the keys to attend to
+
+        Returns
+        -------
+        tensor
+            PV points of shape ``(..., N, features)``
+        """
+        key = query if key is None else key
+        value = key if value is None else value
+        for input in (query, key, value):
+            if input.size(-1) != self.features:
+                raise ValueError(
+                    f"expected input with last dimension {self.features}, got {input.size(-1)}"
+                )
+        k = self.manifold.k
+
+        phi_q = self.feature_map(_rotate(query, self.query_weight))
+        phi_k = self.feature_map(_rotate(key, self.key_weight))
+        if mask is not None:
+            phi_k = phi_k * mask[..., None, :, None].to(phi_k.dtype)
+        v = _rotate(value, self.value_weight)
+
+        ones = torch.ones_like(v[..., :1])
+        summary = phi_k.transpose(-1, -2) @ torch.cat((v, _lift(v, k), ones), dim=-1)
+        sums = phi_q @ summary
+        total = sums[..., -1:].clamp_min(torch.finfo(sums.dtype).tiny)
+        output = _centroid(sums[..., :-2] / total, sums[..., -2:-1] / total, k, self.eps)
+        if self.num_heads == 1:
+            return output.squeeze(-3)
+        tangent = self.manifold.logmap0(output).transpose(-2, -3).flatten(-2)
+        return self.manifold.expmap0(self.merge(tangent))
+
+    def extra_repr(self):
+        return f"features={self.features}, num_heads={self.num_heads}, power={self.power}"
+
+    @torch.no_grad()
+    def reset_parameters(self):
+        torch.nn.init.zeros_(self.query_weight)
+        torch.nn.init.zeros_(self.key_weight)
+        torch.nn.init.zeros_(self.value_weight)
+        torch.nn.init.ones_(self.feature_scale)
+        if self.merge is not None:
+            self.merge.reset_parameters()
+
+
 PVMLR = ProperVelocityMLR
 PVFC = ProperVelocityFC
 GyroPVBN = GyroProperVelocityBatchNorm
+PVHomomorphism = ProperVelocityHomomorphism
+PVHyperplaneKey = ProperVelocityHyperplaneKey
+PVBusemannAttention = ProperVelocityBusemannAttention
+PVLinearAttention = ProperVelocityLinearAttention

@@ -245,3 +245,243 @@ def test_gyro_pv_bn_validates_arguments_and_repr():
     with pytest.raises(ValueError, match="num_features"):
         geoopt.layers.GyroProperVelocityBatchNorm(0)
     assert "num_features=3" in repr(geoopt.layers.GyroProperVelocityBatchNorm(3))
+
+
+def lorentz_midpoint(values, weights, manifold):
+    # weighted mean of the lifted points rescaled onto the hyperboloid, back to PV coordinates
+    mean = weights @ pvmath.pv_to_lorentz(values, k=manifold.k)
+    norm = torch.sqrt(mean[..., :1] ** 2 - (mean[..., 1:] ** 2).sum(dim=-1, keepdim=True))
+    return pvmath.lorentz_to_pv(torch.sqrt(manifold.k) * mean / norm)
+
+
+def randomize_attention(layer):
+    with torch.no_grad():
+        for name, parameter in layer.named_parameters():
+            if name in ("query_weight", "key_weight", "value_weight"):
+                parameter.normal_(std=0.3)
+        if hasattr(layer, "key_map"):
+            layer.key_map.r.normal_(std=0.5)
+            layer.raw_temperature.normal_()
+            layer.scale.fill_(1.7)
+        else:
+            layer.feature_scale.fill_(1.3)
+    return layer
+
+
+def homomorphisms(weight):
+    maps = []
+    for generator in weight.detach():
+        hom = geoopt.layers.PVHomomorphism(generator.size(-1)).to(DTYPE)
+        with torch.no_grad():
+            hom.weight.copy_(generator)
+        maps.append(hom)
+    return maps
+
+
+def test_pv_homomorphism_is_gyro_homomorphism_and_isometry():
+    torch.manual_seed(0)
+    manifold = make_manifold(1.3)
+    layer = geoopt.layers.PVHomomorphism(5).to(DTYPE)
+    x, y = torch.randn(2, 7, 5, dtype=DTYPE) * 2
+    t = torch.tensor(0.7, dtype=DTYPE)
+
+    torch.testing.assert_close(layer(x), x)
+    with torch.no_grad():
+        layer.weight.normal_()
+    rotation = layer.rotation
+    torch.testing.assert_close(rotation @ rotation.T, torch.eye(5, dtype=DTYPE))
+    torch.testing.assert_close(torch.det(rotation), torch.tensor(1.0, dtype=DTYPE))
+    torch.testing.assert_close(layer(manifold.gyroadd(x, y)), manifold.gyroadd(layer(x), layer(y)))
+    torch.testing.assert_close(layer(manifold.gyroscalar(t, x)), manifold.gyroscalar(t, layer(x)))
+    torch.testing.assert_close(manifold.dist(layer(x), layer(y)), manifold.dist(x, y))
+
+
+def test_pv_hyperplane_key_matches_mlr_and_flat_limit():
+    torch.manual_seed(0)
+    manifold = make_manifold(0.8)
+    key = geoopt.layers.PVHyperplaneKey(5, 3, manifold=manifold).to(DTYPE)
+    assert torch.all(key.z.abs() <= (6 / (5 + 3)) ** 0.5) and torch.all(key.r == 0)
+    mlr = randomize(geoopt.layers.ProperVelocityMLR(5, 3, manifold=manifold).to(DTYPE))
+    with torch.no_grad():
+        key.z.copy_(mlr.z)
+        key.r.copy_(mlr.r)
+    input = torch.randn(8, 5, dtype=DTYPE)
+    torch.testing.assert_close(key(input), mlr(input))
+
+    # k -> infinity gives the fully connected layer x -> Zx + b with b_j = -r_j ||z_j||
+    flat = geoopt.layers.PVHyperplaneKey(5, 3, manifold=make_manifold(1e12)).to(DTYPE)
+    with torch.no_grad():
+        flat.z.copy_(mlr.z)
+        flat.r.copy_(mlr.r)
+    expected = input @ mlr.z.T - mlr.r * mlr.z.norm(dim=-1)
+    torch.testing.assert_close(flat(input), expected.detach(), rtol=1e-5, atol=1e-5)
+
+
+def test_pv_midpoint_is_lorentz_centroid_and_geodesic_midpoint():
+    from geoopt.layers.proper_velocity import _midpoint
+
+    torch.manual_seed(0)
+    manifold = make_manifold(1.3)
+    values = torch.randn(6, 4, dtype=DTYPE) * 2
+    weights = torch.softmax(torch.randn(3, 6, dtype=DTYPE), dim=-1)
+    torch.testing.assert_close(
+        _midpoint(values, weights, manifold.k, 1e-15), lorentz_midpoint(values, weights, manifold)
+    )
+    half = torch.full((1, 2), 0.5, dtype=DTYPE)
+    torch.testing.assert_close(
+        _midpoint(values[:2], half, manifold.k, 1e-15)[0],
+        manifold.geodesic(torch.tensor(0.5, dtype=DTYPE), values[0], values[1]),
+    )
+
+
+def test_pv_busemann_attention_matches_definition():
+    # Busemann function as lim_t d(q, Exp_0(t u)) - t and midpoints through the hyperboloid
+    torch.manual_seed(0)
+    manifold = make_manifold(1.3)
+    layer = geoopt.layers.PVBusemannAttention(4, 2, manifold=manifold, temperature=2.0).to(DTYPE)
+    randomize_attention(layer)
+    query = torch.randn(5, 4, dtype=DTYPE)
+    context = torch.randn(9, 4, dtype=DTYPE) * 1.5
+
+    q_maps = homomorphisms(layer.query_weight)
+    v_maps = homomorphisms(layer.value_weight)
+    keys = layer.key_map(context).detach().view(9, 2, 4)
+    heads = []
+    for head in range(2):
+        direction = keys[:, head] / keys[:, head].norm(dim=-1, keepdim=True)
+        far = manifold.expmap0(30.0 * direction)
+        busemann = manifold.dist(q_maps[head](query)[:, None], far[None]) - 30.0
+        logits = -layer.temperature[head].detach() * busemann / layer.scale.detach()
+        weights = torch.softmax(logits, dim=-1)
+        heads.append(lorentz_midpoint(v_maps[head](context), weights, manifold))
+    uniform = torch.full((1, 2), 0.5, dtype=DTYPE)
+    expected = lorentz_midpoint(torch.stack(heads, dim=-2), uniform, manifold).squeeze(-2)
+
+    torch.testing.assert_close(layer(query, context), expected.detach())
+
+
+@pytest.mark.parametrize("num_heads", [1, 2])
+def test_pv_linear_attention_matches_quadratic_midpoint(num_heads):
+    torch.manual_seed(0)
+    manifold = make_manifold(0.9)
+    layer = geoopt.layers.PVLinearAttention(4, num_heads, manifold=manifold, power=1.5)
+    layer = randomize_attention(layer.to(DTYPE))
+    query = torch.randn(6, 4, dtype=DTYPE)
+    context = torch.randn(11, 4, dtype=DTYPE) * 1.5
+
+    q_maps = homomorphisms(layer.query_weight)
+    k_maps = homomorphisms(layer.key_weight)
+    v_maps = homomorphisms(layer.value_weight)
+    heads = []
+    for head in range(num_heads):
+        weights = layer.feature_map(q_maps[head](query)) @ layer.feature_map(k_maps[head](context)).T
+        weights = weights / weights.sum(dim=-1, keepdim=True)
+        heads.append(lorentz_midpoint(v_maps[head](context), weights, manifold))
+    if num_heads == 1:
+        expected = heads[0]
+    else:
+        tangent = torch.cat([manifold.logmap0(output) for output in heads], dim=-1)
+        expected = manifold.expmap0(layer.merge(tangent))
+
+    torch.testing.assert_close(layer(query, context), expected.detach())
+
+
+def test_pv_linear_attention_query_with_nonpositive_coordinates():
+    # the feature map of such a query is ~eps, but its normalized weights are well defined
+    torch.manual_seed(0)
+    manifold = make_manifold(1.0)
+    layer = geoopt.layers.PVLinearAttention(4, manifold=manifold).to(DTYPE)
+    query = -torch.rand(3, 4, dtype=DTYPE) - 0.1
+    context = torch.randn(10, 4, dtype=DTYPE)
+
+    weights = layer.feature_map(query) @ layer.feature_map(context).T
+    weights = weights / weights.sum(dim=-1, keepdim=True)
+    expected = lorentz_midpoint(context, weights, manifold).detach()
+
+    torch.testing.assert_close(layer(query, context), expected)
+    assert torch.all(expected.norm(dim=-1) > 1e-3)
+
+
+@pytest.mark.parametrize("num_heads", [1, 3])
+def test_pv_attention_flat_limit_is_euclidean_attention(num_heads):
+    torch.manual_seed(0)
+    manifold = make_manifold(1e12)
+    query = torch.randn(5, 4, dtype=DTYPE)
+    context = torch.randn(8, 4, dtype=DTYPE)
+
+    busemann = geoopt.layers.PVBusemannAttention(4, num_heads, manifold=manifold).to(DTYPE)
+    busemann = randomize_attention(busemann)
+    keys = busemann.key_map(context).view(8, num_heads, 4).transpose(0, 1)
+    direction = keys / keys.norm(dim=-1, keepdim=True)
+    q = torch.stack([m(query) for m in homomorphisms(busemann.query_weight)])
+    v = torch.stack([m(context) for m in homomorphisms(busemann.value_weight)])
+    logits = busemann.temperature * (q @ direction.transpose(-1, -2)) / busemann.scale
+    expected = (torch.softmax(logits, dim=-1) @ v).mean(dim=0)
+    torch.testing.assert_close(busemann(query, context), expected.detach(), rtol=1e-5, atol=1e-5)
+
+    linear = randomize_attention(geoopt.layers.PVLinearAttention(4, manifold=manifold).to(DTYPE))
+    q_map, k_map, v_map = [homomorphisms(w)[0] for w in (linear.query_weight, linear.key_weight, linear.value_weight)]
+    weights = linear.feature_map(q_map(query)) @ linear.feature_map(k_map(context)).T
+    expected = weights @ v_map(context) / weights.sum(dim=-1, keepdim=True)
+    torch.testing.assert_close(linear(query, context), expected.detach(), rtol=1e-5, atol=1e-5)
+
+
+@pytest.mark.parametrize("cls", [geoopt.layers.PVBusemannAttention, geoopt.layers.PVLinearAttention])
+def test_pv_attention_batch_dims_mask_and_backward(cls):
+    torch.manual_seed(0)
+    manifold = make_manifold(2.0)
+    layer = randomize_attention(cls(4, 2, manifold=manifold).to(DTYPE))
+    query = torch.randn(3, 5, 4, dtype=DTYPE, requires_grad=True)
+    context = torch.randn(3, 7, 4, dtype=DTYPE)
+
+    output = layer(query, context)
+    assert output.shape == (3, 5, 4)
+    torch.testing.assert_close(output[1], layer(query[1], context[1]))
+    assert layer(query).shape == (3, 5, 4)
+
+    keep = torch.tensor([True, False, True, True, False, True, True])
+    torch.testing.assert_close(layer(query, context, mask=keep), layer(query, context[:, keep]))
+
+    output.sum().backward()
+    assert torch.isfinite(query.grad).all()
+    for parameter in layer.parameters():
+        if not parameter.requires_grad:  # the manifold curvature
+            continue
+        assert parameter.grad is not None
+        assert torch.isfinite(parameter.grad).all()
+
+
+def test_pv_busemann_attention_float_mask_and_score_clip():
+    torch.manual_seed(0)
+    manifold = make_manifold(1.0)
+    layer = randomize_attention(geoopt.layers.PVBusemannAttention(4, manifold=manifold).to(DTYPE))
+    query, context = torch.randn(5, 4, dtype=DTYPE), torch.randn(6, 4, dtype=DTYPE)
+    keep = torch.rand(5, 6) > 0.3
+    keep[:, 0] = True
+    additive = torch.zeros(5, 6, dtype=DTYPE).masked_fill(~keep, float("-inf"))
+    torch.testing.assert_close(layer(query, context, mask=keep), layer(query, context, mask=additive))
+
+    clipped = geoopt.layers.PVBusemannAttention(4, manifold=manifold, score_clip=1e-12).to(DTYPE)
+    uniform = torch.full((5, 6), 1 / 6, dtype=DTYPE)
+    torch.testing.assert_close(clipped(query, context), lorentz_midpoint(context, uniform, manifold))
+
+
+def test_pv_attention_validates_arguments_and_repr():
+    for cls in [geoopt.layers.PVBusemannAttention, geoopt.layers.PVLinearAttention]:
+        with pytest.raises(ValueError, match="features"):
+            cls(0)
+        with pytest.raises(ValueError, match="num_heads"):
+            cls(4, 0)
+        with pytest.raises(ValueError, match="last dimension"):
+            cls(4)(torch.randn(5, 3))
+        assert "num_heads=2" in repr(cls(4, 2))
+    with pytest.raises(ValueError, match="temperature"):
+        geoopt.layers.PVBusemannAttention(4, temperature=0.0)
+    with pytest.raises(ValueError, match="power"):
+        geoopt.layers.PVLinearAttention(4, power=0.0)
+    with pytest.raises(ValueError, match="features"):
+        geoopt.layers.PVHomomorphism(0)
+    with pytest.raises(ValueError, match="last dimension"):
+        geoopt.layers.PVHomomorphism(3)(torch.randn(2, 4))
+    assert "features=3" in repr(geoopt.layers.PVHomomorphism(3))
+    assert geoopt.layers.PVLinearAttention(4).merge is None
