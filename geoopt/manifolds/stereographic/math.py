@@ -392,7 +392,7 @@ def _inner(
     keepdim: bool = False,
     dim: int = -1,
 ):
-    return _lambda_x(x, k, keepdim=True, dim=dim) ** 2 * (u * v).sum(
+    return _lambda_x(x, k, keepdim=keepdim, dim=dim) ** 2 * (u * v).sum(
         dim=dim, keepdim=keepdim
     )
 
