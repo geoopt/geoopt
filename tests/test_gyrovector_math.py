@@ -405,6 +405,14 @@ def test_expmap_logmap(a, b, manifold, dtype):
     assert torch.isfinite(manifold.k.grad).all()
 
 
+def test_small_poincare_distance():
+    ball = geoopt.PoincareBall()
+    x = torch.tensor([1e-8, 0.0], dtype=torch.float32)
+    expected = 2 * np.arctanh(1e-8)
+    assert ball.dist0(x).item() == pytest.approx(expected, rel=1e-6, abs=0)
+    assert ball.dist(torch.zeros_like(x), x).item() == pytest.approx(expected, rel=1e-6, abs=0)
+
+
 def test_expmap0_logmap0(a, manifold, dtype):
     # this test appears to be numerical unstable once a and b may appear on the opposite sides
     v = manifold.logmap0(a)
