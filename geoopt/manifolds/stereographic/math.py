@@ -34,7 +34,11 @@ def tanh(x):
 
 @torch.jit.script
 def artanh(x: torch.Tensor):
-    x = x.clamp(-1 + 1e-7, 1 - 1e-7)
+    # 1e-7 is fine for float32, but in float64 points can sit close enough to
+    # the boundary that it clips real values: distances got stuck at 16.81
+    # with zero gradient. So use a tighter guard there.
+    eps = 1e-15 if x.dtype == torch.float64 else 1e-7
+    x = x.clamp(-1 + eps, 1 - eps)
     return (torch.log(1 + x).sub(torch.log(1 - x))).mul(0.5)
 
 
