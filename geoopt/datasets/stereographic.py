@@ -18,7 +18,7 @@ class StereographicTreeDataset(torch.utils.data.Dataset):
         Number of children of each node in the tree
     numberOfsiblings: int
         Number of noisy observations obtained from the nodes of the tree
-    sigma_children: float
+    sigma_sibling: float
         noise
     """
 
