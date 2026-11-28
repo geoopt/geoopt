@@ -197,8 +197,6 @@ def cdist(X, Y, *, k):
         Batch of points on Hyperboloid, shape (..., B2, D)
     k : tensor
         manifold negative curvature
-    dim : int
-        reduction dimension
 
     Returns
     -------
